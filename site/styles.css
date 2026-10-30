@@ -167,6 +167,7 @@ p { margin: 0; }
 
 main { padding-block: 28px 44px; display: flex; flex-direction: column; gap: 30px; }
 main:focus { outline: none; }
+#notice { padding-top: 20px; }
 
 /* Section headings: Tungsten-style page title, Industry-style uppercase section heads */
 .sec { display: flex; flex-direction: column; gap: 14px; }
