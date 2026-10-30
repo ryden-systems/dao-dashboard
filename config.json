@@ -37,11 +37,9 @@
     "_tabsNote": "Each tab is a gid (digits) or a tab name. Named tabs are found automatically once they exist, including tabs created from the dashboard's editor."
   },
   "editing": {
-    "_note": "Two-way editing between the dashboard and the sheet. Off while googleClientId is empty. The IDs below are public by design (they identify the app, they grant nothing); access is decided by each editor's own permissions on the sheet.",
+    "_note": "Two-way editing between the dashboard and the sheet. Off while googleClientId is empty. The client ID is public by design (it identifies the app, it grants nothing); access is decided by each editor's own permissions on the sheet.",
     "enabled": false,
-    "googleClientId": "",
-    "googleApiKey": "",
-    "googleAppId": ""
+    "googleClientId": ""
   },
   "governance": {
     "api": "https://galaxy.staratlas.com",

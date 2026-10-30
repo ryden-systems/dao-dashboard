@@ -26,8 +26,8 @@ export function makeRpc(url, { minIntervalMs = 120 } = {}) {
       if (res.status === 429 || res.status >= 500) { await sleep(800 * 2 ** attempt); continue; }
       if (body?.error) {
         const msg = JSON.stringify(body.error);
-        // Rate limit errors surfaced in the JSON body.
-        if (/rate|limit|429|too many/i.test(msg)) { await sleep(800 * 2 ** attempt); continue; }
+        // Rate limits and temporary server errors surfaced in the JSON body.
+        if (/rate|limit|429|too many|try again|long-term storage/i.test(msg)) { await sleep(800 * 2 ** attempt); continue; }
         throw new Error(`${method}: ${msg}`);
       }
       if (body && "result" in body) return body.result;

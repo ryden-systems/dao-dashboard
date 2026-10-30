@@ -10,7 +10,9 @@ let failed = 0, passed = 0;
 const ok = (c, m) => { if (c) passed++; else { failed++; console.log("FAIL", m); } };
 const dist = path.join(ROOT, "dist");
 const D = JSON.parse(fs.readFileSync(path.join(dist, "data", "dashboard.json"), "utf8"));
-D.editing = { googleClientId: "test-client", googleApiKey: "k", googleAppId: "1", sheetId: "SHEET", tabs: { pips: "Tracker", paymentLabels: "Payment labels", councilMembers: "Council members" } };
+// The "create tab" path applies while the list still comes from the record, whatever sheet this was built from.
+D.councilTerms.source = "record";
+D.editing = { googleClientId: "test-client", sheetId: "SHEET", tabs: { pips: "Tracker", paymentLabels: "Payment labels", councilMembers: "Council members" } };
 
 const el = (id) => ({ id, hidden: false, innerHTML: "", value: "", checked: false, dataset: {}, style: {}, addEventListener() {}, querySelectorAll: () => [], scrollIntoView() {} });
 const nodes = { view: el("view"), stamp: el("stamp"), foot: el("foot"), tip: el("tip"), editbar: el("editbar") };

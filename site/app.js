@@ -406,7 +406,7 @@
           <td>${esc(accLabel(p.account))}</td>
           <td class="n">${p.direction === "in" ? "+" : "−"}${num(p.amount, p.symbol === "USDC" ? 2 : 0)} ${p.symbol}</td>
           <td>${p.owner ? solAcc(p.owner, ownerLabel(p.owner) ?? undefined) : "—"}</td>
-          <td>${p.pip ? pipLink(p.pip) + " " : ""}${confChip(p.confidence)}${p.isReturn ? ` <span class="chip acc">return</span>` : ""}${editing() && canLabel(p) && ed.labelFor !== legKey(p) ? ` <button class="btn sm" data-act="lbl-open" data-key="${esc(legKey(p))}">Label</button>` : ""}${okMsg(ed.msgs[legKey(p)])}</td>
+          <td>${p.pip ? pipLink(p.pip) + " " : ""}${confChip(p.confidence)}${p.isReturn ? ` <span class="chip acc">return</span>` : ""}${editing() && canLabel(p) && ed.labelFor !== legKey(p) ? ` <button class="btn sm" data-act="lbl-open" data-key="${esc(legKey(p))}">${ed.msgs[legKey(p)]?.ok ? "Relabel" : "Label"}</button>` : ""}${okMsg(ed.msgs[legKey(p)])}</td>
           <td class="sub">${esc(p.reason ?? "")}</td>
           <td>${solTx(p.sig)}</td></tr>${editing() && ed.labelFor === legKey(p) ? `<tr class="detail"><td colspan="7">${labelForm(p)}</td></tr>` : ""}`).join("") || `<tr><td colspan="7" class="muted">Nothing matches these filters.</td></tr>`}</tbody>
       </table></div>

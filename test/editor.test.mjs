@@ -96,6 +96,9 @@ ok(r.saved && book["Payment labels"]?.[0]?.join() === SM.LABEL_HEADERS.join(), "
 await core.addLabel({ signature: "SIG2", recipient: "", pip: "internal", confirmed: false });
 ok(book["Payment labels"].length === 3, "second label appended, tab not recreated");
 ok((await core.addLabel({ signature: "SIG3", pip: "28" })).error, "invalid label refused");
+r = await core.addLabel({ signature: "SIG1", recipient: "OWNER1", pip: "PIP-29", confirmed: false });
+ok(r.updated && book["Payment labels"].length === 3 && book["Payment labels"][1][2] === "PIP-29" && book["Payment labels"][1][3] === "FALSE", "relabelling updates the row instead of adding one");
+await core.addLabel({ signature: "SIG1", recipient: "OWNER1", pip: "PIP-28", confirmed: true });
 const labels = parseLabelTab(book["Payment labels"]);
 ok(labels.length === 2 && labels[0].label === "PIP-28" && labels[0].confirmed === true && labels[0].recipient === "OWNER1" && labels[1].confirmed === false, "build reads the labels back: " + JSON.stringify(labels));
 
@@ -121,6 +124,18 @@ r = await core.addMember({ name: "New Member", role: "Council member", term: "Te
 ok(r.saved && book["Council members"].length === expectedRows + 2, "member added once the tab exists");
 const addedBack = parseMembersTab(book["Council members"]).find((m) => m.name === "New Member");
 ok(addedBack?.start === "2027-07-11" && addedBack.electedIn === 40 && addedBack.x === "newbie", "added member reads back correctly: " + JSON.stringify(addedBack));
+
+// A term typed as "4" belongs to the same Council as "Term 4", and shares its dates.
+const merged = councilTerms({ sheetMembers: [
+  { name: "A", term: "Term 4", start: "2026-10-11", end: "2027-07-11" },
+  { name: "B", term: "4", start: "2026-10-11", end: null },
+] }).terms;
+ok(merged.length === 1 && merged[0].label === "Term 4" && merged[0].members.length === 2 && merged[0].end === "2027-07-11", "term 4 spellings merge: " + JSON.stringify(merged.map((t) => t.label)));
+
+// ---------- sign-in must not depend on Google's file picker (it fails with several accounts signed in) ----------
+const editorSrc = fs.readFileSync(path.join(ROOT, "site", "editor.js"), "utf8");
+ok(!/picker|apis\.google\.com|drive\.file/i.test(editorSrc), "no file picker or drive.file permission in the editor");
+ok(editorSrc.includes("auth/spreadsheets"), "editor asks for the spreadsheet permission");
 
 // ---------- no access ----------
 access = false;

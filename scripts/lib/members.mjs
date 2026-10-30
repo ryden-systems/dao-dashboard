@@ -18,15 +18,16 @@ export function councilTerms({ sheetMembers = [], proposals = [], history = { te
   if (sheetMembers.length) {
     const groups = new Map();
     for (const m of sheetMembers) {
-      const key = m.term || `${m.start ?? ""}/${m.end ?? ""}`;
+      const no = (String(m.term ?? "").match(/^\s*(?:term\s*)?(\d+)\s*$/i) || [])[1];
+      const key = no ? `Term ${Number(no)}` : m.term || `${m.start ?? ""}/${m.end ?? ""}`;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(m);
     }
     const terms = [...groups.entries()].map(([key, list]) => ({
       term: Number((String(key).match(/\d+/) || [])[0]) || null,
-      label: list[0].term || "Council",
+      label: /^Term \d+$/.test(key) ? key : list[0].term || "Council",
       electedIn: list.find((m) => m.electedIn)?.electedIn ?? null,
-      start: list[0].start, end: list[0].end,
+      start: list.find((m) => m.start)?.start ?? null, end: list.find((m) => m.end)?.end ?? null,
       source: "Council members tab of the Council's sheet", sourceUrl: null,
       members: list.map(({ name, role, image, x, discord, wallet }) => ({ name, role, image, x, discord, wallet })),
     }));

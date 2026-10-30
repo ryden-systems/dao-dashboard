@@ -206,8 +206,6 @@ function computePhase() {
     editing: config.editing?.enabled && config.editing.googleClientId
       ? {
           googleClientId: config.editing.googleClientId,
-          googleApiKey: config.editing.googleApiKey,
-          googleAppId: config.editing.googleAppId,
           sheetId: config.sheet.id,
           tabs: Object.fromEntries(Object.entries(sources.tabs ?? {}).map(([k, t]) => [k, t.name])),
         }

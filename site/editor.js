@@ -1,14 +1,15 @@
 // Two-way editing: writes the dashboard's editable fields into the Council's Google Sheet.
 //
 // The sheet stays the single source of truth; this file never keeps its own copy of data.
-// Access uses the editor's own Google account with the narrow "drive.file" permission, which only
-// covers files the editor explicitly opens with this app (one-time file picker), and nothing else
-// in their Google Drive. Whether a save succeeds is decided by the sheet's normal sharing settings.
+// Access uses the editor's own Google account and Google's spreadsheet permission. The token from
+// the sign-in popup is used directly on the Sheets API, so it works with several Google accounts
+// signed in to the browser. This page only ever addresses the one sheet in its configuration, and
+// whether a save succeeds is decided by the sheet's normal sharing settings.
 (function (root) {
   "use strict";
   const SM = root.SheetMap; // site/sheetmap.js must be loaded first
   const SHEETS = "https://sheets.googleapis.com/v4/spreadsheets/";
-  const SCOPE = "https://www.googleapis.com/auth/drive.file openid email";
+  const SCOPE = "https://www.googleapis.com/auth/spreadsheets openid email";
   const same = (a, b) => SM.clean(a) === SM.clean(b);
 
   // ---------- core: Sheets API operations (no DOM; testable with a fake fetch) ----------
@@ -108,6 +109,18 @@
         const msg = SM.validate("pipLabel", pip);
         if (msg) return { error: msg };
         await core.ensureTab(tabs.paymentLabels, SM.LABEL_HEADERS);
+        const rows = await core.readTab(tabs.paymentLabels);
+        const hi = SM.findHeaderRow(rows, ["Signature"]);
+        if (hi >= 0) {
+          const h = rows[hi], cSig = SM.colIndex(h, "Signature"), cRec = SM.colIndex(h, "Recipient"), cPip = SM.colIndex(h, "PIP"), cOk = SM.colIndex(h, "Confirmed");
+          for (let i = hi + 1; i < rows.length; i++) {
+            if (same(rows[i][cSig], signature) && (cRec < 0 || same(rows[i][cRec], recipient))) {
+              await core.writeCell(tabs.paymentLabels, i, cPip, pip);
+              await core.writeCell(tabs.paymentLabels, i, cOk, confirmed ? "TRUE" : "FALSE");
+              return { saved: true, updated: true };
+            }
+          }
+        }
         await core.appendRow(tabs.paymentLabels, [signature, recipient || "", pip, confirmed ? "TRUE" : "FALSE"]);
         return { saved: true };
       },
@@ -145,7 +158,7 @@
     return core;
   }
 
-  // ---------- browser: Google sign-in and the one-time file picker ----------
+  // ---------- browser: Google sign-in ----------
   function loadScript(src) {
     return new Promise((resolve, reject) => {
       if (document.querySelector(`script[src="${src}"]`)) return resolve();
@@ -200,50 +213,14 @@
         await this._requestToken("select_account");
         const who = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", { headers: { Authorization: "Bearer " + this._token } }).then((r) => (r.ok ? r.json() : {}));
         this.state.email = who.email || null;
-        // First use: the narrow permission only covers files picked with this app.
-        let access = await this.core.accessCheck();
-        if (!access.ok) {
-          if (!this._cfg.googleApiKey) throw new Error("The file picker needs an API key; set editing.googleApiKey in the config.");
-          const picked = await this._pickSheet();
-          if (!picked) throw new Error("No file was selected. Sign in again and select the Council's sheet in the file picker.");
-          if (picked !== this._cfg.sheetId) throw new Error(`A different file was selected (${picked}). Sign in again and select the sheet with ID ${this._cfg.sheetId}.`);
-          // The grant from the picker can take a moment to apply.
-          for (let i = 0; i < 5 && !access.ok; i++) {
-            await new Promise((r) => setTimeout(r, 800 * (i + 1)));
-            access = await this.core.accessCheck();
-          }
-          if (!access.ok) throw new Error(`Google refused access to the sheet (${access.status}): ${access.message}`);
-        }
+        const access = await this.core.accessCheck();
+        if (!access.ok) throw new Error(`This Google account cannot open the sheet (${access.status}): ${access.message}`);
         this.state.signedIn = true;
       } catch (e) {
         this.state.error = e.message;
         this.state.signedIn = false;
       }
       this._emit();
-    },
-
-    async _pickSheet() {
-      await loadScript("https://apis.google.com/js/api.js");
-      await new Promise((r) => gapi.load("picker", r));
-      // Resolves with the ID of the selected file, or null if the picker was closed.
-      return new Promise((resolve) => {
-        const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS);
-        if (typeof view.setFileIds === "function") view.setFileIds(this._cfg.sheetId);
-        new google.picker.PickerBuilder()
-          .setTitle("Select the Council's sheet to allow editing")
-          .addView(view)
-          .setOAuthToken(this._token)
-          .setDeveloperKey(this._cfg.googleApiKey)
-          .setAppId(this._cfg.googleAppId)
-          .setCallback((d) => {
-            if (d.action === google.picker.Action.PICKED) {
-              const docs = d[google.picker.Response.DOCUMENTS] || d.docs || [];
-              resolve((docs[0] && (docs[0][google.picker.Document.ID] || docs[0].id)) || null);
-            } else if (d.action === google.picker.Action.CANCEL) resolve(null);
-          })
-          .build()
-          .setVisible(true);
-      });
     },
 
     signOut() {

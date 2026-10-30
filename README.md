@@ -78,8 +78,8 @@ its own copy. It is off until it is configured, and the dashboard works the same
 
 - **Who can edit** is decided by the sheet's own sharing settings. Editors sign in with Google; a save succeeds only
   if their Google account can edit the sheet. The sheet's version history records every change and who made it.
-- **Narrow permission.** The dashboard asks for Google's `drive.file` permission, which covers only files the editor
-  opens with this app. On first sign-in the editor selects the Council's sheet once in a Google file picker.
+- **Permission.** Editors grant Google's spreadsheet permission in the sign-in popup. It works with several Google
+  accounts signed in to the browser, and the dashboard only ever addresses the Council's sheet.
 - **Conflicts.** Before saving, the dashboard re-reads the cells. If someone changed one in the sheet since the form
   was opened, it shows both values and lets the editor overwrite or take the sheet's value.
 - **Visibility.** Saves appear for everyone after the next update (see *Instant updates* below, about five minutes).
@@ -87,16 +87,13 @@ its own copy. It is off until it is configured, and the dashboard works the same
 ### Setup (once, on a DAO-owned Google account)
 
 1. [Google Cloud console](https://console.cloud.google.com/) → create a project.
-2. *APIs & Services → Library*: enable **Google Sheets API** and **Google Picker API**.
-3. *OAuth consent screen*: type **External**; add the scopes `.../auth/drive.file`, `openid`, `email`. These are
-   non-sensitive scopes, so no security review is needed; while the app is in *Testing*, add each editor as a test user,
-   or publish the app.
-4. *Credentials → Create credentials → OAuth client ID*: type **Web application**; under *Authorized JavaScript
-   origins* add the dashboard's address (e.g. `https://council.staratlas.com`, or `https://<org>.github.io`).
-5. *Credentials → Create credentials → API key*: restrict it to the **Google Picker API** and to the dashboard's address.
-6. Note the project's **project number** (*IAM & Admin → Settings*).
-7. In `config.json`, set `editing.enabled` to `true` and fill in `googleClientId`, `googleApiKey` (the key from step 5)
-   and `googleAppId` (the project number). These values are public by design; they identify the app and grant nothing.
+2. *APIs & Services → Library*: enable **Google Sheets API**.
+3. *Google Auth Platform*: audience **External**; under *Data access* add `.../auth/spreadsheets`, `openid`, `email`.
+   The spreadsheet permission is classed as sensitive: while the app is in *Testing*, add each editor as a test user
+   (they see an "unverified app" notice and continue). Opening it to anyone else requires Google's app verification.
+4. *Clients → Create client*: type **Web application**; under *Authorized JavaScript origins* add the dashboard's
+   address (e.g. `https://council.staratlas.com`, or `https://<org>.github.io`). The client secret is not used.
+5. In `config.json`, set `editing.enabled` to `true` and fill in `googleClientId`. It is public by design.
 
 All of this is free. Google may change console wording; the steps above describe it as of October 2026.
 
