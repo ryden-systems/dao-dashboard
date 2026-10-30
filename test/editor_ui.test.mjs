@@ -15,7 +15,7 @@ D.councilTerms.source = "record";
 D.editing = { googleClientId: "test-client", sheetId: "SHEET", tabs: { pips: "Tracker", paymentLabels: "Payment labels", councilMembers: "Council members" } };
 
 const el = (id) => ({ id, hidden: false, innerHTML: "", value: "", checked: false, dataset: {}, style: {}, addEventListener() {}, querySelectorAll: () => [], scrollIntoView() {} });
-const nodes = { view: el("view"), stamp: el("stamp"), foot: el("foot"), tip: el("tip"), editbar: el("editbar") };
+const nodes = { view: el("view"), stamp: el("stamp"), foot: el("foot"), notice: el("notice"), tip: el("tip"), editbar: el("editbar") };
 const inputs = {}; // values the "user" typed, by element id
 const viewClick = [], winListeners = {};
 nodes.view.addEventListener = (t, fn) => { if (t === "click") viewClick.push(fn); };

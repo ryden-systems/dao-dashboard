@@ -13,7 +13,7 @@ const D = JSON.parse(fs.readFileSync(path.join(dist, "data", "dashboard.json"), 
 D.editing = { preview: true };
 
 const el = (id) => ({ id, hidden: false, innerHTML: "", dataset: {}, style: {}, addEventListener() {}, querySelectorAll: () => [] });
-const nodes = { view: el("view"), stamp: el("stamp"), foot: el("foot"), tip: el("tip"), editbar: el("editbar") };
+const nodes = { view: el("view"), stamp: el("stamp"), foot: el("foot"), notice: el("notice"), tip: el("tip"), editbar: el("editbar") };
 // The header bar and the page body have separate click listeners, as in the browser.
 const barClicks = [], viewClicks = [], winL = {};
 nodes.view.addEventListener = (t, fn) => { if (t === "click") viewClicks.push(fn); };

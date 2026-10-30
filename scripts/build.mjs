@@ -200,6 +200,7 @@ function computePhase() {
     series,
     council: sources.council,
     councilTerms: { source: council.source, note: council.note, terms: council.terms },
+    testNotice: config.sheet.testNotice || null,
     // Two-way editing: public identifiers only. Off unless enabled and a client ID is set.
     // EDITING_PREVIEW=1 (evaluation previews only) shows the sign-in button with an explanation
     // instead of a working sign-in, so no preview can write to any sheet.

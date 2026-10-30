@@ -27,7 +27,9 @@
     "POLIS": { "mint": "poLisWXnNRwC6oBu1vHiuKQzFjGL4XDSu4g9qjz9qVk", "decimals": 8 }
   },
   "sheet": {
-    "id": "1QWkFjcLwhw4GHqk5Stz72H3WRwIb52f-UDnKne7hTtY",
+    "id": "1E1CGds-E06YZU08YHa90YxWwoyJwd_S57lNKUN6lLP0",
+    "_idNote": "Council test setup: a copy of the sheet. The Council's real sheet is 1QWkFjcLwhw4GHqk5Stz72H3WRwIb52f-UDnKne7hTtY. When switching back, also remove testNotice.",
+    "testNotice": "Test setup: this dashboard currently reads from and saves to a test copy of the Council's sheet, not the real one. Figures and notes may include test edits.",
     "tabs": {
       "pips": "0",
       "council": "1688943123",
@@ -38,8 +40,8 @@
   },
   "editing": {
     "_note": "Two-way editing between the dashboard and the sheet. Off while googleClientId is empty. The client ID is public by design (it identifies the app, it grants nothing); access is decided by each editor's own permissions on the sheet.",
-    "enabled": false,
-    "googleClientId": ""
+    "enabled": true,
+    "googleClientId": "592316417560-nljjo7od7bnutqddtj4kugk21kk4gnjp.apps.googleusercontent.com"
   },
   "governance": {
     "api": "https://galaxy.staratlas.com",

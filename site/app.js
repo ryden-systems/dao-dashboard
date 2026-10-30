@@ -709,6 +709,7 @@
       <p>New to the DAO? The <a href="${KB_URL}" target="_blank" rel="noopener">Star Atlas DAO Knowledge Base</a> explains governance, PIPs, the Council, and the treasury.</p>
       <p>${Object.values(D.accounts).map((a) => `${esc(a.label)} <span class="mono addr">${esc(a.wallet)}</span>`).join(" · ")}</p>
       <p>Payout-to-PIP labels marked “inferred” are suggestions and are not counted as paid until confirmed.</p>`;
+    if (D.testNotice) { $("#notice").hidden = false; $("#notice").innerHTML = `<div class="note">${esc(D.testNotice)}</div>`; }
     ED?.init(D.editing);
     bind();
     render();

@@ -16,7 +16,7 @@ function el(id) {
     querySelector: () => null, querySelectorAll: () => [],
   };
 }
-const nodes = { view: el("view"), stamp: el("stamp"), foot: el("foot"), tip: el("tip") };
+const nodes = { view: el("view"), stamp: el("stamp"), foot: el("foot"), notice: el("notice"), tip: el("tip") };
 const listeners = {};
 const errors = [];
 
@@ -75,6 +75,8 @@ for (const r of routes) {
   }
 }
 if (!nodes.stamp.innerHTML.includes("Data as of")) { failed++; console.log("FAIL header stamp not set"); }
+const builtData = JSON.parse(fs.readFileSync(path.join(dist, "data", "dashboard.json"), "utf8"));
+if (builtData.testNotice && !nodes.notice.innerHTML.includes(builtData.testNotice.slice(0, 12))) { failed++; console.log("FAIL test-sheet notice not shown"); }
 if (!nodes.foot.innerHTML.includes("third-party created service")) { failed++; console.log("FAIL third-party disclaimer missing from footer"); }
 if (errors.length) failed += errors.length;
 console.log(failed ? `\n${failed} failure(s)` : "\nall pages render");
