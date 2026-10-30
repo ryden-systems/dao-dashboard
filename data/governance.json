@@ -1,0 +1,1940 @@
+{
+ "proposals": [
+  {
+   "pip": 1,
+   "id": "bc8475e4-0525-4fba-b4f8-b848ccde7a9d",
+   "title": "Star Atlas DAO",
+   "categories": [
+    "Process"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2024-07-08T17:20:59.959Z",
+   "votingStartsAt": "2024-07-10T16:00:00.000Z",
+   "votingEndsAt": "2024-07-23T16:00:00.000Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "Abstain",
+     "count": 11,
+     "pvp": 6267862.718595724
+    },
+    {
+     "option": "No",
+     "count": 101,
+     "pvp": 50624407.96816818
+    },
+    {
+     "option": "Yes",
+     "count": 782,
+     "pvp": 118466246.6076961
+    }
+   ],
+   "totalVotes": 894,
+   "totalPvp": 175358517.29446
+  },
+  {
+   "pip": 2,
+   "id": "1e2d7066-ec44-46e0-945f-b2e56b1e61b0",
+   "title": "Star Atlas Foundation",
+   "categories": [
+    "Process"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2024-07-08T17:21:02.359Z",
+   "votingStartsAt": "2024-07-10T16:00:00.000Z",
+   "votingEndsAt": "2024-07-23T16:00:00.000Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "Abstain",
+     "count": 27,
+     "pvp": 7292070.457697856
+    },
+    {
+     "option": "No",
+     "count": 151,
+     "pvp": 69015468.83813375
+    },
+    {
+     "option": "Yes",
+     "count": 674,
+     "pvp": 99759835.19288997
+    }
+   ],
+   "totalVotes": 852,
+   "totalPvp": 176067374.48872158
+  },
+  {
+   "pip": 3,
+   "id": "f5e7cde1-9a02-4670-ae40-1c932a4b8dad",
+   "title": "Star Atlas Council",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2024-07-08T17:21:04.293Z",
+   "votingStartsAt": "2024-07-24T16:00:00.000Z",
+   "votingEndsAt": "2024-08-06T16:00:00.000Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "Abstain",
+     "count": 5,
+     "pvp": 164557.69369207002
+    },
+    {
+     "option": "No",
+     "count": 13,
+     "pvp": 12482711.012724074
+    },
+    {
+     "option": "Yes",
+     "count": 461,
+     "pvp": 84678191.70252548
+    }
+   ],
+   "totalVotes": 479,
+   "totalPvp": 97325460.40894163
+  },
+  {
+   "pip": 4,
+   "id": "ad1945d8-60dc-4ed7-b52a-63dd33f97415",
+   "title": "Star Atlas Ecosystem Fund",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2024-07-08T17:21:06.160Z",
+   "votingStartsAt": "2024-07-24T16:00:00.000Z",
+   "votingEndsAt": "2024-08-06T16:00:00.000Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "Abstain",
+     "count": 6,
+     "pvp": 203935.9438189092
+    },
+    {
+     "option": "No",
+     "count": 33,
+     "pvp": 14242581.31620797
+    },
+    {
+     "option": "Yes",
+     "count": 421,
+     "pvp": 81843902.5128978
+    }
+   ],
+   "totalVotes": 460,
+   "totalPvp": 96290419.77292469
+  },
+  {
+   "pip": 5,
+   "id": "c248d280-15fb-4071-ba5d-2afaa6e1af41",
+   "title": "Co-Sponsor the Naabathon",
+   "categories": [
+    "FUNDING"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2024-07-26T09:14:17.852Z",
+   "votingStartsAt": "2024-07-26T16:00:00.000Z",
+   "votingEndsAt": "2024-08-09T16:00:00.000Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "Abstain",
+     "count": 9,
+     "pvp": 740849.6005100228
+    },
+    {
+     "option": "No",
+     "count": 69,
+     "pvp": 19930351.43958933
+    },
+    {
+     "option": "Yes",
+     "count": 333,
+     "pvp": 80521366.4547641
+    }
+   ],
+   "totalVotes": 411,
+   "totalPvp": 101192567.49486345
+  },
+  {
+   "pip": 6,
+   "id": "1b792551-83e1-4998-99a4-6637caa69df8",
+   "title": "Council Election #1 - First Round",
+   "categories": [
+    "COUNCIL"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2024-08-23T13:33:50.299Z",
+   "votingStartsAt": "2024-09-14T16:00:00.000Z",
+   "votingEndsAt": "2024-09-21T05:00:00.000Z",
+   "maxChoices": 22,
+   "winners": 12,
+   "ranked": true,
+   "distinctBallots": 446,
+   "candidates": [
+    {
+     "value": "rome_i_emperor",
+     "display": "ROME I Emperor",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/ROME_I_Emperor.png"
+    },
+    {
+     "value": "jith_blade",
+     "display": "Jith Blade",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/Jith_Blade.gif"
+    },
+    {
+     "value": "drumcarl05",
+     "display": "DRUMCARL05",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/DRUMCARL05.png"
+    },
+    {
+     "value": "notcatz",
+     "display": "Notcatz",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/Notcatz.jpeg"
+    },
+    {
+     "value": "bolerzwam",
+     "display": "bolerZwam",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/bolerZwam.jpg"
+    },
+    {
+     "value": "krigs",
+     "display": "Krigs",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/Krigs.png"
+    },
+    {
+     "value": "dmark",
+     "display": "Dmark",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/Dmark.png"
+    },
+    {
+     "value": "jp",
+     "display": "JP",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/JP.jpg"
+    },
+    {
+     "value": "bodhi_tree",
+     "display": "Bodhi [TREE]",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/Bodhi_TREE.png"
+    },
+    {
+     "value": "kucheto",
+     "display": "Kucheto",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/Kucheto.jpg"
+    },
+    {
+     "value": "xalexus",
+     "display": "xAlexus",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/xAlexus.jpeg"
+    },
+    {
+     "value": "sawyn",
+     "display": "🆂🅰🆆🆈🅽",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/SAWYN.jpg"
+    },
+    {
+     "value": "king_bryan",
+     "display": "King Bryan",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/King_Bryan.jpg"
+    },
+    {
+     "value": "folarihn_topboi",
+     "display": "Folarihn TopBoi",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/Folarihn_TopBoi.jpeg"
+    },
+    {
+     "value": "sai_kirito",
+     "display": "[SAI]Kirito",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/SAI_Kirito.png"
+    },
+    {
+     "value": "z",
+     "display": "Z",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/Z.png"
+    },
+    {
+     "value": "dextrin",
+     "display": "Dextrin",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/Dextrin.jpeg"
+    },
+    {
+     "value": "sim",
+     "display": "Sim",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/Sim.jpeg"
+    },
+    {
+     "value": "funcracker",
+     "display": "Funcracker",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/Funcracker.png"
+    },
+    {
+     "value": "onigiri0732_91801",
+     "display": "onigiri0732_91801",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/onigiri0732_91801.png"
+    },
+    {
+     "value": "bilal_sous",
+     "display": "Bilal Sous",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/Bilal_Sous.jpg"
+    },
+    {
+     "value": "ajota_lrnr",
+     "display": "AJOTA.lrnr",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/AJOTA_lrnr.png"
+    }
+   ],
+   "officialWinners": [
+    "king_bryan",
+    "funcracker",
+    "krigs",
+    "bodhi_tree",
+    "rome_i_emperor",
+    "ajota_lrnr",
+    "notcatz",
+    "jp",
+    "jith_blade",
+    "drumcarl05",
+    "dmark",
+    "xalexus"
+   ],
+   "brief": "The first round of the first Star Atlas Council election. From 22 candidates and through ranked choice voting, the top 12 will continue to the second round of the election. In the second round of the election, the top 5 are officially elected Star Atlas Council members.",
+   "options": [
+    {
+     "option": "king_bryan",
+     "count": 52,
+     "pvp": 49226617.58010348
+    },
+    {
+     "option": "funcracker",
+     "count": 132,
+     "pvp": 27009022.69051671
+    },
+    {
+     "option": "krigs",
+     "count": 69,
+     "pvp": 26630953.81326079
+    },
+    {
+     "option": "bodhi_tree",
+     "count": 17,
+     "pvp": 13217401.457161132
+    },
+    {
+     "option": "jp",
+     "count": 8,
+     "pvp": 11634590.883841274
+    },
+    {
+     "option": "rome_i_emperor",
+     "count": 84,
+     "pvp": 11092591.760810765
+    },
+    {
+     "option": "ajota_lrnr",
+     "count": 21,
+     "pvp": 6751759.688827763
+    },
+    {
+     "option": "drumcarl05",
+     "count": 63,
+     "pvp": 4307977.831160901
+    },
+    {
+     "option": "sai_kirito",
+     "count": 15,
+     "pvp": 3916161.73585696
+    },
+    {
+     "option": "notcatz",
+     "count": 5,
+     "pvp": 2117747.102807145
+    },
+    {
+     "option": "sawyn",
+     "count": 24,
+     "pvp": 1397006.0643708392
+    },
+    {
+     "option": "dmark",
+     "count": 6,
+     "pvp": 802833.8446990589
+    },
+    {
+     "option": "sim",
+     "count": 45,
+     "pvp": 740625.4820690332
+    },
+    {
+     "option": "bolerzwam",
+     "count": 3,
+     "pvp": 645447.856796962
+    },
+    {
+     "option": "xalexus",
+     "count": 23,
+     "pvp": 504422.36612656893
+    },
+    {
+     "option": "dextrin",
+     "count": 5,
+     "pvp": 476420.5058253553
+    },
+    {
+     "option": "kucheto",
+     "count": 2,
+     "pvp": 443450.57565259916
+    },
+    {
+     "option": "jith_blade",
+     "count": 11,
+     "pvp": 392353.9498416739
+    },
+    {
+     "option": "z",
+     "count": 1,
+     "pvp": 18610.26414922138
+    },
+    {
+     "option": "bilal_sous",
+     "count": 1,
+     "pvp": 1893.630093713849
+    },
+    {
+     "option": "folarihn_topboi",
+     "count": 0,
+     "pvp": 0
+    },
+    {
+     "option": "onigiri0732_91801",
+     "count": 0,
+     "pvp": 0
+    }
+   ],
+   "totalVotes": 587,
+   "totalPvp": 161327889.08397192
+  },
+  {
+   "pip": 7,
+   "id": "91652743-f916-4566-99af-421a557f7c3d",
+   "title": "Council Election #1 - Second Round",
+   "categories": [
+    "COUNCIL"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2024-09-26T12:01:36.608Z",
+   "votingStartsAt": "2024-09-27T16:00:00.000Z",
+   "votingEndsAt": "2024-10-11T16:00:00.000Z",
+   "maxChoices": 12,
+   "winners": 5,
+   "ranked": true,
+   "distinctBallots": 457,
+   "candidates": [
+    {
+     "value": "rome_i_emperor",
+     "display": "ROME I Emperor",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/ROME_I_Emperor.png"
+    },
+    {
+     "value": "jith_blade",
+     "display": "Jith Blade",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/Jith_Blade.gif"
+    },
+    {
+     "value": "drumcarl05",
+     "display": "DRUMCARL05",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/DRUMCARL05.png"
+    },
+    {
+     "value": "notcatz",
+     "display": "Notcatz",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/Notcatz.jpeg"
+    },
+    {
+     "value": "dmark",
+     "display": "Dmark",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/Dmark.png"
+    },
+    {
+     "value": "jp",
+     "display": "JP",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/JP.jpg"
+    },
+    {
+     "value": "bodhi_tree",
+     "display": "Bodhi [TREE]",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/Bodhi_TREE.png"
+    },
+    {
+     "value": "xalexus",
+     "display": "xAlexus",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/xAlexus.jpeg"
+    },
+    {
+     "value": "king_bryan",
+     "display": "King Bryan",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/King_Bryan.jpg"
+    },
+    {
+     "value": "funcracker",
+     "display": "Funcracker",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/Funcracker.png"
+    },
+    {
+     "value": "ajota_lrnr",
+     "display": "AJOTA.lrnr",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/AJOTA_lrnr.png"
+    },
+    {
+     "value": "krigs",
+     "display": "Krigs (dropped out)",
+     "image": "https://cdn.staratlas.com/dao/council-election/1/Krigs.png"
+    }
+   ],
+   "officialWinners": [
+    "jp",
+    "funcracker",
+    "king_bryan",
+    "bodhi_tree",
+    "drumcarl05"
+   ],
+   "brief": "The second round of the first Star Atlas Council election. From 12 remaining candidates and through ranked choice voting, the top 5 will officially be elected Star Atlas Council members.",
+   "options": [
+    {
+     "option": "jp",
+     "count": 33,
+     "pvp": 32911838.1913738
+    },
+    {
+     "option": "funcracker",
+     "count": 165,
+     "pvp": 31697785.204749506
+    },
+    {
+     "option": "king_bryan",
+     "count": 58,
+     "pvp": 29468830.67482957
+    },
+    {
+     "option": "bodhi_tree",
+     "count": 32,
+     "pvp": 24018579.925345335
+    },
+    {
+     "option": "drumcarl05",
+     "count": 119,
+     "pvp": 19562239.523588885
+    },
+    {
+     "option": "rome_i_emperor",
+     "count": 94,
+     "pvp": 16789931.68134005
+    },
+    {
+     "option": "ajota_lrnr",
+     "count": 17,
+     "pvp": 10086296.021612
+    },
+    {
+     "option": "notcatz",
+     "count": 9,
+     "pvp": 5867903.795680172
+    },
+    {
+     "option": "jith_blade",
+     "count": 8,
+     "pvp": 2416257.753616985
+    },
+    {
+     "option": "dmark",
+     "count": 3,
+     "pvp": 753879.748812882
+    },
+    {
+     "option": "xalexus",
+     "count": 26,
+     "pvp": 548428.5150321781
+    },
+    {
+     "option": "krigs",
+     "count": 12,
+     "pvp": 528630.6152451476
+    }
+   ],
+   "totalVotes": 576,
+   "totalPvp": 174650601.65122646
+  },
+  {
+   "pip": 8,
+   "id": "62506041-933e-4b3e-a450-a2596c15a801",
+   "title": "Star Atlas Comet: Community Meetup at Gamescom 2025",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2025-02-19T18:21:12.823Z",
+   "votingStartsAt": "2025-02-19T23:59:59.999Z",
+   "votingEndsAt": "2025-02-26T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 3,
+     "pvp": 455574.8967478714
+    },
+    {
+     "option": "no",
+     "count": 54,
+     "pvp": 12007878.972757747
+    },
+    {
+     "option": "yes",
+     "count": 228,
+     "pvp": 72275594.60140197
+    }
+   ],
+   "totalVotes": 285,
+   "totalPvp": 84739048.47090758
+  },
+  {
+   "pip": 9,
+   "id": "1cc4bb6f-269b-46fa-b60b-a17f01b41ffa",
+   "title": "Adjust STV Backup Vote Handling to Prevent Unintended Vote Redistribution",
+   "categories": [
+    "DAO"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2025-02-26T12:12:27.813Z",
+   "votingStartsAt": "2025-02-27T23:59:59.999Z",
+   "votingEndsAt": "2025-03-06T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "no",
+     "count": 3,
+     "pvp": 433700.5408313776
+    },
+    {
+     "option": "yes",
+     "count": 124,
+     "pvp": 60315831.19041703
+    }
+   ],
+   "totalVotes": 127,
+   "totalPvp": 60749531.73124841
+  },
+  {
+   "pip": 10,
+   "id": "ed887a4e-344e-44d6-8a47-c815d9e8ec8e",
+   "title": "Star Atlas Council: Second Term & Beyond",
+   "categories": [
+    "Council"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2025-02-26T12:12:30.590Z",
+   "votingStartsAt": "2025-02-27T23:59:59.999Z",
+   "votingEndsAt": "2025-03-13T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 1,
+     "pvp": 249133.7265861902
+    },
+    {
+     "option": "no",
+     "count": 1,
+     "pvp": 786061.9883146426
+    },
+    {
+     "option": "yes",
+     "count": 209,
+     "pvp": 84997000.83344479
+    }
+   ],
+   "totalVotes": 211,
+   "totalPvp": 86032196.54834563
+  },
+  {
+   "pip": 11,
+   "id": "7b48a62d-13c3-4a1e-8565-6ea7bfb4b4dc",
+   "title": "Council Election #2",
+   "categories": [
+    "COUNCIL"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2025-03-21T16:02:25.537Z",
+   "votingStartsAt": "2025-03-23T23:59:59.999Z",
+   "votingEndsAt": "2025-04-06T23:59:59.999Z",
+   "maxChoices": 7,
+   "winners": 5,
+   "ranked": true,
+   "distinctBallots": 277,
+   "candidates": [
+    {
+     "value": "emperor",
+     "display": "Emperor ===[]",
+     "image": "https://cdn.staratlas.com/dao/council-election/2/Emperor.png"
+    },
+    {
+     "value": "drumcarl05",
+     "display": "DRUMCARL05",
+     "image": "https://cdn.staratlas.com/dao/council-election/2/DRUMCARL05.JPG"
+    },
+    {
+     "value": "jithblade",
+     "display": "[EMP] jith blade",
+     "image": "https://cdn.staratlas.com/dao/council-election/2/Jith_Blade.gif"
+    },
+    {
+     "value": "bodhitree",
+     "display": "bodhitree_",
+     "image": "https://cdn.staratlas.com/dao/council-election/2/Bodhi_TREE.png"
+    },
+    {
+     "value": "signal",
+     "display": "ROME | Signal",
+     "image": "https://cdn.staratlas.com/dao/council-election/2/Signal.jpeg"
+    },
+    {
+     "value": "lanzer",
+     "display": "Lanzer",
+     "image": "https://cdn.staratlas.com/dao/council-election/2/Lanzer.png"
+    },
+    {
+     "value": "marshalza",
+     "display": "[MERC]★★★|MARSHAL|★★★[ZA]",
+     "image": "https://cdn.staratlas.com/dao/council-election/2/Marshal_ZA.jpeg"
+    }
+   ],
+   "officialWinners": null,
+   "brief": "This proposal determines who will serve on the Star Atlas DAO Council for its second term (April 11, 2025 - January 11, 2026). As outlined in PIP-10, there will be only one round of voting. Seven candidates nominated themselves during the nomination period. The top five candidates, selected through ranked-choice voting using the Single Transferable Vote (STV) method, will become officially elected Star Atlas Council members on April 11th, 2025.",
+   "options": [
+    {
+     "option": "drumcarl05",
+     "count": 112,
+     "pvp": 35723459.157098904
+    },
+    {
+     "option": "signal",
+     "count": 74,
+     "pvp": 35501405.61979211
+    },
+    {
+     "option": "bodhitree",
+     "count": 53,
+     "pvp": 27264023.95220484
+    },
+    {
+     "option": "emperor",
+     "count": 42,
+     "pvp": 24479151.3025994
+    },
+    {
+     "option": "lanzer",
+     "count": 45,
+     "pvp": 21435084.34830583
+    },
+    {
+     "option": "jithblade",
+     "count": 9,
+     "pvp": 4740566.074627277
+    },
+    {
+     "option": "marshalza",
+     "count": 13,
+     "pvp": 903306.627218377
+    }
+   ],
+   "totalVotes": 348,
+   "totalPvp": 150046997.08184674
+  },
+  {
+   "pip": 12,
+   "id": "f15380c9-8d3f-4849-8185-c29f4c72e961",
+   "title": "Iris’s Bounty: The Feast",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2025-04-11T13:07:47.033Z",
+   "votingStartsAt": "2025-04-13T23:59:59.999Z",
+   "votingEndsAt": "2025-04-27T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 6,
+     "pvp": 12866654.6346609
+    },
+    {
+     "option": "no",
+     "count": 50,
+     "pvp": 16325703.817512384
+    },
+    {
+     "option": "yes",
+     "count": 87,
+     "pvp": 55090441.72035141
+    }
+   ],
+   "totalVotes": 143,
+   "totalPvp": 84282800.17252469
+  },
+  {
+   "pip": 13,
+   "id": "b721d8e7-9ca1-4a85-b627-472c108b3acb",
+   "title": "Implementing Term Limits for Star Atlas DAO Council Members",
+   "categories": [
+    "DAO",
+    "COUNCIL"
+   ],
+   "status": "Voting_Complete_Measure_Failed",
+   "outcome": "failed",
+   "createdAt": "2025-04-11T13:07:52.103Z",
+   "votingStartsAt": "2025-04-14T23:59:59.999Z",
+   "votingEndsAt": "2025-04-28T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 21,
+     "pvp": 3519692.3295073644
+    },
+    {
+     "option": "no",
+     "count": 57,
+     "pvp": 58144044.19217557
+    },
+    {
+     "option": "yes",
+     "count": 83,
+     "pvp": 23247451.44933094
+    }
+   ],
+   "totalVotes": 161,
+   "totalPvp": 84911187.97101387
+  },
+  {
+   "pip": 14,
+   "id": "fed98016-e7b6-4a5b-8120-4f0ec90cfa77",
+   "title": "Deepening THEO Integration into the Star Atlas Economy",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2025-04-15T08:06:25.670Z",
+   "votingStartsAt": "2025-04-16T23:59:59.999Z",
+   "votingEndsAt": "2025-04-30T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 7,
+     "pvp": 462089.7904602649
+    },
+    {
+     "option": "no",
+     "count": 28,
+     "pvp": 7476976.939459392
+    },
+    {
+     "option": "yes",
+     "count": 141,
+     "pvp": 100079948.79172185
+    }
+   ],
+   "totalVotes": 176,
+   "totalPvp": 108019015.52164151
+  },
+  {
+   "pip": 15,
+   "id": "bd065ad2-5e75-4e47-a696-a1efe06382da",
+   "title": "In-Person Community Meetups Platform",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Failed",
+   "outcome": "failed",
+   "createdAt": "2025-05-07T19:50:27.545Z",
+   "votingStartsAt": "2025-05-08T23:59:59.999Z",
+   "votingEndsAt": "2025-05-22T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 13,
+     "pvp": 2909806.6448060554
+    },
+    {
+     "option": "no",
+     "count": 102,
+     "pvp": 62013412.289606795
+    },
+    {
+     "option": "yes",
+     "count": 46,
+     "pvp": 38791006.98713183
+    }
+   ],
+   "totalVotes": 161,
+   "totalPvp": 103714225.92154467
+  },
+  {
+   "pip": 16,
+   "id": "b11ced4b-a6a5-4211-a0e6-060eadc4bd22",
+   "title": "Ryden Systems",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2025-05-07T19:50:30.679Z",
+   "votingStartsAt": "2025-05-08T23:59:59.999Z",
+   "votingEndsAt": "2025-05-22T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 14,
+     "pvp": 18804169.14759859
+    },
+    {
+     "option": "no",
+     "count": 21,
+     "pvp": 6979915.864065522
+    },
+    {
+     "option": "yes",
+     "count": 167,
+     "pvp": 81056806.28823334
+    }
+   ],
+   "totalVotes": 202,
+   "totalPvp": 106840891.29989746
+  },
+  {
+   "pip": 17,
+   "id": "4df4c199-e888-4fdc-a666-7f82d6cf2de7",
+   "title": "Star Atlas Ecosystem Media Expansion",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2025-05-23T20:32:15.279Z",
+   "votingStartsAt": "2025-05-29T23:59:59.999Z",
+   "votingEndsAt": "2025-06-12T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 4,
+     "pvp": 606649.9658592097
+    },
+    {
+     "option": "no",
+     "count": 70,
+     "pvp": 43163339.022789255
+    },
+    {
+     "option": "yes",
+     "count": 120,
+     "pvp": 67357600.78706531
+    }
+   ],
+   "totalVotes": 194,
+   "totalPvp": 111127589.77571377
+  },
+  {
+   "pip": 18,
+   "id": "18750a6a-f36d-44ba-990a-07769c5c589b",
+   "title": "Marketing & Merch Expansion for Gamescom 2025",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2025-07-03T14:38:14.743Z",
+   "votingStartsAt": "2025-07-03T23:59:59.999Z",
+   "votingEndsAt": "2025-07-17T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 4,
+     "pvp": 2209311.330684701
+    },
+    {
+     "option": "no",
+     "count": 14,
+     "pvp": 11339350.451207757
+    },
+    {
+     "option": "yes",
+     "count": 98,
+     "pvp": 40993696.92844894
+    }
+   ],
+   "totalVotes": 116,
+   "totalPvp": 54542358.710341394
+  },
+  {
+   "pip": 19,
+   "id": "1eb3d15e-645e-4c34-8a69-00d304ecfc4f",
+   "title": "Funding Independent Economic Research and Maintenance of Critical Data Resources",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Failed",
+   "outcome": "failed",
+   "createdAt": "2025-09-20T07:31:38.204Z",
+   "votingStartsAt": "2025-09-21T23:59:59.999Z",
+   "votingEndsAt": "2025-10-05T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 9,
+     "pvp": 1050954.3007301348
+    },
+    {
+     "option": "no",
+     "count": 105,
+     "pvp": 83100564.47406821
+    },
+    {
+     "option": "yes",
+     "count": 43,
+     "pvp": 59388884.17306768
+    }
+   ],
+   "totalVotes": 157,
+   "totalPvp": 143540402.94786602
+  },
+  {
+   "pip": 20,
+   "id": "159cb743-f8cf-4932-8e01-e6f1a0b479ff",
+   "title": "Establishment of the DAO Casters Program — Elected Content Creators for Star Atlas Ecosystem Promotion",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2025-09-29T18:37:48.441Z",
+   "votingStartsAt": "2025-10-01T23:59:59.999Z",
+   "votingEndsAt": "2025-10-15T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 7,
+     "pvp": 516503.5315026251
+    },
+    {
+     "option": "no",
+     "count": 32,
+     "pvp": 15940622.261602137
+    },
+    {
+     "option": "yes",
+     "count": 111,
+     "pvp": 106030687.38355558
+    }
+   ],
+   "totalVotes": 150,
+   "totalPvp": 122487813.17666034
+  },
+  {
+   "pip": 21,
+   "id": "49cad7e4-f467-4c88-978a-e3cac1633cf1",
+   "title": "Rogue Data Hub",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2025-09-29T18:37:50.635Z",
+   "votingStartsAt": "2025-10-01T23:59:59.999Z",
+   "votingEndsAt": "2025-10-15T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 4,
+     "pvp": 14689624.660660181
+    },
+    {
+     "option": "no",
+     "count": 56,
+     "pvp": 55012100.13793424
+    },
+    {
+     "option": "yes",
+     "count": 124,
+     "pvp": 76880541.9373037
+    }
+   ],
+   "totalVotes": 184,
+   "totalPvp": 146582266.73589814
+  },
+  {
+   "pip": 22,
+   "id": "d5d61e64-5489-4530-93a5-b65bf1bf8079",
+   "title": "Iris Bounty - The Arena",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2025-11-03T14:48:11.104Z",
+   "votingStartsAt": "2025-11-04T23:59:59.999Z",
+   "votingEndsAt": "2025-11-18T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 2,
+     "pvp": 392044.78070359305
+    },
+    {
+     "option": "no",
+     "count": 9,
+     "pvp": 2670497.955249863
+    },
+    {
+     "option": "yes",
+     "count": 98,
+     "pvp": 137797850.98727578
+    }
+   ],
+   "totalVotes": 109,
+   "totalPvp": 140860393.72322923
+  },
+  {
+   "pip": 23,
+   "id": "0ecf2928-15df-497e-8b67-d87eda030d5a",
+   "title": "Refresh of PIP-4 the Ecosystem Fund",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2025-11-03T14:48:14.351Z",
+   "votingStartsAt": "2025-11-04T23:59:59.999Z",
+   "votingEndsAt": "2025-11-18T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 6,
+     "pvp": 792710.9199434808
+    },
+    {
+     "option": "no",
+     "count": 34,
+     "pvp": 24262645.413694594
+    },
+    {
+     "option": "yes",
+     "count": 77,
+     "pvp": 86030422.0270553
+    }
+   ],
+   "totalVotes": 117,
+   "totalPvp": 111085778.36069337
+  },
+  {
+   "pip": 24,
+   "id": "8cc6b298-2708-40c6-9b9d-867f0cba8ea5",
+   "title": "DAO-Supported Hosting Service for SLY Assistant",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2025-11-07T11:03:44.775Z",
+   "votingStartsAt": "2025-11-08T23:59:59.999Z",
+   "votingEndsAt": "2025-11-22T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 6,
+     "pvp": 1036464.8531316945
+    },
+    {
+     "option": "no",
+     "count": 55,
+     "pvp": 43346187.830609255
+    },
+    {
+     "option": "yes",
+     "count": 79,
+     "pvp": 64002012.60212503
+    }
+   ],
+   "totalVotes": 140,
+   "totalPvp": 108384665.28586598
+  },
+  {
+   "pip": 25,
+   "id": "91cc73fa-0af7-41ea-86c5-bab7ffcfcb4f",
+   "title": "Council Election #3",
+   "categories": [
+    "COUNCIL"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2025-11-26T09:14:38.127Z",
+   "votingStartsAt": "2025-11-26T23:59:59.999Z",
+   "votingEndsAt": "2025-12-10T23:59:59.999Z",
+   "maxChoices": 6,
+   "winners": 5,
+   "ranked": true,
+   "distinctBallots": 124,
+   "candidates": [
+    {
+     "value": "emperor",
+     "display": "Emperor ===[]",
+     "image": "https://cdn.staratlas.com/dao/council-election/3/Emperor.png"
+    },
+    {
+     "value": "atlas_freeks",
+     "display": "[ECL] YassFreeks",
+     "image": "https://cdn.staratlas.com/dao/council-election/3/Atlas_Freeks.png"
+    },
+    {
+     "value": "winston",
+     "display": "ROME | Winston",
+     "image": "https://cdn.staratlas.com/dao/council-election/3/Winston.png"
+    },
+    {
+     "value": "jith_blade",
+     "display": "[EMP] jith blade",
+     "image": "https://cdn.staratlas.com/dao/council-election/3/Jith_Blade.png"
+    },
+    {
+     "value": "lanzer",
+     "display": "LANZER",
+     "image": "https://cdn.staratlas.com/dao/council-election/3/Lanzer.png"
+    },
+    {
+     "value": "morango",
+     "display": "Q | Morangø",
+     "image": "https://cdn.staratlas.com/dao/council-election/3/Morango.jpg"
+    }
+   ],
+   "officialWinners": null,
+   "brief": "This proposal determines who will serve on the Star Atlas DAO Council for its third term (January 11, 2026 - October 11, 2026). As outlined in PIP-10, there will be only one round of voting. Six candidates nominated themselves during the nomination period. The top five candidates, selected through ranked-choice voting using the Single Transferable Vote (STV) method, will become officially elected Star Atlas Council members on January 11th, 2026.",
+   "options": [
+    {
+     "option": "winston",
+     "count": 58,
+     "pvp": 32862036.673666917
+    },
+    {
+     "option": "morango",
+     "count": 41,
+     "pvp": 24888592.54853547
+    },
+    {
+     "option": "jith_blade",
+     "count": 9,
+     "pvp": 21373196.0514765
+    },
+    {
+     "option": "lanzer",
+     "count": 34,
+     "pvp": 18978144.58265642
+    },
+    {
+     "option": "emperor",
+     "count": 24,
+     "pvp": 11748611.942803945
+    },
+    {
+     "option": "atlas_freeks",
+     "count": 10,
+     "pvp": 1927049.7108129854
+    }
+   ],
+   "totalVotes": 176,
+   "totalPvp": 111777631.50995225
+  },
+  {
+   "pip": 26,
+   "id": "b70ac545-6c01-486d-b943-dee434d9abf3",
+   "title": "Star Atlas Crew Adventure Series – Season Production ",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Failed",
+   "outcome": "failed",
+   "createdAt": "2026-01-20T14:35:51.298Z",
+   "votingStartsAt": "2026-01-22T23:59:59.999Z",
+   "votingEndsAt": "2026-02-05T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 8,
+     "pvp": 28396587.008982923
+    },
+    {
+     "option": "no",
+     "count": 90,
+     "pvp": 87903394.3874797
+    },
+    {
+     "option": "yes",
+     "count": 49,
+     "pvp": 50845898.3981071
+    }
+   ],
+   "totalVotes": 147,
+   "totalPvp": 167145879.79456973
+  },
+  {
+   "pip": 27,
+   "id": "064d252c-be76-494a-8f19-f650c2a3dab6",
+   "title": "DAO Casters Election: Term 1",
+   "categories": [
+    "GOVERNANCE"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2026-02-18T19:56:54.221Z",
+   "votingStartsAt": "2026-02-20T23:59:59.999Z",
+   "votingEndsAt": "2026-03-06T23:59:59.999Z",
+   "maxChoices": 6,
+   "winners": 5,
+   "ranked": true,
+   "distinctBallots": 98,
+   "candidates": [
+    {
+     "value": "odvb",
+     "display": "ODVB",
+     "image": "https://govern.staratlas.com/icon-large.png"
+    },
+    {
+     "value": "spikecollects",
+     "display": "SpikeCollects",
+     "image": "https://govern.staratlas.com/icon-large.png"
+    },
+    {
+     "value": "chet_roberts",
+     "display": "Chet Roberts",
+     "image": "https://govern.staratlas.com/icon-large.png"
+    },
+    {
+     "value": "umg_cliper",
+     "display": "UMG| Cliper",
+     "image": "https://govern.staratlas.com/icon-large.png"
+    },
+    {
+     "value": "morpheus426",
+     "display": "Morpheus426",
+     "image": "https://govern.staratlas.com/icon-large.png"
+    },
+    {
+     "value": "winston7026",
+     "display": "Winston7026",
+     "image": "https://govern.staratlas.com/icon-large.png"
+    },
+    {
+     "value": "azzarycryptearn",
+     "display": "Azzarycryptearn",
+     "image": "https://govern.staratlas.com/icon-large.png"
+    },
+    {
+     "value": "neon_slika11",
+     "display": "[NEON] Slika11",
+     "image": "https://govern.staratlas.com/icon-large.png"
+    },
+    {
+     "value": "a_neo_aarmstrong_ec",
+     "display": "[Λ] Neo_AArmstrong [EC]",
+     "image": "https://govern.staratlas.com/icon-large.png"
+    },
+    {
+     "value": "keplernet",
+     "display": "Keplernet",
+     "image": "https://govern.staratlas.com/icon-large.png"
+    },
+    {
+     "value": "funcracker",
+     "display": "Funcracker",
+     "image": "https://govern.staratlas.com/icon-large.png"
+    },
+    {
+     "value": "sakaleynx",
+     "display": "Sakaleynx",
+     "image": "https://govern.staratlas.com/icon-large.png"
+    },
+    {
+     "value": "alicesarcade",
+     "display": "AlicesArcade",
+     "image": "https://govern.staratlas.com/icon-large.png"
+    }
+   ],
+   "officialWinners": null,
+   "brief": "Per the requirements of PIP-20: Establishment of the DAO Casters Program — Elected Content Creators for Star Atlas Ecosystem Promotion, this is the election PIP for a structured program of 5 elected content creators dedicated to promoting the entire Star Atlas ecosystem.",
+   "options": [
+    {
+     "option": "alicesarcade",
+     "count": 15,
+     "pvp": 59916417.9199744
+    },
+    {
+     "option": "a_neo_aarmstrong_ec",
+     "count": 16,
+     "pvp": 24961481.719557457
+    },
+    {
+     "option": "funcracker",
+     "count": 27,
+     "pvp": 23771562.90420571
+    },
+    {
+     "option": "winston7026",
+     "count": 15,
+     "pvp": 19163960.143026788
+    },
+    {
+     "option": "odvb",
+     "count": 19,
+     "pvp": 10112803.722158555
+    },
+    {
+     "option": "sakaleynx",
+     "count": 14,
+     "pvp": 4460006.97873794
+    },
+    {
+     "option": "keplernet",
+     "count": 5,
+     "pvp": 2274620.95076532
+    },
+    {
+     "option": "morpheus426",
+     "count": 5,
+     "pvp": 1349088.400867363
+    },
+    {
+     "option": "neon_slika11",
+     "count": 5,
+     "pvp": 577240.7725027197
+    },
+    {
+     "option": "spikecollects",
+     "count": 4,
+     "pvp": 93072.48865219459
+    },
+    {
+     "option": "chet_roberts",
+     "count": 3,
+     "pvp": 28529.839584384066
+    },
+    {
+     "option": "umg_cliper",
+     "count": 0,
+     "pvp": 0
+    },
+    {
+     "option": "azzarycryptearn",
+     "count": 0,
+     "pvp": 0
+    }
+   ],
+   "totalVotes": 128,
+   "totalPvp": 146708785.84003285
+  },
+  {
+   "pip": 28,
+   "id": "d0a5dc75-4e1c-4a70-a8af-a5f3636d0139",
+   "title": "Temporary DAO Funding to Preserve Core Lore, Design, and Community Functions",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2026-02-18T19:57:07.999Z",
+   "votingStartsAt": "2026-02-20T23:59:59.999Z",
+   "votingEndsAt": "2026-03-06T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 6,
+     "pvp": 2121225.5513331094
+    },
+    {
+     "option": "no",
+     "count": 26,
+     "pvp": 8344270.180461487
+    },
+    {
+     "option": "yes",
+     "count": 113,
+     "pvp": 132748518.6022001
+    }
+   ],
+   "totalVotes": 145,
+   "totalPvp": 143214014.3339947
+  },
+  {
+   "pip": 29,
+   "id": "8e761702-ee81-4509-b627-9cadb5897c1b",
+   "title": "Star Atlas Relay Program (Pilot)",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2026-03-16T15:16:39.390Z",
+   "votingStartsAt": "2026-03-18T23:59:59.999Z",
+   "votingEndsAt": "2026-04-01T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 2,
+     "pvp": 1002028.0515770522
+    },
+    {
+     "option": "no",
+     "count": 13,
+     "pvp": 4778188.438956893
+    },
+    {
+     "option": "yes",
+     "count": 90,
+     "pvp": 156894218.67583779
+    }
+   ],
+   "totalVotes": 105,
+   "totalPvp": 162674435.16637173
+  },
+  {
+   "pip": 30,
+   "id": "3ba029f2-65e8-4637-b6ad-ae86284ff714",
+   "title": "ATOM Cloud Infrastructure Sustainability — DAO Funding Pilot",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2026-03-16T15:16:41.119Z",
+   "votingStartsAt": "2026-03-18T23:59:59.999Z",
+   "votingEndsAt": "2026-04-01T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 3,
+     "pvp": 1284009.944590859
+    },
+    {
+     "option": "no",
+     "count": 55,
+     "pvp": 70230624.84828632
+    },
+    {
+     "option": "yes",
+     "count": 147,
+     "pvp": 111241682.08665644
+    }
+   ],
+   "totalVotes": 205,
+   "totalPvp": 182756316.8795336
+  },
+  {
+   "pip": 31,
+   "id": "e71fb1a7-6d19-4565-8ff8-b4e79a3f8c16",
+   "title": "Star Seekers 2 — Mobile Game DAO Funding Proposal",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2026-04-15T21:30:20.572Z",
+   "votingStartsAt": "2026-04-17T23:59:59.999Z",
+   "votingEndsAt": "2026-05-01T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 11,
+     "pvp": 34127227.087459296
+    },
+    {
+     "option": "no",
+     "count": 64,
+     "pvp": 46566240.18187309
+    },
+    {
+     "option": "yes",
+     "count": 66,
+     "pvp": 53854461.85725857
+    }
+   ],
+   "totalVotes": 141,
+   "totalPvp": 134547929.12659097
+  },
+  {
+   "pip": 32,
+   "id": "0b04ff9b-ff04-45f5-a458-696fea70eda2",
+   "title": "Igniting the Star Atlas Triad Tournament - A Super Phoenix Sports Live Esports Event",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2026-05-26T02:15:05.244Z",
+   "votingStartsAt": "2026-05-28T23:59:59.999Z",
+   "votingEndsAt": "2026-06-11T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 7,
+     "pvp": 17343533.148181804
+    },
+    {
+     "option": "no",
+     "count": 21,
+     "pvp": 13539439.50838028
+    },
+    {
+     "option": "yes",
+     "count": 90,
+     "pvp": 88329391.65101293
+    }
+   ],
+   "totalVotes": 118,
+   "totalPvp": 119212364.30757502
+  },
+  {
+   "pip": 33,
+   "id": "397fee39-fd7c-42be-89e3-169094138257",
+   "title": "ATMTA Historic Expense Reimbursement",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2026-06-24T22:02:13.644Z",
+   "votingStartsAt": "2026-06-26T23:59:59.999Z",
+   "votingEndsAt": "2026-07-10T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 20,
+     "pvp": 83860459.5490963
+    },
+    {
+     "option": "no",
+     "count": 59,
+     "pvp": 24857540.34941598
+    },
+    {
+     "option": "yes",
+     "count": 141,
+     "pvp": 170240400.01173955
+    }
+   ],
+   "totalVotes": 220,
+   "totalPvp": 278958399.91025186
+  },
+  {
+   "pip": 34,
+   "id": "b964adb6-b19e-4310-bbd9-7fe07007e988",
+   "title": "Star Atlas Crew Adventure Series – Season Production",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Failed",
+   "outcome": "failed",
+   "createdAt": "2026-07-17T23:53:01.404Z",
+   "votingStartsAt": "2026-07-19T23:59:59.999Z",
+   "votingEndsAt": "2026-08-02T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 5,
+     "pvp": 14008592.786969574
+    },
+    {
+     "option": "no",
+     "count": 58,
+     "pvp": 52107366.913711
+    },
+    {
+     "option": "yes",
+     "count": 30,
+     "pvp": 31676665.19524282
+    }
+   ],
+   "totalVotes": 93,
+   "totalPvp": 97792624.89592339
+  },
+  {
+   "pip": 35,
+   "id": "7fb06b04-1158-4da3-af8e-dd4c60b973ce",
+   "title": "Council Election #4",
+   "categories": [
+    "COUNCIL"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2026-08-28T22:16:47.711Z",
+   "votingStartsAt": "2026-08-30T23:59:59.999Z",
+   "votingEndsAt": "2026-09-13T23:59:59.999Z",
+   "maxChoices": 3,
+   "winners": 3,
+   "ranked": true,
+   "distinctBallots": 10,
+   "candidates": [
+    {
+     "value": "emperor",
+     "display": "Emperor ===[]",
+     "image": "https://cdn.staratlas.com/dao/council-election/3/Emperor.png"
+    },
+    {
+     "value": "jith_blade",
+     "display": "[EMP] jith blade",
+     "image": "https://cdn.staratlas.com/dao/council-election/3/Jith_Blade.png"
+    },
+    {
+     "value": "earther",
+     "display": "ROME | Earther",
+     "image": "https://cdn.staratlas.com/dao/council-election/4/Earther_Headshot.png"
+    }
+   ],
+   "officialWinners": null,
+   "brief": "This proposal determines who will serve on the Star Atlas DAO Council for its fourth term (October 11, 2026 - July 11, 2027). As outlined in PIP-10, there will be one round of voting. Three candidates nominated themselves for five available seats. Because the number of candidates does not exceed the number of available seats, all three candidates will be elected and will officially begin serving on October 11, 2026.",
+   "options": [
+    {
+     "option": "earther",
+     "count": 13,
+     "pvp": 16578494.858146116
+    },
+    {
+     "option": "emperor",
+     "count": 13,
+     "pvp": 9703992.752019517
+    },
+    {
+     "option": "jith_blade",
+     "count": 7,
+     "pvp": 6255033.267108068
+    }
+   ],
+   "totalVotes": 33,
+   "totalPvp": 32537520.8772737
+  },
+  {
+   "pip": 36,
+   "id": "c00de055-1942-486f-a64d-dd4ee360500f",
+   "title": "Star Atlas DAO Dashboard",
+   "categories": [
+    "Funding"
+   ],
+   "status": "Voting_Complete_Measure_Passes",
+   "outcome": "passed",
+   "createdAt": "2026-09-16T03:26:59.914Z",
+   "votingStartsAt": "2026-09-18T23:59:59.999Z",
+   "votingEndsAt": "2026-10-02T23:59:59.999Z",
+   "maxChoices": 1,
+   "winners": 1,
+   "ranked": false,
+   "distinctBallots": null,
+   "candidates": null,
+   "officialWinners": null,
+   "options": [
+    {
+     "option": "abstain",
+     "count": 6,
+     "pvp": 413554.53111165436
+    },
+    {
+     "option": "no",
+     "count": 31,
+     "pvp": 30557054.966636125
+    },
+    {
+     "option": "yes",
+     "count": 32,
+     "pvp": 42635296.911563985
+    }
+   ],
+   "totalVotes": 69,
+   "totalPvp": 73605906.40931177
+  }
+ ],
+ "fetchedAt": "2026-10-30T15:29:38.561Z"
+}

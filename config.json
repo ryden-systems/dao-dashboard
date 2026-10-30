@@ -1,0 +1,63 @@
+{
+  "_comment": "Static project configuration. Edited by developers only; the Council maintainer never needs to touch this file.",
+  "accounts": {
+    "treasury": {
+      "label": "DAO Treasury",
+      "wallet": "CuwnarNh7FEqZMmffFjRyWj54RecyS7zwFg1CxfzNudi",
+      "indexTokens": ["USDC"],
+      "_indexNote": "The Treasury ATLAS account receives ~20k fee transfers a day, so it is not scanned. Its outflows are still captured through the wallet, which signs every payout."
+    },
+    "fund": {
+      "label": "Ecosystem Fund",
+      "wallet": "BxKehkp298nQunu8BWxh5U6VvfphFyjEB3t7USst7Uag",
+      "indexTokens": ["ATLAS", "USDC"]
+    }
+  },
+  "multisigs": [],
+  "knownWallets": {
+    "feesQYAaH3wjGUUQYD959mmi5pY8HSz3F5C3SVc1fp3": "Marketplace fee sweep"
+  },
+  "income": {
+    "_note": "Inflows from a counterparty that sends at least this many transfers are summarised per month instead of listed one by one.",
+    "recurringMinTransfers": 20
+  },
+  "mints": {
+    "ATLAS": { "mint": "ATLASXmbPQxBUYbxPsV97usA3fPQYEqzQBUHgiFCUsXx", "decimals": 8 },
+    "USDC":  { "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "decimals": 6 },
+    "POLIS": { "mint": "poLisWXnNRwC6oBu1vHiuKQzFjGL4XDSu4g9qjz9qVk", "decimals": 8 }
+  },
+  "sheet": {
+    "id": "1QWkFjcLwhw4GHqk5Stz72H3WRwIb52f-UDnKne7hTtY",
+    "tabs": {
+      "pips": "0",
+      "council": "1688943123",
+      "paymentLabels": "Payment labels",
+      "councilMembers": "Council members"
+    },
+    "_tabsNote": "Each tab is a gid (digits) or a tab name. Named tabs are found automatically once they exist, including tabs created from the dashboard's editor."
+  },
+  "editing": {
+    "_note": "Two-way editing between the dashboard and the sheet. Off while googleClientId is empty. The IDs below are public by design (they identify the app, they grant nothing); access is decided by each editor's own permissions on the sheet.",
+    "enabled": false,
+    "googleClientId": "",
+    "googleApiKey": "",
+    "googleAppId": ""
+  },
+  "governance": {
+    "api": "https://galaxy.staratlas.com",
+    "site": "https://govern.staratlas.com/proposals/"
+  },
+  "rpc": {
+    "default": "https://api.mainnet-beta.solana.com",
+    "signatures": "https://api.mainnet-beta.solana.com",
+    "_note": "RPC_URL (env) is used for balances and transaction lookups; any provider works. SIGNATURES_RPC_URL (env) is used to list each address's transaction history and MUST be archive-complete: some commercial RPCs silently return gaps there. The public endpoint is complete."
+  },
+  "fundLimit": {
+    "percent": 5,
+    "cadence": "quarter"
+  },
+  "reconcile": {
+    "ignoreUsdcBelow": 100,
+    "ignoreAtlasBelow": 10000
+  }
+}

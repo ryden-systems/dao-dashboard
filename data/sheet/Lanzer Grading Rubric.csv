@@ -1,0 +1,25 @@
+Notes,Source,Part/Section/Webpage,PIP Requirement
+"Establishes original PIP requirements, Knowledgebase (PIP-10) replaced this",PIP-1,"POLIS Improvement Proposals, Drafting a PIP",Is the author a member of the Star Atlas Community?
+Knowledgebase (PIP-10) replaced this,PIP-1,POLIS Improvement Proposals,"Does this PIP relate to Process, Core Game, Funding, or External Relations?"
+Knowledgebase (PIP-10) replaced this,PIP-1,"POLIS Improvement Proposals, Drafting a PIP","Does this PIP contain the required sections: Header, Summary, Motivation, Specification, Implementation Details, Timeline, Cost?"
+Knowledgebase (PIP-10) replaced this,PIP-1,"POLIS Improvement Proposals, Drafting a PIP","Does this PIP contain any potential reason for rejection: Outside of the Star Atlas DAO’s scope, Lack of feasibility, Excessive cost relative to the Star Atlas DAO’s available resources, Potential conflicts of interest, Legal or tax considerations, Failure to incorporate necessary details or otherwise adhere to drafting guidelines, Other potential risks or harm to the Star Atlas ecosystem"
+Unclear if Knowledgebase replaces this,PIP-4,Funding Application Process,"If an Ecosystem Fund PIP, does it have the following required information: The names of persons and/or entities involved in the project, The project in detail, The expected timeline, The anticipated budget"
+Knowledgebase (PIP-10) replaced PIP-1,PIP-4,Funding Application Process,"If an Ecosystem Fund PIP, did it go through the PIP drafting process in PIP-1?"
+"PIP-10 establishes new PIP process through Council ""PIP Feedback"" language",PIP-10,4.1 The Star Atlas Council & Its Powers,Ensuring PIPs adhere to the Structure and Rules outlined in the DAO Knowledge Base.
+,Knowledgebase,The Legislative Process,Did the PIP get submitted to #PIP-Idea first?
+,Knowledgebase,The Legislative Process,Did the PIP get 25 thumbs up (Temperature Check)?
+,Knowledgebase,Creating a Proposal,"Does this PIP contain the Council's refinement and extended sections: Header (Title & Author), Summary, Motivation, Specification, Stakeholder Impacts, Implementation Details, Timeline, Cost & Resource Allocation (One-time costs & Ongoing costs), Additional Details (Conflicts of Interest & Earlier Versions)"
+,Knowledgebase,PIP Requirements,Does this PIP rely on another PIP that has not yet been approved through the legislative process?
+,Knowledgebase,PIP Requirements,Does this PIP rely on another PIP that has not yet been approved through the legislative process?
+,Knowledgebase,The Legislative Process,"Does this PIP contain: A concise rationale and specification for a feature or change, Input from the community through engaged discussions, Levels of review by the community, the Star Atlas Council, the full DAO, and the Star Atlas Foundation"
+,Knowledgebase,PIP Requirements,Are all parties mentioned in a PIP clearly identified?
+,Knowledgebase,PIP Requirements,Did all parties assigned roles in the PIP consent to their responsibilities?
+,Knowledgebase,PIP Requirements,Do PIPs proposing recurring payments from the treasury or ecosystem fund have a clearly defined term not exceeding one year?
+Unclear how anyone would know to come here first,Discord,Read This First: Guidelines for Posting Your PIP Idea,"""This forum is the first step in creating a POLIS Improvement Proposal (PIP). For detailed information about the process, refer to our Knowledge Base: https://star-atlas-dao.gitbook.io/knowledge-base/governance/the-legislative-process"""
+"Unclear if ""should"" is interpreted as ""shall"" or is truly optional",Discord,Read This First: Guidelines for Posting Your PIP Draft,"A PIP Draft is a fully structured proposal ready for formal review. Before posting, ensure your draft follows the official PIP format outlined in our Knowledge Base: 📖 https://star-atlas-dao.gitbook.io/knowledge-base/governance/the-legislative-process
+
+Before You Post
+Your draft should:
+✅ Follow the official PIP structure—Use the format detailed in the Knowledge Base.
+✅ Be final and vote-ready—This draft should be exactly as you want it to appear on the governance platform.
+✅ Clearly explain your proposal—Many voters may not have followed prior discussions. Ensure your draft is self-contained and compelling."

@@ -1,0 +1,14 @@
+{
+  "name": "star-atlas-dao-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Public dashboard for Star Atlas DAO governance, funding, and treasury. Static site rebuilt by a scheduled job.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:offline": "node scripts/build.mjs --offline",
+    "serve": "node scripts/serve.mjs",
+    "test": "node test/smoke.mjs && node test/editor.test.mjs && node test/editor_ui.test.mjs && node test/editor_preview.test.mjs && node test/backup.test.mjs"
+  }
+}

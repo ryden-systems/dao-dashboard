@@ -1,0 +1,50 @@
+{
+ "_note": "Record of past and present Council terms, for elections whose result the governance API does not publish. Each term cites its source. Members are referenced by their candidate key in the election PIP, so names and portraits come from that election. Later elections are added automatically when the API publishes an official result or the election was uncontested. The sheet's 'Council members' tab, once it exists, overrides this file.",
+ "terms": [
+  {
+   "term": 1,
+   "electedIn": 7,
+   "start": "2024-10-11",
+   "end": "2025-04-11",
+   "source": "Official result in the governance API (PIP-7) and the DAO Knowledge Base, Term 1",
+   "sourceUrl": "https://star-atlas-dao.gitbook.io/knowledge-base/archive/council-terms/term-1",
+   "members": [
+    { "candidate": "jp", "x": "missionpoole", "discord": "https://discord.com/users/360133561262538754" },
+    { "candidate": "funcracker", "x": "ronaldtreur", "discord": "https://discord.com/users/287632162570895361" },
+    { "candidate": "bodhi_tree", "x": "Tree_guild", "discord": "https://discord.com/users/694773417400074260" },
+    { "candidate": "king_bryan", "x": "Bryan_Cogent", "discord": "https://discord.com/users/366908607591350283" },
+    { "candidate": "drumcarl05", "x": "Carlito99897464", "discord": "https://discord.com/users/390532337730977793" }
+   ]
+  },
+  {
+   "term": 2,
+   "electedIn": 11,
+   "start": "2025-04-11",
+   "end": "2026-01-11",
+   "source": "DAO Knowledge Base, Term 2",
+   "sourceUrl": "https://star-atlas-dao.gitbook.io/knowledge-base/archive/council-terms/term-2-current-term",
+   "members": [
+    { "candidate": "emperor", "role": "Council Chair" },
+    { "candidate": "lanzer", "role": "Presiding Officer" },
+    { "candidate": "drumcarl05", "role": "Secretary" },
+    { "candidate": "bodhitree", "role": "Treasurer" },
+    { "candidate": "signal", "role": "Public Relations Lead" }
+   ]
+  },
+  {
+   "term": 3,
+   "electedIn": 25,
+   "start": "2026-01-11",
+   "end": "2026-10-11",
+   "source": "Provided by Ryden Systems on 2026-10-09; not yet published by the DAO (the Knowledge Base lists Term 3 as TBD)",
+   "sourceUrl": null,
+   "members": [
+    { "candidate": "winston" },
+    { "candidate": "morango" },
+    { "candidate": "jith_blade" },
+    { "candidate": "lanzer" },
+    { "candidate": "emperor" }
+   ]
+  }
+ ]
+}

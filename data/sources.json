@@ -1,0 +1,2169 @@
+{
+ "pips": [
+  {
+   "pip": 1,
+   "name": "Star Atlas DAO",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": null,
+   "voteStart": "2024-07-10",
+   "voteEnd": "2024-07-23",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "currency": null,
+   "roi": "Created Star Atlas DAO initiative, expectations, and participation venue by community members.",
+   "ecosystemFund": false,
+   "voteResult": "Passed",
+   "category": "Governance",
+   "sacTerm": "N/A",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "sheetVotes": 894,
+   "sheetPvpVotedM": 175,
+   "sheetTotalPvpM": 541
+  },
+  {
+   "pip": 2,
+   "name": "Foundation",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": null,
+   "voteStart": "2024-07-10",
+   "voteEnd": "2024-07-23",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 100000,
+    "raw": "100,000",
+    "state": "ok"
+   },
+   "currency": "USDC",
+   "roi": "Created company that acted as legal representation to protect the DAO",
+   "ecosystemFund": false,
+   "voteResult": "Passed",
+   "category": "Governance",
+   "sacTerm": "N/A",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "?",
+    "state": "unknown"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "sheetVotes": 852,
+   "sheetPvpVotedM": 176,
+   "sheetTotalPvpM": 541
+  },
+  {
+   "pip": 3,
+   "name": "Star Atlas Council",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": null,
+   "voteStart": "2024-07-24",
+   "voteEnd": "2024-08-06",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "currency": null,
+   "roi": "Created SA DAO Council voting ability and community representation at leadership level.",
+   "ecosystemFund": false,
+   "voteResult": "Passed",
+   "category": "Governance",
+   "sacTerm": "N/A",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "sheetVotes": 479,
+   "sheetPvpVotedM": 97,
+   "sheetTotalPvpM": 541
+  },
+  {
+   "pip": 4,
+   "name": "Star Atlas Ecosystem Fund",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": null,
+   "voteStart": "2024-07-24",
+   "voteEnd": "2024-08-06",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "currency": null,
+   "roi": "Expedited 20 PIPs to for funding. Expedited low-ATLAS/Dollar projects related to SA community for execution",
+   "ecosystemFund": false,
+   "voteResult": "Passed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "N/A",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "sheetVotes": 460,
+   "sheetPvpVotedM": 96,
+   "sheetTotalPvpM": 541
+  },
+  {
+   "pip": 5,
+   "name": "Co-Sponsor the Naabathon",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": null,
+   "voteStart": "2024-07-26",
+   "voteEnd": "2024-08-09",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 6000000,
+    "raw": "6,000,000",
+    "state": "ok"
+   },
+   "currency": "ATLAS",
+   "roi": "Hosted community competition to create tools and services.",
+   "ecosystemFund": true,
+   "voteResult": "Passed",
+   "category": "Governance",
+   "sacTerm": "N/A",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": 6000000,
+    "raw": "6,000,000.00",
+    "state": "ok"
+   },
+   "leftAtlas": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "milestonesDone": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "sheetVotes": 411,
+   "sheetPvpVotedM": 101,
+   "sheetTotalPvpM": 541
+  },
+  {
+   "pip": 6,
+   "name": "Council Election #1 - First Round",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": null,
+   "voteStart": "2024-09-14",
+   "voteEnd": "2024-09-21",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "currency": null,
+   "roi": "See PIP-3 impact",
+   "ecosystemFund": false,
+   "voteResult": "Passed",
+   "category": "Governance",
+   "sacTerm": "N/A",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "sheetVotes": 587,
+   "sheetPvpVotedM": 161,
+   "sheetTotalPvpM": 541
+  },
+  {
+   "pip": 7,
+   "name": "Council Election #1 - Second Round",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": null,
+   "voteStart": "2024-09-27",
+   "voteEnd": "2024-10-11",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "currency": null,
+   "roi": "Elected 5 volunteers giving ~260 hours to SA DAO of 53K tokenholders, established knowledgebase and enacted voting mechanic improvements",
+   "ecosystemFund": false,
+   "voteResult": "Passed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "N/A",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "sheetVotes": 576,
+   "sheetPvpVotedM": 175,
+   "sheetTotalPvpM": 541
+  },
+  {
+   "pip": 8,
+   "name": "Star Atlas Comet: Community Meetup at Gamescom 2025",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": null,
+   "voteStart": "2025-02-20",
+   "voteEnd": "2025-02-26",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 7472,
+    "raw": "7,472",
+    "state": "ok"
+   },
+   "currency": "GBP",
+   "roi": "70 SA community members attended, built camaraderie of SA community, celebration post had ## impression on X. Sponsors alongside SA DAO: Superphoenix DAO, SA TV, SAG, AEP, Polaris Fuel. Community experts present to introduce people to SA. Presentations from well known community members to introduce SA ecosystem, DAO, the DACs and what they do. Livestreamed e-sport competition (Iris Quest) at the venue. Merch distributed to attendees.",
+   "ecosystemFund": true,
+   "voteResult": "Passed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-1",
+   "note": "First PIP that had SAC-1 involvement",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": 7723034,
+    "raw": "7,723,034.00",
+    "state": "ok"
+   },
+   "leftAtlas": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "milestonesDone": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "sheetVotes": 285,
+   "sheetPvpVotedM": 85,
+   "sheetTotalPvpM": 541
+  },
+  {
+   "pip": 9,
+   "name": "Adjust STV Backup Vote Handling to Prevent Unintended Vote Redistribution",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": null,
+   "voteStart": "2025-02-28",
+   "voteEnd": "2025-03-06",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "currency": null,
+   "roi": "Improved voting mechanic by nullifying \"supercharged\" votes that imbalance voting outcomes of PIPs",
+   "ecosystemFund": false,
+   "voteResult": "Passed",
+   "category": "Governance",
+   "sacTerm": "SAC-1",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "sheetVotes": 127,
+   "sheetPvpVotedM": 61,
+   "sheetTotalPvpM": 541
+  },
+  {
+   "pip": 10,
+   "name": "Star Atlas Council: Second Term & Beyond",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": null,
+   "voteStart": "2025-02-28",
+   "voteEnd": "2025-03-13",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "currency": null,
+   "roi": "See PIP-3 impact",
+   "ecosystemFund": false,
+   "voteResult": "Passed",
+   "category": "Governance",
+   "sacTerm": "SAC-1",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "sheetVotes": 211,
+   "sheetPvpVotedM": 86,
+   "sheetTotalPvpM": 541
+  },
+  {
+   "pip": 11,
+   "name": "Council Election #2",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": null,
+   "voteStart": "2025-03-23",
+   "voteEnd": "2025-04-06",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "currency": null,
+   "roi": "5 SAC-3 council members volunteered ~675+ hours over 9 months, completing 147 accomplishments positively affecting the SA DAO ecosystem, paying out 61.5M ATLAS for PIP authors, facilitating voting process for 14 PIPs with 2.2K votes cast, achieving average voter participation rate of 19%, publishing 48 DAO transparency reports",
+   "ecosystemFund": false,
+   "voteResult": "Passed",
+   "category": "Governance",
+   "sacTerm": "SAC-1",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "sheetVotes": 348,
+   "sheetPvpVotedM": 150,
+   "sheetTotalPvpM": 541
+  },
+  {
+   "pip": 12,
+   "name": "Iris’s Bounty: The Feast",
+   "phase": "Closed",
+   "status": "Actionable",
+   "draftDate": null,
+   "voteStart": "2025-04-14",
+   "voteEnd": "2025-04-27",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 10000,
+    "raw": "10,000",
+    "state": "ok"
+   },
+   "currency": "USDC",
+   "roi": "## Feast events funded, ## total SA community members attended, built camaraderie of SA community, total celebration post had ## impression on X",
+   "ecosystemFund": true,
+   "voteResult": "Passed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-2",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": 7429420,
+    "raw": "7,429,420.00",
+    "state": "ok"
+   },
+   "leftAtlas": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "milestonesDone": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "sheetVotes": 143,
+   "sheetPvpVotedM": 84,
+   "sheetTotalPvpM": 541
+  },
+  {
+   "pip": 13,
+   "name": "Implementing Term Limits for Star Atlas DAO Council Members",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": null,
+   "voteStart": "2025-04-15",
+   "voteEnd": "2025-04-28",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "currency": null,
+   "roi": "N/A",
+   "ecosystemFund": false,
+   "voteResult": "Failed",
+   "category": "Governance",
+   "sacTerm": "SAC-2",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "sheetVotes": 161,
+   "sheetPvpVotedM": 85,
+   "sheetTotalPvpM": 541
+  },
+  {
+   "pip": 14,
+   "name": "Deepening THEO Integration into the Star Atlas Economy",
+   "phase": "Closed",
+   "status": "Actionable",
+   "draftDate": null,
+   "voteStart": "2025-04-17",
+   "voteEnd": "2025-04-30",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 10000,
+    "raw": "10,000",
+    "state": "ok"
+   },
+   "currency": "USDC",
+   "roi": "None. PIP was terminated due non-performance of PIP deliverables",
+   "ecosystemFund": true,
+   "voteResult": "Passed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-2",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": 4462301,
+    "raw": "4,462,301.00",
+    "state": "ok"
+   },
+   "leftAtlas": {
+    "value": 25125628.14,
+    "raw": "25,125,628.14",
+    "state": "ok"
+   },
+   "milestonesDone": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 2,
+    "raw": "2",
+    "state": "ok"
+   },
+   "sheetVotes": 176,
+   "sheetPvpVotedM": 108,
+   "sheetTotalPvpM": 541
+  },
+  {
+   "pip": 15,
+   "name": "In-Person Community Meetups Platform",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": null,
+   "voteStart": "2025-05-09",
+   "voteEnd": "2025-05-22",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 9540,
+    "raw": "9,540",
+    "state": "ok"
+   },
+   "currency": "USDC",
+   "roi": "N/A",
+   "ecosystemFund": true,
+   "voteResult": "Failed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-2",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "milestonesTotal": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "sheetVotes": 161,
+   "sheetPvpVotedM": 104,
+   "sheetTotalPvpM": 548
+  },
+  {
+   "pip": 16,
+   "name": "Ryden Systems",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": null,
+   "voteStart": "2025-05-09",
+   "voteEnd": "2025-05-22",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 10000,
+    "raw": "10,000",
+    "state": "ok"
+   },
+   "currency": "USDC",
+   "roi": "Funded widely used Eveeye project that makes playing SAGE easy with superior information.",
+   "ecosystemFund": true,
+   "voteResult": "Passed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-2",
+   "note": "Transitioning from Eveeye Star Atlas",
+   "paidUsdc": {
+    "value": 8464.79,
+    "raw": "8,464.79",
+    "state": "ok"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": 7985657,
+    "raw": "7,985,657.00",
+    "state": "ok"
+   },
+   "leftAtlas": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "milestonesDone": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "sheetVotes": 202,
+   "sheetPvpVotedM": 107,
+   "sheetTotalPvpM": 548
+  },
+  {
+   "pip": 17,
+   "name": "Star Atlas Ecosystem Media Expansion Proposal by Lord Raspy III",
+   "phase": "Closed",
+   "status": "Actionable",
+   "draftDate": null,
+   "voteStart": "2025-05-30",
+   "voteEnd": "2025-06-12",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 20000000,
+    "raw": "20,000,000",
+    "state": "ok"
+   },
+   "currency": "ATLAS",
+   "roi": "None. PIP was canceled due to non-performance of PIP deliverables.",
+   "ecosystemFund": true,
+   "voteResult": "Passed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-2",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": 0,
+    "raw": "0.00",
+    "state": "ok"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "sheetVotes": 194,
+   "sheetPvpVotedM": 111,
+   "sheetTotalPvpM": 548
+  },
+  {
+   "pip": 18,
+   "name": "Marketing & Merch Expansion for Gamescom 2025",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": null,
+   "voteStart": "2025-07-04",
+   "voteEnd": "2025-07-17",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 5775,
+    "raw": "5,775",
+    "state": "ok"
+   },
+   "currency": "EUR",
+   "roi": "Expanded success of PIP-8 by giving more merch out",
+   "ecosystemFund": true,
+   "voteResult": "Passed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-2",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": 5781393,
+    "raw": "5,781,393.00",
+    "state": "ok"
+   },
+   "leftAtlas": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "milestonesDone": {
+    "value": 2,
+    "raw": "2",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 2,
+    "raw": "2",
+    "state": "ok"
+   },
+   "sheetVotes": 116,
+   "sheetPvpVotedM": 55,
+   "sheetTotalPvpM": 548
+  },
+  {
+   "pip": 19,
+   "name": "Funding Independent Economic Research and Maintenance of Critical Data Resources [Comprehensive PIP]",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": "2025-06-14",
+   "voteStart": "2025-09-21",
+   "voteEnd": "2025-10-05",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 11200000,
+    "raw": "11,200,000",
+    "state": "ok"
+   },
+   "currency": "ATLAS",
+   "roi": "N/A",
+   "ecosystemFund": true,
+   "voteResult": "Failed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-2",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "milestonesTotal": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "sheetVotes": 157,
+   "sheetPvpVotedM": 144,
+   "sheetTotalPvpM": 573
+  },
+  {
+   "pip": 20,
+   "name": "Creation of DAO Caster Role",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": "2025-04-02",
+   "voteStart": "2025-10-01",
+   "voteEnd": "2025-10-15",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 10800000,
+    "raw": "10,800,000",
+    "state": "ok"
+   },
+   "currency": "ATLAS",
+   "roi": "Elected 5 content creators producing 4 content pieces a month on social media. Earned ## impressions on X and ## views on YouTube.",
+   "ecosystemFund": true,
+   "voteResult": "Passed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-2",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": 4320000,
+    "raw": "4,320,000.00",
+    "state": "ok"
+   },
+   "leftAtlas": {
+    "value": 5400000,
+    "raw": "5,400,000",
+    "state": "ok"
+   },
+   "milestonesDone": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "sheetVotes": 150,
+   "sheetPvpVotedM": 122,
+   "sheetTotalPvpM": 577
+  },
+  {
+   "pip": 21,
+   "name": "Rogue Data Hub (RDH)",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": "2025-07-21",
+   "voteStart": "2025-10-01",
+   "voteEnd": "2025-10-15",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 8820,
+    "raw": "8,820",
+    "state": "ok"
+   },
+   "currency": "USDC",
+   "roi": "Funded website that indexes and processes 20 programs (smart contracts) of on-chain Star Atlas data",
+   "ecosystemFund": true,
+   "voteResult": "Passed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-2",
+   "note": "",
+   "paidUsdc": {
+    "value": 2083,
+    "raw": "2,083.00",
+    "state": "ok"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": 7317073,
+    "raw": "7,317,073.00",
+    "state": "ok"
+   },
+   "leftAtlas": {
+    "value": 35225130.9,
+    "raw": "35,225,130.90",
+    "state": "ok"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "?",
+    "state": "unknown"
+   },
+   "milestonesTotal": {
+    "value": 2,
+    "raw": "2",
+    "state": "ok"
+   },
+   "sheetVotes": 184,
+   "sheetPvpVotedM": 147,
+   "sheetTotalPvpM": 577
+  },
+  {
+   "pip": 22,
+   "name": "Iris Bounty - The Arena",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": "2025-09-29",
+   "voteStart": "2025-11-05",
+   "voteEnd": "2025-11-18",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 11000000,
+    "raw": "11,000,000",
+    "state": "ok"
+   },
+   "currency": "ATLAS",
+   "roi": "Funded 3 self-organized community tournaments which earned top 1% Twitch/10% YouTube livestream channels for 2 months",
+   "ecosystemFund": true,
+   "voteResult": "Passed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-2",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": 2000000,
+    "raw": "2,000,000.00",
+    "state": "ok"
+   },
+   "leftAtlas": {
+    "value": 9000000,
+    "raw": "9,000,000",
+    "state": "ok"
+   },
+   "milestonesDone": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 1,
+    "raw": "1",
+    "state": "ok"
+   },
+   "sheetVotes": 117,
+   "sheetPvpVotedM": 141,
+   "sheetTotalPvpM": 623
+  },
+  {
+   "pip": 23,
+   "name": "Refresh of PIP-4 the Ecosystem Fund",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": "2025-10-11",
+   "voteStart": "2025-11-05",
+   "voteEnd": "2025-11-18",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "currency": "ATLAS",
+   "roi": "Clarified and improved upon Ecosystem Fund process and procedures",
+   "ecosystemFund": false,
+   "voteResult": "Passed",
+   "category": "Governance",
+   "sacTerm": "SAC-2",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "milestonesTotal": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "sheetVotes": 135,
+   "sheetPvpVotedM": 111,
+   "sheetTotalPvpM": 623
+  },
+  {
+   "pip": 24,
+   "name": "DAO-Supported Hosting Service",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": "2025-10-07",
+   "voteStart": "2025-11-09",
+   "voteEnd": "2025-11-22",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 675,
+    "raw": "675",
+    "state": "ok"
+   },
+   "currency": "USDC",
+   "roi": "Funded the SLY Assistant automation tool, which enabled players to run SLY accounts autonomously without user interaction. Improved accessibility and uptime for ## Star Atlas players.",
+   "ecosystemFund": true,
+   "voteResult": "Passed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-2",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "?",
+    "state": "unknown"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "?",
+    "state": "unknown"
+   },
+   "milestonesDone": {
+    "value": 3,
+    "raw": "3",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 3,
+    "raw": "3",
+    "state": "ok"
+   },
+   "sheetVotes": 140,
+   "sheetPvpVotedM": 108,
+   "sheetTotalPvpM": 629
+  },
+  {
+   "pip": 25,
+   "name": "Council Election #3",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": "2025-11-26",
+   "voteStart": "2025-11-26",
+   "voteEnd": "2025-12-10",
+   "pdfSent": false,
+   "markdownSent": true,
+   "amount": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "currency": "USDC",
+   "roi": "Five SAC-3 council members volunteered ~8+ hours per month, completing 20 accomplishments positively affecting the SA DAO ecosystem, paying out 1.2M+ ATLAS for PIP authors, facilitating voting process for 6 PIPs with 871 votes cast, achieving average voter participation rate of 23%, publishing 21 DAO transparency reports",
+   "ecosystemFund": false,
+   "voteResult": "Passed",
+   "category": "Governance",
+   "sacTerm": "SAC-2",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "milestonesTotal": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "sheetVotes": 176,
+   "sheetPvpVotedM": 112,
+   "sheetTotalPvpM": 641
+  },
+  {
+   "pip": 26,
+   "name": "Star Atlas Crew Adventure Series – Season Production",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": "2025-11-24",
+   "voteStart": "2026-01-23",
+   "voteEnd": "2026-02-06",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 13143639,
+    "raw": "13,143,639",
+    "state": "ok"
+   },
+   "currency": "ATLAS",
+   "roi": "N/A",
+   "ecosystemFund": true,
+   "voteResult": "Failed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-3",
+   "note": "First PIP that had SAC-3 involvement",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "milestonesTotal": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "sheetVotes": 147,
+   "sheetPvpVotedM": 167,
+   "sheetTotalPvpM": 661
+  },
+  {
+   "pip": 27,
+   "name": "DAO Casters Election: Term 1",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": "2025-02-04",
+   "voteStart": "2026-02-20",
+   "voteEnd": "2026-03-06",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "currency": null,
+   "roi": "See PIP-20 ROI",
+   "ecosystemFund": true,
+   "voteResult": "Passed",
+   "category": "Governance",
+   "sacTerm": "SAC-3",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "milestonesTotal": {
+    "value": null,
+    "raw": "N/A",
+    "state": "na"
+   },
+   "sheetVotes": 128,
+   "sheetPvpVotedM": 147,
+   "sheetTotalPvpM": 667
+  },
+  {
+   "pip": 28,
+   "name": "Temporary DAO Funding to Preserve Core Lore, Design, and Community Functions",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": "2026-02-02",
+   "voteStart": "2026-02-20",
+   "voteEnd": "2026-03-06",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 30000,
+    "raw": "30,000",
+    "state": "ok"
+   },
+   "currency": "USDC",
+   "roi": "Retained key SA company member (Jose) from employee layoffs, supporting 7 critical components of the SA ecosystem.",
+   "ecosystemFund": false,
+   "voteResult": "Passed",
+   "category": "DAO Treasury",
+   "sacTerm": "SAC-3",
+   "note": "",
+   "paidUsdc": {
+    "value": 30000,
+    "raw": "30,000.00",
+    "state": "ok"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": 6,
+    "raw": "6",
+    "state": "ok"
+   },
+   "milestonesTotal": {
+    "value": 6,
+    "raw": "6",
+    "state": "ok"
+   },
+   "sheetVotes": 145,
+   "sheetPvpVotedM": 143,
+   "sheetTotalPvpM": 666
+  },
+  {
+   "pip": 29,
+   "name": "Star Atlas Relay Program (Pilot)",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": "2026-01-28",
+   "voteStart": "2026-03-18",
+   "voteEnd": "2026-04-01",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 13143639,
+    "raw": "13,143,639",
+    "state": "ok"
+   },
+   "currency": "ATLAS",
+   "roi": "Funded platform that showcases and rewards quality SA content created by community members. Incentivizes participation to enhance social media presence and engagement with web3 community.",
+   "ecosystemFund": true,
+   "voteResult": "Passed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-3",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": 13143639,
+    "raw": "13,143,639.00",
+    "state": "ok"
+   },
+   "leftAtlas": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesTotal": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "sheetVotes": 105,
+   "sheetPvpVotedM": 163,
+   "sheetTotalPvpM": 669
+  },
+  {
+   "pip": 30,
+   "name": "ATOM Cloud Infrastructure Sustainability — DAO Funding Pilot",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": "2026-02-17",
+   "voteStart": "2026-03-18",
+   "voteEnd": "2026-04-01",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 13143639,
+    "raw": "13,143,639",
+    "state": "ok"
+   },
+   "currency": "ATLAS",
+   "roi": "Funded widely used ATOM Cloud, made free for all users until C4. Processes ~100,000 transactions/day for 104 daily active accounts.",
+   "ecosystemFund": true,
+   "voteResult": "Passed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-3",
+   "note": "",
+   "paidUsdc": {
+    "value": 1650,
+    "raw": "1,650.00",
+    "state": "ok"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": 6433164,
+    "raw": "6,433,164.00",
+    "state": "ok"
+   },
+   "leftAtlas": {
+    "value": 6710475,
+    "raw": "6,710,475",
+    "state": "ok"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesTotal": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "sheetVotes": 205,
+   "sheetPvpVotedM": 183,
+   "sheetTotalPvpM": 669
+  },
+  {
+   "pip": 31,
+   "name": "Star Seekers Ecosystem Expansion",
+   "phase": "Withdrawn",
+   "status": "Actionable",
+   "draftDate": "2025-11-03",
+   "voteStart": "2026-04-18",
+   "voteEnd": "2026-05-02",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 13000000,
+    "raw": "13,000,000",
+    "state": "ok"
+   },
+   "currency": "ATLAS",
+   "roi": "N/A. Passed, but withdrawn by PIP author.",
+   "ecosystemFund": true,
+   "voteResult": "Passed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-3",
+   "note": "PIP passed, but withdrawn by PIP Author, will not be implemented",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesTotal": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "sheetVotes": 141,
+   "sheetPvpVotedM": 135,
+   "sheetTotalPvpM": 670
+  },
+  {
+   "pip": 32,
+   "name": "Igniting the Star Atlas Triad Tournament - A Super Phoenix Sports Live Esports Event",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": "2026-04-14",
+   "voteStart": "2026-05-26",
+   "voteEnd": "2026-06-10",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 13576392,
+    "raw": "13,576,392",
+    "state": "ok"
+   },
+   "currency": "ATLAS",
+   "roi": "Production and broadcast of the Star Atlas Triad Tournament in June 2026, a first-ever combined competitive event spanning all three UE5 game modes: Racing Mode (Star Racer), Gun Mode (Star Shooter), Siege Mode (Star Fighter)",
+   "ecosystemFund": true,
+   "voteResult": "Passed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-3",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesTotal": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "sheetVotes": 118,
+   "sheetPvpVotedM": 119,
+   "sheetTotalPvpM": 683
+  },
+  {
+   "pip": 33,
+   "name": "ATMTA Historic Expense Reimbursement",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": "2026-06-17",
+   "voteStart": "2026-06-26",
+   "voteEnd": "2026-07-11",
+   "pdfSent": true,
+   "markdownSent": false,
+   "amount": {
+    "value": 469514,
+    "raw": "469,514",
+    "state": "ok"
+   },
+   "currency": "USDC",
+   "roi": "Seeks reimbursement of $469,513.53 USD from the Star Atlas DAO Treasury for verified historic expenditures paid by ATMTA on behalf of the Star Atlas DAO covering 2021 tax obligations and payments to two professional services providers.",
+   "ecosystemFund": false,
+   "voteResult": "Passed",
+   "category": "DAO Treasury",
+   "sacTerm": "SAC-3",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesTotal": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "sheetVotes": 220,
+   "sheetPvpVotedM": 279,
+   "sheetTotalPvpM": 693
+  },
+  {
+   "pip": 34,
+   "name": "Star Atlas Crew Adventure Series – Season Production",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": "2026-06-20",
+   "voteStart": "2026-07-18",
+   "voteEnd": "2026-08-01",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 13576392,
+    "raw": "13,576,392",
+    "state": "ok"
+   },
+   "currency": "ATLAS",
+   "roi": "N/A",
+   "ecosystemFund": true,
+   "voteResult": "Failed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-3",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesTotal": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "sheetVotes": 93,
+   "sheetPvpVotedM": 98,
+   "sheetTotalPvpM": 741
+  },
+  {
+   "pip": 35,
+   "name": "Council Election #4",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": "2026-08-02",
+   "voteStart": "2026-08-30",
+   "voteEnd": "2026-09-11",
+   "pdfSent": false,
+   "markdownSent": true,
+   "amount": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "currency": "ATLAS",
+   "roi": "Three SAC-3 council members volunteered",
+   "ecosystemFund": false,
+   "voteResult": "Passed",
+   "category": "Governance",
+   "sacTerm": "SAC-3",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesTotal": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "sheetVotes": 33,
+   "sheetPvpVotedM": 33,
+   "sheetTotalPvpM": 747
+  },
+  {
+   "pip": 36,
+   "name": "Dashboard PIP",
+   "phase": "Voting",
+   "status": "Actionable",
+   "draftDate": "2026-05-12",
+   "voteStart": "2026-09-20",
+   "voteEnd": "2026-10-04",
+   "pdfSent": true,
+   "markdownSent": true,
+   "amount": {
+    "value": 13992734,
+    "raw": "13,992,734",
+    "state": "ok"
+   },
+   "currency": "ATLAS",
+   "roi": "Authorizes the creation of a public Star Atlas DAO Dashboard and a competitive Request for Proposal (RFP) process to select a DEVELOPER to build the Dashboard",
+   "ecosystemFund": true,
+   "voteResult": "Passed",
+   "category": "Ecosystem Fund",
+   "sacTerm": "SAC-3",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": 13992734,
+    "raw": "13,992,734.00",
+    "state": "ok"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesTotal": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "sheetVotes": 69,
+   "sheetPvpVotedM": 74,
+   "sheetTotalPvpM": 749
+  }
+ ],
+ "missingColumns": [],
+ "council": {
+  "title": "Goes into Dashboard in Powerpoint Slide",
+  "terms": [
+   "SAC-2",
+   "SAC-3"
+  ],
+  "totals": {
+   "SAC-2": 141,
+   "SAC-3": 58
+  },
+  "months": [
+   {
+    "month": "2025-04",
+    "counts": {
+     "SAC-2": 23
+    }
+   },
+   {
+    "month": "2025-05",
+    "counts": {
+     "SAC-2": 12
+    }
+   },
+   {
+    "month": "2025-06",
+    "counts": {
+     "SAC-2": 12
+    }
+   },
+   {
+    "month": "2025-07",
+    "counts": {
+     "SAC-2": 8
+    }
+   },
+   {
+    "month": "2025-08",
+    "counts": {
+     "SAC-2": 13
+    }
+   },
+   {
+    "month": "2025-09",
+    "counts": {
+     "SAC-2": 30
+    }
+   },
+   {
+    "month": "2025-10",
+    "counts": {
+     "SAC-2": 15
+    }
+   },
+   {
+    "month": "2025-11",
+    "counts": {
+     "SAC-2": 15
+    }
+   },
+   {
+    "month": "2025-12",
+    "counts": {
+     "SAC-2": 13
+    }
+   },
+   {
+    "month": "2026-01",
+    "counts": {
+     "SAC-3": 12
+    }
+   },
+   {
+    "month": "2026-02",
+    "counts": {
+     "SAC-3": 8
+    }
+   },
+   {
+    "month": "2026-03",
+    "counts": {
+     "SAC-3": 5
+    }
+   },
+   {
+    "month": "2026-04",
+    "counts": {
+     "SAC-3": 8
+    }
+   },
+   {
+    "month": "2026-05",
+    "counts": {
+     "SAC-3": 6
+    }
+   },
+   {
+    "month": "2026-06",
+    "counts": {
+     "SAC-3": 5
+    }
+   },
+   {
+    "month": "2026-07",
+    "counts": {
+     "SAC-3": 8
+    }
+   },
+   {
+    "month": "2026-08",
+    "counts": {
+     "SAC-3": 2
+    }
+   },
+   {
+    "month": "2026-09",
+    "counts": {
+     "SAC-3": 2
+    }
+   },
+   {
+    "month": "2026-10",
+    "counts": {
+     "SAC-3": 2
+    }
+   }
+  ]
+ },
+ "labels": [],
+ "members": [],
+ "tabs": {
+  "pips": {
+   "gid": "0",
+   "name": "Tracker"
+  },
+  "council": {
+   "gid": "1688943123",
+   "name": "Accomplishment Numbers"
+  },
+  "paymentLabels": {
+   "gid": null,
+   "name": "Payment labels"
+  },
+  "councilMembers": {
+   "gid": null,
+   "name": "Council members"
+  }
+ },
+ "fetchedAt": "2026-10-30T15:29:35.452Z"
+}
