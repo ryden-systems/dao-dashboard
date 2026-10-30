@@ -25,6 +25,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -49,6 +51,9 @@ jobs:
             echo "No data changes."
           else
             git commit -m "data: update $(date -u +%Y-%m-%d)"
+            # main may have moved during this run (a code push, a re-run of an older commit).
+            # Replay the data commit on top; the data written by this run wins over older data.
+            git pull --rebase -X theirs origin "$GITHUB_REF_NAME"
             git push
           fi
 
