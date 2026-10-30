@@ -861,7 +861,7 @@
    "voteResult": "Passed",
    "category": "Ecosystem Fund",
    "sacTerm": "SAC-2",
-   "note": "Transitioning from Eveeye Star Atlas",
+   "note": "Transitioning from Eveeye Star Atlas [EDIT TEST]",
    "paidUsdc": {
     "value": 8464.79,
     "raw": "8,464.79",
@@ -2165,5 +2165,5 @@
    "name": "Council members"
   }
  },
- "fetchedAt": "2026-10-30T19:25:18.291Z"
+ "fetchedAt": "2026-10-30T19:30:26.021Z"
 }
