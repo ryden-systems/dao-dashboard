@@ -137,6 +137,12 @@ const editorSrc = fs.readFileSync(path.join(ROOT, "site", "editor.js"), "utf8");
 ok(!/picker|apis\.google\.com|drive\.file/i.test(editorSrc), "no file picker or drive.file permission in the editor");
 ok(editorSrc.includes("auth/spreadsheets"), "editor asks for the spreadsheet permission");
 
+// ---------- "Update now" writes the request time into the Dashboard tab ----------
+r = await core.requestUpdate("editor@example.org");
+ok(r.saved && book.Dashboard && book.Dashboard[0][0].startsWith("Last update requested") && book.Dashboard[1][0] === r.at && book.Dashboard[1][1] === "editor@example.org", "update request creates the Dashboard tab and writes time + editor: " + JSON.stringify(book.Dashboard));
+await core.requestUpdate("other@example.org");
+ok(book.Dashboard.length === 2 && book.Dashboard[1][1] === "other@example.org", "a second request overwrites the same cell instead of adding rows");
+
 // ---------- no access ----------
 access = false;
 ok((await core.canAccess()) === false, "no access is reported, not thrown");

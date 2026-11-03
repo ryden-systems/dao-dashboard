@@ -147,7 +147,7 @@
     if (!ED || !ED.state.available) return "";
     const s = ED.state;
     if (s.preview) return `<button class="btn" data-act="ed-preview" aria-expanded="${ed.previewInfo ? "true" : "false"}">Editor sign-in</button>`;
-    if (s.signedIn) return `<span class="sub">Editing as ${esc(s.email ?? "signed-in editor")}</span><button class="btn" data-act="ed-signout">Sign out</button>`;
+    if (s.signedIn) return `<span class="sub">Editing as ${esc(s.email ?? "signed-in editor")}</span><button class="btn" data-act="ed-update" title="Rebuild the dashboard from the sheet now">Update now</button><button class="btn" data-act="ed-signout">Sign out</button>${ed.updateMsg ? `<span class="${ed.updateMsg.err ? "ed-err" : "sub"}">${esc(ed.updateMsg.err || ed.updateMsg.ok)}</span>` : ""}`;
     return `<button class="btn" data-act="ed-signin">Editor sign-in</button>${s.error ? `<span class="ed-err">${esc(s.error)}</span>` : ""}`;
   }
   // Preview mode: what the sign-in does in the delivered dashboard, without signing anyone in.
@@ -235,7 +235,16 @@
     const val = (id) => $(`#${id}`)?.value ?? "";
     switch (act) {
       case "ed-signin": el.disabled = true; await ED.signIn(); return;
-      case "ed-signout": ED.signOut(); return;
+      case "ed-signout": ed.updateMsg = null; ED.signOut(); return;
+      case "ed-update": {
+        el.disabled = true;
+        try {
+          const r = await ED.core.requestUpdate(ED.state.email);
+          ed.updateMsg = { ok: `Update requested at ${r.at.slice(11, 16)} UTC. The site refreshes in about five minutes.` };
+        } catch (e) { ed.updateMsg = { err: e.message }; }
+        render();
+        return;
+      }
       case "ed-preview": ed.previewInfo = !ed.previewInfo; render(); if (ed.previewInfo) window.scrollTo({ top: 0, behavior: "smooth" }); return;
       case "lbl-open": ed.labelFor = el.dataset.key; ed.msgs[el.dataset.key] = null; render(); return;
       case "lbl-cancel": ed.labelFor = null; render(); return;
@@ -659,7 +668,7 @@
     if (bar) bar.innerHTML = editBar();
   }
 
-  const EDIT_ACTIONS = new Set(["ed-signin", "ed-signout", "ed-preview", "lbl-open", "lbl-cancel", "lbl-save", "pip-edit", "pip-reload", "pip-cancel", "pip-save", "pip-overwrite", "mem-seed", "mem-open", "mem-cancel", "mem-save"]);
+  const EDIT_ACTIONS = new Set(["ed-signin", "ed-signout", "ed-update", "ed-preview", "lbl-open", "lbl-cancel", "lbl-save", "pip-edit", "pip-reload", "pip-cancel", "pip-save", "pip-overwrite", "mem-seed", "mem-open", "mem-cancel", "mem-save"]);
   function editClick(e) {
     const el = e.target.closest("[data-act]");
     if (!el || !EDIT_ACTIONS.has(el.dataset.act)) return false;

@@ -139,6 +139,17 @@
         return { saved: true };
       },
 
+      // "Update now": writes the request time into the sheet's Dashboard tab. The sheet's sync script
+      // sees the sheet change and starts a rebuild; the page itself never holds a GitHub token.
+      async requestUpdate(by) {
+        const tab = tabs.dashboard || "Dashboard";
+        await core.ensureTab(tab, ["Last update requested (UTC)", "By"]);
+        const at = new Date().toISOString().slice(0, 19).replace("T", " ");
+        await core.writeCell(tab, 1, 0, "'" + at);
+        await core.writeCell(tab, 1, 1, by || "");
+        return { saved: true, at };
+      },
+
       // Create the Council members tab pre-filled with the dashboard's current record, so the
       // Council starts from the full history instead of an empty tab. Refuses if the tab exists.
       async seedMembers(terms) {

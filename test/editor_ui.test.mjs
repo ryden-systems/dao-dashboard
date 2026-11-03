@@ -55,6 +55,7 @@ const calls = [];
 let sheetNote = "Transitioning from Eveeye Star Atlas";
 ctx.Editor.core = {
   async addLabel(a) { calls.push(["addLabel", a]); return { saved: true }; },
+  async requestUpdate(by) { calls.push(["requestUpdate", by]); return { saved: true, at: "2026-11-03 12:34:56" }; },
   async readPip(n) { calls.push(["readPip", n]); return { values: { phase: "Voting", milestonesDone: "1", milestonesTotal: "1", roi: "ROI text", note: sheetNote }, missing: [] }; },
   async savePip(n, changes, opts) {
     calls.push(["savePip", n, changes, opts]);
@@ -117,11 +118,16 @@ const mc = calls.filter((c) => c[0] === "addMember").pop();
 ok(mc[1].name === "New Member" && mc[1].electedIn === 40 && mc[1].start === "2027-07-11", "member sent with parsed PIP number: " + JSON.stringify(mc[1]));
 ok(text().includes("Added New Member"), "member added message shown");
 
+// ---------- update now ----------
+ok(nodes.editbar.innerHTML.includes('data-act="ed-update"'), "Update now button shown to signed-in editors");
+await click("ed-update");
+ok(calls.some((c) => c[0] === "requestUpdate" && c[1] === "editor@example.org") && nodes.editbar.innerHTML.includes("Update requested at 12:34 UTC"), "Update now asks the sheet for a rebuild and confirms");
+
 // ---------- sign out ----------
 ctx.Editor.state = { available: true, signedIn: false, email: null, error: null };
 ctx.dispatchEvent(new ctx.CustomEvent("editor:change"));
 await tick();
-ok(!nodes.view.innerHTML.includes("Edit the Council list") && nodes.editbar.innerHTML.includes("Editor sign-in"), "signing out removes the editing controls");
+ok(!nodes.view.innerHTML.includes("Edit the Council list") && nodes.editbar.innerHTML.includes("Editor sign-in") && !nodes.editbar.innerHTML.includes("ed-update"), "signing out removes the editing controls");
 
 console.log(failed ? `\n${failed} failed, ${passed} passed` : `\nall ${passed} editor UI checks passed`);
 process.exit(failed ? 1 : 0);

@@ -1,29 +1,34 @@
 # Star Atlas DAO Dashboard
 
 A public dashboard for Star Atlas DAO governance, PIP funding, the Ecosystem Fund limit, and the DAO treasury.
-It is a static website rebuilt once a day by GitHub Actions. There is no server, no database, and nothing to log in to.
+It is a static website rebuilt by GitHub Actions. There is no server and no database, and visitors never need to log in.
+Council editors can optionally sign in with Google to edit the sheet from the dashboard.
 
 ---
 
 ## For the Council maintainer
 
-**You edit one thing: the Council's PIP tracker sheet.** Everything else updates itself.
+**You maintain one thing: the Council's PIP tracker sheet.** Everything else updates itself. You can always edit the
+sheet directly. With two-way editing switched on, some of it can also be edited from the dashboard, and those saves
+go straight into the same sheet.
 
-| What | Where it comes from | Who maintains it |
-|---|---|---|
-| PIP names, amounts, currency, category, SAC term, milestones, DAO ROI, notes | The PIP tracker sheet | You, in the sheet |
-| Council activity per month | The sheet's "Goes into Dashboard" tab | You, in the sheet |
-| Current and incoming Council members | A "Council members" tab in the sheet | You, in the sheet |
-| Labels for payouts the dashboard could not match (optional tab) | A "Payment labels" tab in the sheet | You, in the sheet |
-| Vote results, voting power, participation | Star Atlas governance API | Automatic |
-| Treasury and Ecosystem Fund balances | Solana mainnet | Automatic |
-| Payments to PIPs, returns, fee income | Solana mainnet | Automatic |
-| The 5% Ecosystem Fund limit | Solana mainnet (fund balance each quarter) | Automatic |
+| What | Where it comes from | Who maintains it | Edit from the dashboard? |
+|---|---|---|---|
+| Completed and total milestones, DAO ROI, notes | The PIP tracker sheet | You | Yes |
+| PIP names, amounts, currency, category, SAC term, phase | The PIP tracker sheet | You | No, sheet only |
+| Council activity per month | The sheet's "Goes into Dashboard" tab | You | No, sheet only |
+| Current and incoming Council members | A "Council members" tab in the sheet | You | Create the tab and add members; changing or hiding a member is sheet only |
+| Labels for payouts the dashboard could not match (optional tab) | A "Payment labels" tab in the sheet | You | Yes, see *Payment labels* |
+| Vote results, voting power, participation | Star Atlas governance API | Automatic | n/a |
+| Treasury and Ecosystem Fund balances | Solana mainnet | Automatic | n/a |
+| Payments to PIPs, returns, fee income | Solana mainnet | Automatic | n/a |
+| The 5% Ecosystem Fund limit | Solana mainnet (fund balance each quarter) | Automatic | n/a |
 
 **Fixing problems.** Open the **Data health** page. Every entry says what is wrong and where. Sheet issues are fixed in the sheet;
 the entry disappears on the next build once the sheet is corrected.
 
-**When does the site update?** Every day at 03:17 UTC. Anyone with access to the GitHub repository can trigger an update now:
+**When does the site update?** Once a day (scheduled for 03:17 UTC, though GitHub can start it hours later), and within about five minutes of a change to the sheet if
+*Instant updates* (below) is installed. Anyone with access to the GitHub repository can also trigger an update now:
 *Actions* tab → *Build and publish dashboard* → *Run workflow*.
 
 **The sheet must stay viewable by anyone with the link.** The dashboard reads it through Google's public CSV export.
@@ -38,13 +43,14 @@ column headers (only **Name** is required; any order):
 |---|---|---|---|---|---|---|---|---|---|---|
 | ROME \| Earther | Council member | Term 4 | 10/11/2026 | 7/11/2027 | PIP-35 | | | handle | https://… | TRUE |
 
-- Rows with the same **Term** form one Council. **Start / End** decide whether it shows as current, incoming, or past
+- Rows with the same **Term** form one Council (`4` and `Term 4` count as the same). **Start / End** decide whether it shows as current, incoming, or past
   (this is checked in the visitor's browser, so the page moves on by itself on those dates).
 - **Image** must be an `https://` link (e.g. the candidate portrait on cdn.staratlas.com).
 - **Show = FALSE** hides a row without deleting it.
 
 The tab is found by its name automatically. With two-way editing switched on, an editor can create it from the
-dashboard in one click, pre-filled with the full Council history, and add members there.
+dashboard in one click, pre-filled with the full Council history, and add members there. Changing or hiding an
+existing member is done in the sheet.
 
 Until that tab exists, the lists come from `data/council_history.json`, a record of past terms in which every term
 cites its source (official API result, the DAO Knowledge Base, or who provided it), with names and portraits taken from
@@ -63,8 +69,10 @@ one wallet was paid for several PIPs. To label them, add a tab to the sheet with
 | the transaction signature (copy it from the dashboard's payment list) | optional: the recipient wallet, if one transaction paid several people | e.g. `PIP-28`, or `internal`, `refund`, `not a payout` | `TRUE` once checked |
 
 The tab is found by its name ("Payment labels") automatically. With two-way editing switched on, editors can label a
-payout straight from the dashboard instead (a **Label** button next to each payout that needs one); the tab is
-created on the first label.
+payout straight from the dashboard instead (a **Label** button next to each payout that needs a label or only has an
+inferred match); the tab is created on the first label. The button shows **Relabel** until the page reloads, and saving
+again updates the same row. Once a label is confirmed and the site has updated, the button is gone: change the label in
+the sheet.
 
 Labels with **Confirmed = TRUE** count as paid. Unconfirmed labels show as suggestions only.
 
@@ -72,17 +80,23 @@ Labels with **Confirmed = TRUE** count as paid. Unconfirmed labels show as sugge
 
 ## Two-way editing (included, switchable)
 
-Signed-in editors can change the human-maintained fields on the dashboard itself: payout labels, a PIP's milestones,
-DAO ROI and note, and Council members. Every save goes straight into the Council's sheet; the dashboard never keeps
+Signed-in editors can change some human-maintained fields on the dashboard itself: payout labels, a PIP's milestones,
+DAO ROI and note, and adding Council members. Everything else is edited in the sheet (see the table under *For the
+Council maintainer*). Every save goes straight into the Council's sheet; the dashboard never keeps
 its own copy. It is off until it is configured, and the dashboard works the same without it.
 
 - **Who can edit** is decided by the sheet's own sharing settings. Editors sign in with Google; a save succeeds only
   if their Google account can edit the sheet. The sheet's version history records every change and who made it.
-- **Permission.** Editors grant Google's spreadsheet permission in the sign-in popup. It works with several Google
-  accounts signed in to the browser, and the dashboard only ever addresses the Council's sheet.
+- **Permission.** Editors grant Google's spreadsheet permission in the sign-in popup. Google words this as access to
+  all of the account's spreadsheets; the dashboard only ever addresses the sheet in its configuration, and the sign-in is kept
+  only in the open page and lasts about an hour. It works with several Google accounts signed in to the browser.
 - **Conflicts.** Before saving, the dashboard re-reads the cells. If someone changed one in the sheet since the form
   was opened, it shows both values and lets the editor overwrite or take the sheet's value.
-- **Visibility.** Saves appear for everyone after the next update (see *Instant updates* below, about five minutes).
+- **Update now.** Signed-in editors have an **Update now** button. It writes the time into a small "Dashboard" tab
+  (created on first use), which makes *Instant updates* rebuild the site within about five minutes, e.g. after a
+  failed nightly build. It needs *Instant updates* installed; no GitHub login is involved.
+- **Visibility.** Saves are in the sheet immediately and appear for everyone after the next update: about five minutes
+  with *Instant updates* below, otherwise the next daily build or *Run workflow*.
 
 ### Setup (once, on a DAO-owned Google account)
 
@@ -180,6 +194,10 @@ Percent and cadence are set in `config.json` (`fundLimit`).
 3. Optional: *Settings → Secrets and variables → Actions* → add `RPC_URL` and/or `SIGNATURES_RPC_URL` (see below).
 4. Optional custom domain (e.g. `council.staratlas.com`): *Settings → Pages → Custom domain*, then a DNS `CNAME` record pointing to `<org>.github.io`.
 5. *Actions → Build and publish dashboard → Run workflow* once, and open the published URL.
+6. In `config.json`, make sure `sheet.id` is the Council's real sheet and remove `testNotice` if it is there.
+7. If two-way editing stays on: repeat its *Setup* on a DAO-owned Google account and put the new client ID in `config.json`.
+8. If instant updates stay on: install the script on the real sheet from a DAO account, with a new token owned by the
+   DAO's organization and the repository's new name in `GITHUB_REPO`. Remove any earlier copy of the script and revoke its token.
 
 ### RPC endpoints
 
@@ -231,6 +249,8 @@ data/council_history.json   sourced record of Council terms (until the sheet tab
 test/smoke.mjs           renders every page against real data
 test/editor.test.mjs     editor core against a simulated Google Sheets API, with round trips through the importers
 test/editor_ui.test.mjs  editing controls: sign-in, label, edit with conflict, Council tab, add member
+test/editor_preview.test.mjs  the sign-in explanation shown when a preview build has editing off
+test/backup.test.mjs     the raw CSV backup of the sheet
 data/                    committed build state, updated by every run
 dist/                    build output (not committed)
 ```
