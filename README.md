@@ -24,7 +24,7 @@ go straight into the same sheet.
 | Payments to PIPs, returns, fee income | Solana mainnet | Automatic | n/a |
 | The 5% Ecosystem Fund limit | Solana mainnet (fund balance each quarter) | Automatic | n/a |
 
-**Fixing problems.** Open the **Data health** page. Every entry says what is wrong and where. Sheet issues are fixed in the sheet;
+**Fixing problems.** Sign in as an editor and open the **Data health** page (it is shown to signed-in editors only; with editing switched off it is public). Every entry says what is wrong and where. Sheet issues are fixed in the sheet;
 the entry disappears on the next build once the sheet is corrected.
 
 **When does the site update?** Once a day (scheduled for 03:17 UTC, though GitHub can start it hours later), and within about five minutes of a change to the sheet if
@@ -142,7 +142,7 @@ time and keeps only the latest waiting request.
 | **Fund limit** (MVP 3) | The current quarter's 5% limit, what it would be today, the limit for every past quarter, refills |
 | **Balance sheet** (MVP 4) | Account balances, balance history, recurring income (marketplace fee sweeps), payouts per month |
 | **Vote results** (optional) | Every PIP's outcome and split; per-PIP detail with voting power over time, voter-size buckets, largest voters |
-| **Data health** | Everything the build found that disagrees or is missing |
+| **Data health** | Everything the build found that disagrees or is missing (signed-in editors only) |
 
 ---
 

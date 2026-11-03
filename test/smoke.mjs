@@ -53,12 +53,15 @@ const routes = ["overview", "payments", "council", "limit", "balance", "votes", 
 let failed = 0;
 for (const r of routes) {
   ctx.location.hash = "#" + r;
+  // Data health is shown to signed-in editors when editing is on: render it as one.
+  if (r === "health" && ctx.Editor?.state) ctx.Editor.state.signedIn = true;
   try {
     for (const fn of listeners.hashchange ?? []) fn();
     await tick(); // vote detail loads asynchronously and re-renders
     const html = nodes.view.innerHTML;
     const len = html.length;
     const bad = /undefined|NaN|\[object Object\]/.exec(html.replace(/<[^>]+>/g, " "));
+    if (r === "health" && !html.includes("f-sev")) throw new Error("the Data health page was not rendered");
     if (len < 200) throw new Error(`page is nearly empty (${len} chars)`);
     if (bad) throw new Error(`rendered text contains "${bad[0]}"`);
     // Council members: every term (current, incoming, past) is listed on the Council page.

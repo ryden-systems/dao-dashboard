@@ -47,6 +47,9 @@ const click = async (act, dataset = {}) => {
 
 // ---------- signed out ----------
 ok(nodes.editbar.innerHTML.includes("Editor sign-in"), "sign-in button shown when editing is enabled");
+ok(!nodes.view.innerHTML.includes('href="#health"'), "overview hides the Data health tile while signed out");
+await go("#health");
+ok(!nodes.view.innerHTML.includes('id="f-sev"'), "Data health page is not shown while signed out");
 await go("#payments");
 ok(!nodes.view.innerHTML.includes('data-act="lbl-open"'), "no Label buttons while signed out");
 
@@ -117,6 +120,12 @@ await click("mem-save");
 const mc = calls.filter((c) => c[0] === "addMember").pop();
 ok(mc[1].name === "New Member" && mc[1].electedIn === 40 && mc[1].start === "2027-07-11", "member sent with parsed PIP number: " + JSON.stringify(mc[1]));
 ok(text().includes("Added New Member"), "member added message shown");
+
+// ---------- data health for editors ----------
+await go("#health");
+ok(nodes.view.innerHTML.includes('id="f-sev"'), "Data health page shown to signed-in editors");
+await go("#overview");
+ok(nodes.view.innerHTML.includes('href="#health"'), "overview shows the Data health tile to signed-in editors");
 
 // ---------- update now ----------
 ok(nodes.editbar.innerHTML.includes('data-act="ed-update"'), "Update now button shown to signed-in editors");

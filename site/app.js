@@ -139,6 +139,9 @@
   const SMap = window.SheetMap;
   const ed = { labelFor: null, msgs: {}, pip: null, member: false, memberMsg: null, seeded: false };
   const editing = () => Boolean(ED && ED.state.signedIn);
+  // Data health is a maintenance page: shown to signed-in editors. Without editing (or in a preview,
+  // where no one can sign in) it stays visible. Not secret: its data is in the public dashboard.json.
+  const healthOpen = () => !D.editing || Boolean(D.editing.preview) || editing();
   const legKey = (p) => `${p.sig}:${p.owner ?? ""}`;
   const canLabel = (p) => p.direction === "out" && (p.confidence === "unlabelled" || p.confidence === "inferred");
   const okMsg = (m) => (m ? `<p class="${m.err ? "ed-err" : "ed-ok"}">${esc(m.err || m.ok)}</p>` : "");
@@ -331,7 +334,7 @@
         ${kpi("PIP limit this quarter", compact(L?.current?.limit), "ATLAS", L?.current ? `${esc(L.current.quarter)} · live 5%: ${compact(L.live.limit)}` : "")}
         ${kpi("Paid to PIPs", compact(paidAtlas), "ATLAS", `${num(paidUsdc, 0)} USDC · matched on-chain`)}
         ${kpi("PIPs voted", String(voted.length), "", `${passed} passed${open ? ` · ${open} open` : ""}`)}
-        ${kpi("Data health", String(crit + warn), "flags", `<a href="#health">${crit} critical · ${warn} warnings</a>`)}
+        ${healthOpen() ? kpi("Data health", String(crit + warn), "flags", `<a href="#health">${crit} critical · ${warn} warnings</a>`) : ""}
       </div>
     </section>
     <div class="grid-2">
@@ -657,8 +660,11 @@
   // ---------- routing ----------
   function render() {
     const [route, param] = (location.hash.slice(1) || "overview").split("/");
-    const r = views[route] ? route : "overview";
-    document.querySelectorAll(".tabs a").forEach((a) => a.setAttribute("aria-current", a.dataset.route === r ? "page" : "false"));
+    const r = views[route] && (route !== "health" || healthOpen()) ? route : "overview";
+    document.querySelectorAll(".tabs a").forEach((a) => {
+      a.setAttribute("aria-current", a.dataset.route === r ? "page" : "false");
+      if (a.dataset.route === "health") a.hidden = !healthOpen();
+    });
     Charts.reset();
     const view = $("#view");
     view.innerHTML = previewInfo() + (r === "payments" || r === "council" ? editBanner() : "") + views[r](param);
