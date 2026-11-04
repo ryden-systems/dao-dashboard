@@ -2364,6 +2364,7 @@
    "image": "https://cdn.staratlas.com/dao/council-election/4/Earther_Headshot.png"
   }
  ],
+ "wallets": [],
  "tabs": {
   "pips": {
    "gid": "0",
@@ -2380,7 +2381,15 @@
   "councilMembers": {
    "gid": "822690761",
    "name": "Council members"
+  },
+  "paymentDocuments": {
+   "gid": null,
+   "name": "Payment documents"
+  },
+  "wallets": {
+   "gid": null,
+   "name": "Wallets"
   }
  },
- "fetchedAt": "2026-11-04T10:58:03.318Z"
+ "fetchedAt": "2026-11-04T17:36:39.436Z"
 }
