@@ -16,6 +16,22 @@ export async function readBalances(rpc, config) {
   return now;
 }
 
+// Balances of the wallets the Council tracks ("Wallets" tab, Track balance = TRUE). A wallet
+// that cannot be read is left out of this update instead of stopping the build.
+export async function readTracked(rpc, config, wallets) {
+  const out = {};
+  for (const w of wallets) {
+    try {
+      const b = { SOL: await rpc.solBalance(w) };
+      for (const [symbol, m] of Object.entries(config.mints)) b[symbol] = (await rpc.tokenAccounts(w, m.mint)).reduce((s, t) => s + t.amount, 0);
+      out[w] = b;
+    } catch (e) {
+      log(`balances: tracked wallet ${w.slice(0, 8)}… could not be read: ${e.message}`);
+    }
+  }
+  return out;
+}
+
 // Record today's balances (one entry per UTC day; a later run the same day overwrites it).
 export function recordSnapshot(now, ts = Date.now() / 1000) {
   const hist = readJSON(HISTORY, { days: {} });

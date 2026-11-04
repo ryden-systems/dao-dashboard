@@ -23,7 +23,7 @@ const ctx = {
   console, setTimeout, clearTimeout, Intl, Date, Math, JSON, Number, String, Object, Array, Map, Set, Promise,
   location: { hash: "" }, innerWidth: 1200, scrollTo() {},
   document: {
-    querySelector: (s) => nodes[s.replace(/^#/, "")] ?? (s.startsWith("#") && s.slice(1) in inputs ? { value: inputs[s.slice(1)], checked: inputs[s.slice(1)] === true } : null),
+    querySelector: (s) => nodes[s.replace(/^#/, "")] ?? (s.startsWith("#") && s.slice(1) in inputs ? { value: inputs[s.slice(1)], checked: inputs[s.slice(1)] === true, files: inputs[s.slice(1)] } : null),
     querySelectorAll: () => [], getElementById: (id) => nodes[id] ?? null, head: { appendChild() {} }, createElement: () => ({}),
   },
   addEventListener: (t, fn) => { (winListeners[t] ??= []).push(fn); },
@@ -52,10 +52,12 @@ await go("#health");
 ok(!nodes.view.innerHTML.includes('id="f-sev"'), "Data health page is not shown while signed out");
 await go("#payments");
 ok(!nodes.view.innerHTML.includes('data-act="lbl-open"'), "no Label buttons while signed out");
+ok(!nodes.view.innerHTML.includes("Payouts to label"), "Payouts to label is hidden while signed out");
 
 // ---------- sign in with a stub core ----------
 const calls = [];
 let sheetNote = "Transitioning from Eveeye Star Atlas";
+let docsInSheet = [];
 ctx.Editor.core = {
   async addLabel(a) { calls.push(["addLabel", a]); return { saved: true }; },
   async requestUpdate(by) { calls.push(["requestUpdate", by]); return { saved: true, at: "2026-11-03 12:34:56" }; },
@@ -67,12 +69,14 @@ ctx.Editor.core = {
   },
   async seedMembers(terms) { calls.push(["seedMembers", terms.length]); return { saved: true, rows: terms.reduce((s, t) => s + t.members.length, 0) }; },
   async addMember(m) { calls.push(["addMember", m]); return m.name ? { saved: true } : { error: "name: This field is required." }; },
+  async listDocs() { calls.push(["listDocs"]); return docsInSheet; },
 };
 ctx.Editor.state = { available: true, signedIn: true, email: "editor@example.org", error: null };
 ctx.dispatchEvent(new ctx.CustomEvent("editor:change"));
 await tick();
 ok(nodes.editbar.innerHTML.includes("editor@example.org") && nodes.editbar.innerHTML.includes("Sign out"), "header shows the signed-in editor");
 ok(text().includes("Editor mode"), "editor banner on the payments page");
+ok(nodes.view.innerHTML.includes('<div class="kpi ed-only"><span class="k">Payouts to label'), "Payouts to label shown to editors, with the editor tint");
 
 // ---------- label a payout ----------
 const need = D.payments.find((p) => p.direction === "out" && (p.confidence === "unlabelled" || p.confidence === "inferred"));
@@ -80,6 +84,7 @@ const key = `${need.sig}:${need.owner ?? ""}`;
 ok(nodes.view.innerHTML.includes(`data-key="${key}"`), "Label button on a payout that needs a label");
 await click("lbl-open", { key });
 ok(nodes.view.innerHTML.includes('id="lbl-pip"') && nodes.view.innerHTML.includes("PIP-28"), "label form opens with the funded PIPs");
+ok(nodes.view.innerHTML.includes('value="Foundation"') && nodes.view.innerHTML.includes('id="lbl-cat"'), "label form offers the Foundation cost category and a new-category field");
 inputs["lbl-pip"] = "PIP-28"; inputs["lbl-ok"] = true;
 await click("lbl-save", { sig: need.sig, owner: need.owner ?? "" });
 const lc = calls.find((c) => c[0] === "addLabel");
@@ -132,11 +137,81 @@ ok(nodes.editbar.innerHTML.includes('data-act="ed-update"'), "Update now button 
 await click("ed-update");
 ok(calls.some((c) => c[0] === "requestUpdate" && c[1] === "editor@example.org") && nodes.editbar.innerHTML.includes("Update requested at 12:34 UTC"), "Update now asks the sheet for a rebuild and confirms");
 
+// ---------- labels can be changed; DAO-internal transfers cannot be labelled ----------
+{
+  await go("#payments");
+  const html = nodes.view.innerHTML;
+  const auto = D.payments.find((p) => p.direction === "out" && (p.confidence === "matches-sheet" || p.confidence === "matches-amount"));
+  const dao = D.payments.find((p) => p.direction === "out" && p.confidence === "internal" && !p.labelled);
+  ok(!auto || html.includes(`data-act="lbl-open" data-key="${auto.sig}:${auto.owner ?? ""}"`), "automatically matched payouts can be labelled too");
+  ok(!dao || !html.includes(`data-act="lbl-open" data-key="${dao.sig}:${dao.owner ?? ""}"`), "transfers between DAO accounts get no Label button");
+  const was = { ...need };
+  Object.assign(need, { labelled: true, confidence: "internal", reason: "not a payout", pip: null, category: null });
+  await go("#payments");
+  ok(nodes.view.innerHTML.includes(`data-key="${key}">Relabel</button>`), "a labelled payout shows Relabel");
+  await click("lbl-open", { key });
+  ok(/<option value="not a payout" selected>/.test(nodes.view.innerHTML), "the relabel form preselects the current label");
+  await click("lbl-cancel");
+  Object.assign(need, was);
+}
+
+// ---------- wallets on the Balances page ----------
+{
+  const W = "B5hX2Aj8FYmdYjXQFVF1jpz7BkrdpLXgSPs92G6DFGjA";
+  D.wallets = [
+    { wallet: W, name: "Star Atlas Foundation", label: "Foundation", track: true, note: "", now: { ATLAS: 0, USDC: 1234.5, SOL: 0.25 } },
+    { wallet: "9q3ZZnezQyVxxxxxxxxxxxxxxxxxxxxxxxxxxxxxhX7Y", name: "Untracked Wallet", label: "PIP-22", track: false, note: "", now: null },
+  ];
+  ctx.Editor.core.saveWallet = async (w) => { calls.push(["saveWallet", w]); return { saved: true, updated: true }; };
+  await go("#balance");
+  ok(nodes.view.innerHTML.includes("Star Atlas Foundation") && nodes.view.innerHTML.includes("1,234.5") && nodes.view.innerHTML.includes(">Foundation</span>") && nodes.view.innerHTML.includes("<th>Label</th>"), "tracked wallet listed with name, label and balances");
+  ok(/<tr class="ed-only">\s*<td><strong>Untracked Wallet/.test(nodes.view.innerHTML), "editors also see untracked wallets, tinted");
+  await click("wal-open", { wallet: W });
+  ok(nodes.view.innerHTML.includes(`id="wf-wallet" placeholder="Solana address" value="${W}"`), "Edit opens the form filled with the wallet");
+  Object.assign(inputs, { "wf-wallet": W, "wf-name": "Star Atlas Foundation", "wf-label": "Foundation", "wf-note": "", "wf-track": true });
+  await click("wal-save");
+  const sw = calls.find((c) => c[0] === "saveWallet");
+  ok(sw && sw[1].wallet === W && sw[1].track === true && sw[1].label === "Foundation" && nodes.view.innerHTML.includes("Updated Star Atlas Foundation"), "saving sends the wallet to the sheet and confirms");
+  ok(nodes.view.innerHTML.includes('data-act="wal-open">Add a wallet'), "editors can add another wallet");
+}
+
+// ---------- counterparty links show only transfers with the DAO account ----------
+{
+  await go("#payments");
+  const wallet = D.accounts[need.account].wallet;
+  ok(nodes.view.innerHTML.includes(`solscan.io/account/${need.owner}?exclude_amount_zero=true&amp;remove_spam=false&amp;from_address=${wallet}#transfers`), "payout counterparty link filters Solscan to transfers from the DAO account");
+}
+
+// ---------- payment documents ----------
+D.editing.documents = { owner: "owner@example.org", folder: "Payment documents" };
+ok(calls.some((c) => c[0] === "listDocs"), "documents are read from the sheet after sign-in");
+const dkey = `${need.sig}:${need.owner ?? ""}`;
+await go("#payments");
+await click("doc-open", { key: dkey });
+ok(nodes.view.innerHTML.includes("Only owner@example.org can upload documents") && /<button class="btn" disabled[^>]*>Upload PDF<\/button>/.test(nodes.view.innerHTML) && !nodes.view.innerHTML.includes('id="doc-files"'), "other editors see a disabled upload button naming the owner");
+ctx.Editor.canUpload = () => true;
+ctx.Editor.uploadDocs = async (a) => {
+  calls.push(["uploadDocs", a]);
+  docsInSheet = a.files.map((f) => ({ signature: a.signature, recipient: a.recipient, file: f.name, link: "https://drive.example/" + f.name, at: "2026-11-04 10:00:00", by: "owner@example.org" }));
+  return { saved: true, files: a.files.map((f) => f.name) };
+};
+await go("#payments");
+ok(nodes.view.innerHTML.includes('id="doc-files"') && nodes.view.innerHTML.includes("multiple"), "the owner gets a multi-file picker");
+inputs["doc-files"] = [{ name: "a.pdf" }, { name: "b.pdf" }];
+await click("doc-upload", { sig: need.sig, owner: need.owner ?? "" });
+const upCall = calls.find((c) => c[0] === "uploadDocs");
+ok(upCall && upCall[1].files.length === 2 && upCall[1].signature === need.sig, "upload sends every chosen file for that payout");
+ok(nodes.view.innerHTML.includes("Uploaded 2 files") && nodes.view.innerHTML.includes("https://drive.example/b.pdf"), "uploaded files are listed on the payout");
+await click("doc-close");
+ok(nodes.view.innerHTML.includes("Documents (2)"), "the payout's button counts its documents");
+
 // ---------- sign out ----------
 ctx.Editor.state = { available: true, signedIn: false, email: null, error: null };
 ctx.dispatchEvent(new ctx.CustomEvent("editor:change"));
 await tick();
 ok(!nodes.view.innerHTML.includes("Edit the Council list") && nodes.editbar.innerHTML.includes("Editor sign-in") && !nodes.editbar.innerHTML.includes("ed-update"), "signing out removes the editing controls");
+await go("#balance");
+ok(nodes.view.innerHTML.includes("Star Atlas Foundation") && !nodes.view.innerHTML.includes("Untracked Wallet") && !nodes.view.innerHTML.includes("not tracked"), "visitors see tracked wallets only");
 
 console.log(failed ? `\n${failed} failed, ${passed} passed` : `\nall ${passed} editor UI checks passed`);
 process.exit(failed ? 1 : 0);

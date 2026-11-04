@@ -17,6 +17,7 @@
   "knownWallets": {
     "feesQYAaH3wjGUUQYD959mmi5pY8HSz3F5C3SVc1fp3": "Marketplace fee sweep"
   },
+
   "income": {
     "_note": "Inflows from a counterparty that sends at least this many transfers are summarised per month instead of listed one by one.",
     "recurringMinTransfers": 20
@@ -34,14 +35,21 @@
       "pips": "0",
       "council": "1688943123",
       "paymentLabels": "Payment labels",
-      "councilMembers": "Council members"
+      "councilMembers": "Council members",
+      "paymentDocuments": "Payment documents",
+      "wallets": "Wallets"
     },
     "_tabsNote": "Each tab is a gid (digits) or a tab name. Named tabs are found automatically once they exist, including tabs created from the dashboard's editor."
   },
   "editing": {
     "_note": "Two-way editing between the dashboard and the sheet. Off while googleClientId is empty. The client ID is public by design (it identifies the app, it grants nothing); access is decided by each editor's own permissions on the sheet.",
     "enabled": true,
-    "googleClientId": "592316417560-nljjo7od7bnutqddtj4kugk21kk4gnjp.apps.googleusercontent.com"
+    "googleClientId": "592316417560-nljjo7od7bnutqddtj4kugk21kk4gnjp.apps.googleusercontent.com",
+    "documents": {
+      "_note": "PDF documents on payouts (invoices, receipts). Only the owner account can upload; the files go into a folder of that name in its Google Drive and stay private there. Empty owner = no uploads.",
+      "owner": "staratlasdaocouncil@gmail.com",
+      "folder": "Payment documents"
+    }
   },
   "governance": {
     "api": "https://galaxy.staratlas.com",

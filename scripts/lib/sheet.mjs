@@ -171,8 +171,25 @@ export function parseMembersTab(rows) {
     }));
 }
 
+// Optional tab maintained by the Council: other wallets the DAO deals with, one row each.
+// Headers: "Wallet", "Name" (shown instead of the address), "Label" (given automatically to every
+// payout to this wallet), "Track balance" (TRUE = its balances are shown), "Note".
+const WALLET_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+export function parseWalletsTab(rows) {
+  const hi = rows.findIndex((r) => r.some((c) => /^wallet$/i.test(clean(c))));
+  if (hi < 0) return [];
+  const h = rows[hi].map((c) => clean(c).toLowerCase());
+  const at = (n) => h.findIndex((x) => x === n || x.startsWith(n));
+  const C = { wallet: at("wallet"), name: at("name"), label: at("label"), track: at("track"), note: at("note") };
+  const get = (r, k) => (C[k] >= 0 ? clean(r[C[k]]) : "");
+  const seen = new Set();
+  return rows.slice(hi + 1)
+    .map((r) => ({ wallet: get(r, "wallet"), name: get(r, "name"), label: get(r, "label"), track: yes(get(r, "track")), note: get(r, "note") }))
+    .filter((w) => WALLET_RE.test(w.wallet) && !seen.has(w.wallet) && seen.add(w.wallet));
+}
+
 // Optional tab maintained by the Council: one row per on-chain payout they have labelled.
-// Expected headers: "Signature", "PIP" (e.g. PIP-29, or "internal" / "refund" / "not a payout"), "Confirmed".
+// Expected headers: "Signature", "PIP" (e.g. PIP-29, a cost category such as "Foundation", or "internal" / "refund" / "not a payout"), "Confirmed".
 export function parseLabelTab(rows) {
   const hi = rows.findIndex((r) => r.some((c) => /^signature$/i.test(clean(c))));
   if (hi < 0) return [];

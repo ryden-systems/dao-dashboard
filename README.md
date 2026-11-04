@@ -18,13 +18,17 @@ go straight into the same sheet.
 | PIP names, amounts, currency, category, SAC term, phase | The PIP tracker sheet | You | No, sheet only |
 | Council activity per month | The sheet's "Goes into Dashboard" tab | You | No, sheet only |
 | Current and incoming Council members | A "Council members" tab in the sheet | You | Create the tab and add members; changing or hiding a member is sheet only |
+| Other wallets: names, automatic payout labels, tracked balances (optional tab) | A "Wallets" tab in the sheet | You | Yes, see *Wallets* |
 | Labels for payouts the dashboard could not match (optional tab) | A "Payment labels" tab in the sheet | You | Yes, see *Payment labels* |
+| Documents on payouts, e.g. invoices (optional tab) | A "Payment documents" tab in the sheet, files in the owner account's Google Drive | You | Upload by the owner account only, see *Payment documents* |
 | Vote results, voting power, participation | Star Atlas governance API | Automatic | n/a |
 | Treasury and Ecosystem Fund balances | Solana mainnet | Automatic | n/a |
-| Payments to PIPs, returns, fee income | Solana mainnet | Automatic | n/a |
+| Payments to PIPs and running costs (e.g. the Foundation), returns, fee income | Solana mainnet; the purpose of a non-PIP payout comes from a payment label | Automatic | n/a |
 | The 5% Ecosystem Fund limit | Solana mainnet (fund balance each quarter) | Automatic | n/a |
 
-**Fixing problems.** Sign in as an editor and open the **Data health** page (it is shown to signed-in editors only; with editing switched off it is public). Every entry says what is wrong and where. Sheet issues are fixed in the sheet;
+**Fixing problems.** Sign in as an editor and open the **Data health** page. Maintenance items (the Data health page
+and tile, "Payouts to label") are shown to signed-in editors only, tinted blue so editors can tell them apart; with
+editing switched off they are public. Every entry says what is wrong and where. Sheet issues are fixed in the sheet;
 the entry disappears on the next build once the sheet is corrected.
 
 **When does the site update?** Once a day (scheduled for 03:17 UTC, though GitHub can start it hours later), and within about five minutes of a change to the sheet if
@@ -66,15 +70,49 @@ one wallet was paid for several PIPs. To label them, add a tab to the sheet with
 
 | Signature | Recipient | PIP | Confirmed |
 |---|---|---|---|
-| the transaction signature (copy it from the dashboard's payment list) | optional: the recipient wallet, if one transaction paid several people | e.g. `PIP-28`, or `internal`, `refund`, `not a payout` | `TRUE` once checked |
+| the transaction signature (copy it from the dashboard's payment list) | optional: the recipient wallet, if one transaction paid several people | e.g. `PIP-28`, a cost category such as `Foundation`, or `internal`, `refund`, `not a payout` | `TRUE` once checked |
 
 The tab is found by its name ("Payment labels") automatically. With two-way editing switched on, editors can label a
-payout straight from the dashboard instead (a **Label** button next to each payout that needs a label or only has an
-inferred match); the tab is created on the first label. The button shows **Relabel** until the page reloads, and saving
-again updates the same row. Once a label is confirmed and the site has updated, the button is gone: change the label in
-the sheet.
+payout straight from the dashboard instead (a **Label** button next to every payout except transfers between the DAO's
+own accounts); the tab is created on the first label. A payout that already has a label shows **Relabel**, with its
+current label preselected, and saving again updates the same row. A label overrides the automatic match.
 
 Labels with **Confirmed = TRUE** count as paid. Unconfirmed labels show as suggestions only.
+
+**Running costs.** A label that is not a PIP (and not `internal`, `refund` or `not a payout`) is a cost category,
+for example `Foundation` for the payments that keep the DAO's legal entity in good standing. The Payments page totals
+every category under *By purpose*. Once one payout to a wallet is labelled, further payouts to that wallet are
+suggested for the same category and only need confirming.
+
+### Wallets (optional)
+
+Other wallets the DAO deals with, such as the Foundation's, can be listed in a "Wallets" tab:
+
+| Wallet | Name | Label | Track balance | Note |
+|---|---|---|---|---|
+| the Solana address | shown instead of the address everywhere | optional: every payout to this wallet gets this label, e.g. `Foundation` or `PIP-36` | `TRUE` to show its ATLAS, USDC and SOL balances on the Balances page | optional |
+
+A label on a single payout (see *Payment labels*) overrides the wallet's label. Signed-in editors can add and change
+wallets on the Balances page (**Add a wallet**, **Edit**); the tab is created on the first save.
+
+### Payment documents (optional)
+
+Invoices, receipts and other PDF files can be attached to any payout, several per payout. Signed-in editors see a
+**Documents** button on every payout in the Payments page's movement list, with the files attached so far.
+
+- **Who uploads.** Only the account named in `config.json` (`editing.documents.owner`) can upload. Everyone else
+  sees the upload button disabled, with that account's name next to it. This keeps every file owned by the DAO's own
+  account instead of by whichever member happened to upload it.
+- **Where the files go.** Into a folder named "Payment documents" in that account's Google Drive, created on the first
+  upload. On that first upload Google asks the owner once for permission to create files; the dashboard can only see
+  the files it created itself, never the rest of the Drive.
+- **Who can open them.** The files stay private to the owner account. To let other members open them, share the
+  "Payment documents" folder with them in Google Drive. Never share it as "anyone with the link": invoices contain
+  bank details.
+- **What the sheet holds.** One row per file in a "Payment documents" tab: the payout's signature, the file name, its
+  Drive link, when and by whom. The tab is created on the first upload. The sheet can be opened by anyone with its link
+  and every tab is backed up into this repository, so the file names and links are public; the files themselves are not.
+  The public site itself never lists documents.
 
 ---
 
@@ -101,8 +139,8 @@ its own copy. It is off until it is configured, and the dashboard works the same
 ### Setup (once, on a DAO-owned Google account)
 
 1. [Google Cloud console](https://console.cloud.google.com/) → create a project.
-2. *APIs & Services → Library*: enable **Google Sheets API**.
-3. *Google Auth Platform*: audience **External**; under *Data access* add `.../auth/spreadsheets`, `openid`, `email`.
+2. *APIs & Services → Library*: enable **Google Sheets API**, and **Google Drive API** if payment documents are used.
+3. *Google Auth Platform*: audience **External**; under *Data access* add `.../auth/spreadsheets`, `openid`, `email` (and `.../auth/drive.file` if payment documents are used).
    The spreadsheet permission is classed as sensitive: while the app is in *Testing*, add each editor as a test user
    (they see an "unverified app" notice and continue). Opening it to anyone else requires Google's app verification.
 4. *Clients → Create client*: type **Web application**; under *Authorized JavaScript origins* add the dashboard's

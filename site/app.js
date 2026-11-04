@@ -21,6 +21,13 @@
   const isoDay = (s) => (s ? String(s).slice(0, 10) : "—");
   const short = (a) => (a ? `${a.slice(0, 4)}…${a.slice(-4)}` : "—");
   const solTx = (sig) => `<a class="mono" href="https://solscan.io/tx/${esc(sig)}" target="_blank" rel="noopener">${esc(sig.slice(0, 8))}…</a>`;
+  // A counterparty's transfers on Solscan, filtered to those with the DAO account of this movement,
+  // e.g. every payment from the Treasury to the Foundation.
+  const solFlow = (p, label) => {
+    const dao = D.accounts[p.account]?.wallet;
+    const filter = dao ? `&amp;${p.direction === "in" ? "to_address" : "from_address"}=${esc(dao)}` : "";
+    return `<a class="mono addr" href="https://solscan.io/account/${esc(p.owner)}?exclude_amount_zero=true&amp;remove_spam=false${filter}#transfers" target="_blank" rel="noopener" title="Transfers between this wallet and the ${esc(D.accounts[p.account]?.label ?? "DAO account")}">${esc(label ?? short(p.owner))}</a>`;
+  };
   const solAcc = (a, label) => `<a class="mono addr" href="https://solscan.io/account/${esc(a)}" target="_blank" rel="noopener">${esc(label ?? short(a))}</a>`;
   const pipLink = (n) => `<a class="mono" href="#votes/${n}">PIP-${n}</a>`;
   const css = (v) => `var(${v})`;
@@ -30,18 +37,25 @@
     "matches-sheet": { cls: "good", label: "matches sheet" },
     "matches-amount": { cls: "good", label: "matches amount" },
     "inferred": { cls: "warn", label: "inferred — confirm" },
+    "category": { cls: "good", label: "cost category" },
     "internal": { cls: "", label: "internal" },
     "unlabelled": { cls: "crit", label: "needs label" },
     "income": { cls: "acc", label: "inflow" },
   };
   const confChip = (c) => { const x = CONF[c] ?? { cls: "", label: c }; return `<span class="chip ${x.cls}">${esc(x.label)}</span>`; };
+  // A date in table rows: the year on one line and month-day below it, so the column stays narrow.
+  const dayCell = (t) => { const d = day(t); return `<span class="dy">${d.slice(0, 4)}</span><span class="dy">${d.slice(5)}</span>`; };
+  const PAID = new Set(["confirmed", "matches-sheet", "matches-amount"]);
+  // What a payout was for: a PIP or a cost category (e.g. Foundation), with its match state.
+  const matchCell = (p) => p.confidence === "category" ? `<span class="chip good">${esc(p.category)}</span>`
+    : `${p.pip ? pipLink(p.pip) + " " : ""}${p.category ? `<span class="chip">${esc(p.category)}</span> ` : ""}${confChip(p.confidence)}`;
   const STATE = {
     "paid": ["good", "paid"], "partly-paid": ["warn", "partly paid"], "unpaid": ["", "awaiting payment"], "returned": ["acc", "returned"],
   };
   const stateChip = (s) => { const [c, l] = STATE[s] ?? ["", s]; return `<span class="chip ${c}">${esc(l)}</span>`; };
   const outcomeChip = (o) => o === "passed" ? `<span class="chip good">passed</span>` : o === "failed" ? `<span class="chip crit">failed</span>` : o === "open" ? `<span class="chip acc">voting</span>` : `<span class="chip">${esc(o || "—")}</span>`;
 
-  const kpi = (k, v, unit, s) => `<div class="kpi"><span class="k">${esc(k)}</span><span class="v">${v}${unit ? `<small>${esc(unit)}</small>` : ""}</span>${s ? `<span class="s">${s}</span>` : ""}</div>`;
+  const kpi = (k, v, unit, s, cls = "") => `<div class="kpi${cls}"><span class="k">${esc(k)}</span><span class="v">${v}${unit ? `<small>${esc(unit)}</small>` : ""}</span>${s ? `<span class="s">${s}</span>` : ""}</div>`;
   const head = (title, right = "") => `<div class="sec-head"><h2>${esc(title)}</h2>${right}</div>`;
   const sub = (title, right = "") => `<div class="sec-head"><h3>${esc(title)}</h3>${right}</div>`;
 
@@ -52,7 +66,7 @@
   const accLabel = (k) => D.accounts[k]?.label ?? k;
   const ownerLabel = (owner) => {
     for (const a of Object.values(D.accounts)) if (a.wallet === owner) return a.label;
-    return D.knownWallets?.[owner] ?? null;
+    return D.walletNames?.[owner] ?? D.knownWallets?.[owner] ?? null;
   };
   // Display name of a vote option (election candidates have one in the API).
   const optName = (p, o) => p.candidates?.find((c) => c.value === o)?.display ?? o;
@@ -137,20 +151,23 @@
   // ---------- two-way editing (only when enabled and an editor is signed in) ----------
   const ED = window.Editor;
   const SMap = window.SheetMap;
-  const ed = { labelFor: null, msgs: {}, pip: null, member: false, memberMsg: null, seeded: false };
+  const ed = { labelFor: null, msgs: {}, pip: null, member: false, memberMsg: null, seeded: false, docs: null, docFor: null, docMsg: {} };
   const editing = () => Boolean(ED && ED.state.signedIn);
-  // Data health is a maintenance page: shown to signed-in editors. Without editing (or in a preview,
-  // where no one can sign in) it stays visible. Not secret: its data is in the public dashboard.json.
-  const healthOpen = () => !D.editing || Boolean(D.editing.preview) || editing();
+  // Maintenance elements (Data health, "Payouts to label"): shown to signed-in editors. Without
+  // editing (or in a preview, where no one can sign in) they stay public. Not secret: their data is
+  // in the public dashboard.json. While gated they carry the editor tint (class ed-only).
+  const maintOpen = () => !D.editing || Boolean(D.editing.preview) || editing();
+  const maintCls = () => (D.editing && !D.editing.preview ? " ed-only" : "");
   const legKey = (p) => `${p.sig}:${p.owner ?? ""}`;
-  const canLabel = (p) => p.direction === "out" && (p.confidence === "unlabelled" || p.confidence === "inferred");
+  // Every payout can be (re)labelled, except transfers between the DAO's own accounts.
+  const canLabel = (p) => p.direction === "out" && !(p.confidence === "internal" && !p.labelled);
   const okMsg = (m) => (m ? `<p class="${m.err ? "ed-err" : "ed-ok"}">${esc(m.err || m.ok)}</p>` : "");
 
   function editBar() {
     if (!ED || !ED.state.available) return "";
     const s = ED.state;
     if (s.preview) return `<button class="btn" data-act="ed-preview" aria-expanded="${ed.previewInfo ? "true" : "false"}">Editor sign-in</button>`;
-    if (s.signedIn) return `<span class="sub">Editing as ${esc(s.email ?? "signed-in editor")}</span><button class="btn" data-act="ed-update" title="Rebuild the dashboard from the sheet now">Update now</button><button class="btn" data-act="ed-signout">Sign out</button>${ed.updateMsg ? `<span class="${ed.updateMsg.err ? "ed-err" : "sub"}">${esc(ed.updateMsg.err || ed.updateMsg.ok)}</span>` : ""}`;
+    if (s.signedIn) return `<span class="ed-zone"><span class="sub">Editing as ${esc(s.email ?? "signed-in editor")}</span><button class="btn ed-btn" data-act="ed-update" title="Rebuild the dashboard from the sheet now">Update now</button><button class="btn ed-btn" data-act="ed-signout">Sign out</button>${ed.updateMsg ? `<span class="${ed.updateMsg.err ? "ed-err" : "sub"}">${esc(ed.updateMsg.err || ed.updateMsg.ok)}</span>` : ""}</span>`;
     return `<button class="btn" data-act="ed-signin">Editor sign-in</button>${s.error ? `<span class="ed-err">${esc(s.error)}</span>` : ""}`;
   }
   // Preview mode: what the sign-in does in the delivered dashboard, without signing anyone in.
@@ -159,21 +176,49 @@
       ${sub("Editing from the dashboard", `<button class="btn" data-act="ed-preview">Close</button>`)}
       <p class="lede">In the delivered dashboard, Council members sign in here with their Google account and edit straight from these pages:</p>
       <ul class="clean">
-        <li><strong>Label payouts:</strong> a <em>Label</em> button next to every on-chain payout that still needs one; pick the PIP and confirm.</li>
+        <li><strong>Label payouts:</strong> a <em>Label</em> button next to every on-chain payout that still needs one; pick the PIP or a cost category such as Foundation, and confirm.</li>
         <li><strong>Update PIPs:</strong> milestones, DAO ROI and notes, from the PIP's row on the payments page.</li>
         <li><strong>Maintain the Council:</strong> create the Council members list from the full history, then add members.</li>
+        <li><strong>Name wallets:</strong> give other wallets a name, a label for every payout to them (e.g. Foundation), and track their balances.</li>
+        <li><strong>Attach documents:</strong> invoices and receipts as PDF files on any payout, uploaded by the DAO's owner account into its own Google Drive.</li>
       </ul>
       <p>Every save is written straight into the Council's sheet, under the editor's own permissions on that sheet, and appears in its version history. If a value was changed in the sheet in the meantime, the dashboard shows both versions instead of overwriting. Edits made directly in the sheet appear here within about five minutes.</p>
       <p class="src">Sign-in is switched off in this preview, because the preview is not connected to the Council's sheet.</p>
     </section>` : "");
 
-  const editBanner = () => (editing() ?`<div class="note">Editor mode. Saves go straight into the Council's sheet, and everyone sees them after the next update, within about five minutes. The sheet's version history records every change.</div>` : "");
+  const editBanner = () => (editing() ?`<div class="note ed-note">Editor mode. Saves go straight into the Council's sheet, and everyone sees them after the next update, within about five minutes. The sheet's version history records every change.</div>` : "");
+
+  // Documents on a payout, read live from the sheet's "Payment documents" tab (signed-in editors only).
+  const docsOf = (p) => (ed.docs ?? []).filter((d) => d.signature === p.sig && (!d.recipient || d.recipient === (p.owner ?? "")));
+  async function loadDocs() {
+    if (ed.docsLoading) return;
+    ed.docsLoading = true;
+    try { ed.docs = await ED.core.listDocs(); } catch (e) { ed.docs = []; ed.docsErr = e.message; }
+    ed.docsLoading = false;
+    render();
+  }
+  function docPanel(p) {
+    const key = legKey(p), docs = docsOf(p), owner = D.editing?.documents?.owner;
+    const list = docs.length
+      ? `<ul class="clean">${docs.map((d) => `<li><a href="${esc(d.link)}" target="_blank" rel="noopener">${esc(d.file || "document")}</a> <span class="sub">${esc(d.at)}${d.by ? " · " + esc(d.by) : ""}</span></li>`).join("")}</ul>`
+      : `<p class="muted">${ed.docsErr ? esc(ed.docsErr) : ed.docs ? "No documents on this payout yet." : "Loading documents…"}</p>`;
+    const close = `<button class="btn" data-act="doc-close">Close</button>`;
+    const upload = !owner ? `<div class="edact wide">${close}</div>`
+      : ED.canUpload()
+        ? `<label class="wide">Add PDF files<input type="file" id="doc-files" accept="application/pdf" multiple></label>
+           <div class="edact wide"><button class="btn primary" data-act="doc-upload" data-sig="${esc(p.sig)}" data-owner="${esc(p.owner ?? "")}">Upload</button>${close}</div>`
+        : `<div class="edact wide"><button class="btn" disabled title="Documents are uploaded by ${esc(owner)} only, so every file belongs to that account">Upload PDF</button>${close}<span class="sub">Only ${esc(owner)} can upload documents.</span></div>`;
+    return `<div class="edform"><div class="wide">${list}</div>${upload}${okMsg(ed.docMsg[key])}</div>`;
+  }
 
   function labelForm(p) {
     const funded = D.pips.filter((x) => x.funding).map((x) => [`PIP-${x.pip}`, `PIP-${x.pip}: ${x.name}`]);
-    const opts = [...funded, ["internal", "internal (between DAO accounts)"], ["refund", "refund"], ["not a payout", "not a payout"]];
+    const cats = [...new Set(["Foundation", ...D.payments.map((x) => x.category).filter(Boolean)])].map((c) => [c, `${c} (cost)`]);
+    const opts = [...funded, ...cats, ["internal", "internal (between DAO accounts)"], ["refund", "refund"], ["not a payout", "not a payout"]];
+    const pick = (v) => (p.pip && v === `PIP-${p.pip}`) || (!p.pip && p.category === v) || (p.labelled && p.confidence === "internal" && p.reason === v);
     return `<div class="edform">
-      <label class="wide">Paid for<select id="lbl-pip">${opts.map(([v, l]) => `<option value="${esc(v)}" ${p.pip && v === `PIP-${p.pip}` ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>
+      <label class="wide">Paid for<select id="lbl-pip">${opts.map(([v, l]) => `<option value="${esc(v)}" ${pick(v) ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>
+      <label class="wide">Or a new cost category<input id="lbl-cat" placeholder="e.g. Legal, Hosting (leave empty to use the choice above)"></label>
       <label class="chk wide"><input type="checkbox" id="lbl-ok" checked> Confirmed: counts as paid</label>
       <div class="edact wide"><button class="btn primary" data-act="lbl-save" data-sig="${esc(p.sig)}" data-owner="${esc(p.owner ?? "")}">Save label</button><button class="btn" data-act="lbl-cancel">Cancel</button></div>
     </div>`;
@@ -182,7 +227,7 @@
   function pipEditor(p) {
     if (!editing()) return "";
     const st = ed.pip && ed.pip.pip === p.pip ? ed.pip : null;
-    if (!st) return `<p class="edact"><button class="btn" data-act="pip-edit" data-pip="${p.pip}">Edit milestones, ROI and note</button></p>`;
+    if (!st) return `<p class="edact"><button class="btn ed-btn" data-act="pip-edit" data-pip="${p.pip}">Edit milestones, ROI and note</button></p>`;
     if (st.loading) return `<p class="muted">Reading the current values from the sheet…</p>`;
     if (!st.values) return `${okMsg({ err: st.error })}<p class="edact"><button class="btn" data-act="pip-cancel">Close</button></p>`;
     const F = SMap.PIP_FIELDS;
@@ -193,14 +238,14 @@
         ? `<label class="wide">${esc(F[k].label)}<textarea id="pf-${k}" rows="2">${v}</textarea></label>`
         : `<label>${esc(F[k].label)}<input id="pf-${k}" inputmode="numeric" value="${v}"></label>`;
     };
-    return `<div class="edform">
+    return `<div class="ed-zone"><div class="edform">
       ${["milestonesDone", "milestonesTotal", "roi", "note"].map(field).join("")}
       ${st.conflicts ? `<div class="ed-conflict wide"><strong>Changed in the sheet since you opened this:</strong>${st.conflicts.map((c) => `<div>${esc(c.label)}: the sheet now says “${esc(c.sheet)}”, you entered “${esc(c.yours)}”.</div>`).join("")}
         <div class="edact"><button class="btn danger" data-act="pip-overwrite">Overwrite with mine</button><button class="btn" data-act="pip-reload">Use the sheet's values</button></div></div>` : ""}
       ${st.error ? `<p class="ed-err wide">${esc(st.error)}</p>` : ""}
       ${st.saved ? `<p class="ed-ok wide">Saved to the sheet. Visible to everyone after the next update.</p>` : ""}
       <div class="edact wide"><button class="btn primary" data-act="pip-save">Save to sheet</button><button class="btn" data-act="pip-cancel">Close</button></div>
-    </div>`;
+    </div></div>`;
   }
 
   function membersEditor() {
@@ -216,11 +261,43 @@
     return `<section class="sec panel edpanel">
       ${sub("Edit the Council list")}
       ${tabExists
-        ? (ed.member ? form : `<p class="edact"><button class="btn" data-act="mem-open">Add a member</button></p>`)
+        ? (ed.member ? form : `<p class="edact"><button class="btn ed-btn" data-act="mem-open">Add a member</button></p>`)
         : `<p class="lede">The list above comes from the dashboard's record. Create the sheet's "Council members" tab from it (all ${(D.councilTerms?.terms ?? []).reduce((s, t) => s + t.members.length, 0)} entries across every term), then keep it up to date there or here.</p>
            <p class="edact"><button class="btn primary" data-act="mem-seed">Create the Council members tab</button></p>`}
       ${okMsg(ed.memberMsg)}
       <p class="src">To change or remove existing entries, edit the tab in the sheet; set Show to FALSE to hide a row without deleting it.</p>
+    </section>`;
+  }
+
+  // Other wallets the Council names, labels or tracks (the sheet's "Wallets" tab).
+  function walletsSection() {
+    // Visitors see tracked wallets only; untracked ones (names and labels) are listed for editors, tinted.
+    const W = (D.wallets ?? []).filter((w) => w.track || editing());
+    if (!W.length && !editing()) return "";
+    const rows = W.map((w) => `<tr${w.track ? "" : ` class="ed-only"`}>
+      <td><strong>${esc(w.name || short(w.wallet))}</strong>${w.note ? `<div class="sub">${esc(w.note)}</div>` : ""}</td>
+      <td>${solAcc(w.wallet)}</td>
+      <td>${w.label ? `<span class="chip">${esc(w.label)}</span>` : `<span class="blank">—</span>`}</td>
+      ${w.now ? `<td class="n">${num(w.now.ATLAS)}</td><td class="n">${num(w.now.USDC, 2)}</td><td class="n">${num(w.now.SOL, 2)}</td>` : `<td colspan="3" class="sub">${w.track ? "balances appear after the next update" : "balance not tracked"}</td>`}
+      ${editing() ? `<td><button class="btn sm ed-btn" data-act="wal-open" data-wallet="${esc(w.wallet)}">Edit</button></td>` : ""}
+    </tr>`).join("");
+    const d = ed.walletDraft ?? {};
+    const f = (id, label, ph = "", cls = "") => `<label class="${cls}">${label}<input id="wf-${id}" placeholder="${esc(ph)}" value="${esc(d[id] ?? "")}"></label>`;
+    const form = `<div class="edform">
+      ${f("wallet", "Wallet address *", "Solana address", "wide")}${f("name", "Name *", "e.g. Star Atlas Foundation")}${f("label", "Label", "e.g. Foundation or PIP-36")}
+      ${f("note", "Note", "optional", "wide")}
+      <label class="chk wide"><input type="checkbox" id="wf-track" ${d.track ? "checked" : ""}> Track its balances on this page</label>
+      <div class="edact wide"><button class="btn primary" data-act="wal-save">Save wallet</button><button class="btn" data-act="wal-cancel">Cancel</button></div>
+    </div>`;
+    return `<section class="sec">
+      ${sub("Other wallets", `<span class="src">Council's sheet, "Wallets" tab${W.some((w) => w.track) ? " · balances from Solana mainnet" : ""}</span>`)}
+      ${W.length ? `<div class="tbl"><table>
+        <thead><tr><th>Name</th><th>Address</th><th>Label</th><th class="r">ATLAS</th><th class="r">USDC</th><th class="r">SOL</th>${editing() ? "<th></th>" : ""}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>` : ""}
+      ${editing() ? `<div class="ed-zone">${ed.wallet ? form : `<p class="edact"><button class="btn ed-btn" data-act="wal-open">Add a wallet</button></p>`}
+      ${okMsg(ed.walletMsg)}
+      <p class="src">Name: shown instead of the address everywhere on the dashboard. Label: every payout to this wallet gets it, unless that payout has its own label. Track: the wallet's balances are shown here after each update; wallets that are not tracked are listed for editors only.</p></div>` : ""}
     </section>`;
   }
 
@@ -238,7 +315,23 @@
     const val = (id) => $(`#${id}`)?.value ?? "";
     switch (act) {
       case "ed-signin": el.disabled = true; await ED.signIn(); return;
-      case "ed-signout": ed.updateMsg = null; ED.signOut(); return;
+      case "ed-signout": ed.updateMsg = null; ed.docs = null; ed.docFor = null; ED.signOut(); return;
+      case "doc-open": ed.docFor = ed.docFor === el.dataset.key ? null : el.dataset.key; ed.docMsg[el.dataset.key] = null; render(); return;
+      case "doc-close": ed.docFor = null; render(); return;
+      case "doc-upload": {
+        const key = `${el.dataset.sig}:${el.dataset.owner}`;
+        const files = [...($("#doc-files")?.files ?? [])];
+        if (!files.length) { ed.docMsg[key] = { err: "Choose one or more PDF files first." }; render(); return; }
+        const p = D.payments.find((x) => legKey(x) === key);
+        el.disabled = true;
+        try {
+          // No await before this call: the Drive permission popup must follow the click directly.
+          const r = await ED.uploadDocs({ signature: el.dataset.sig, recipient: el.dataset.owner, files, prefix: p ? `${day(p.t)} ${p.amount} ${p.symbol}` : day(Date.now() / 1000) });
+          ed.docMsg[key] = r.error ? { err: r.error } : { ok: `Uploaded ${r.files.length} file${r.files.length === 1 ? "" : "s"}.` };
+          if (!r.error) ed.docs = await ED.core.listDocs();
+        } catch (e) { ed.docMsg[key] = { err: e.message }; }
+        render(); return;
+      }
       case "ed-update": {
         el.disabled = true;
         try {
@@ -253,7 +346,7 @@
       case "lbl-cancel": ed.labelFor = null; render(); return;
       case "lbl-save": {
         const key = `${el.dataset.sig}:${el.dataset.owner}`;
-        const pip = val("lbl-pip"), confirmed = Boolean($("#lbl-ok")?.checked);
+        const pip = val("lbl-cat").trim() || val("lbl-pip"), confirmed = Boolean($("#lbl-ok")?.checked);
         el.disabled = true;
         try {
           const r = await ED.core.addLabel({ signature: el.dataset.sig, recipient: el.dataset.owner, pip, confirmed });
@@ -291,6 +384,22 @@
           ed.memberMsg = r.error ? { err: r.error } : { ok: `Created the "Council members" tab with ${r.rows} entries. From the next update the site reads the Council from the sheet.` };
           if (!r.error || /already exists/.test(r.error)) ed.seeded = true;
         } catch (e) { ed.memberMsg = { err: e.message }; }
+        render(); return;
+      }
+      case "wal-open": {
+        const w = (D.wallets ?? []).find((x) => x.wallet === el.dataset.wallet);
+        ed.wallet = true; ed.walletDraft = w ? { ...w } : {}; ed.walletMsg = null;
+        render(); return;
+      }
+      case "wal-cancel": ed.wallet = false; ed.walletDraft = null; render(); return;
+      case "wal-save": {
+        ed.walletDraft = { ...Object.fromEntries(["wallet", "name", "label", "note"].map((k) => [k, val(`wf-${k}`).trim()])), track: Boolean($("#wf-track")?.checked) };
+        el.disabled = true;
+        try {
+          const r = await ED.core.saveWallet(ed.walletDraft);
+          ed.walletMsg = r.error ? { err: r.error } : { ok: `${r.updated ? "Updated" : "Added"} ${ed.walletDraft.name}. Appears after the next update.` };
+          if (!r.error) { ed.wallet = false; ed.walletDraft = null; }
+        } catch (e) { ed.walletMsg = { err: e.message }; }
         render(); return;
       }
       case "mem-open": ed.member = true; ed.memberMsg = null; render(); return;
@@ -334,12 +443,12 @@
         ${kpi("PIP limit this quarter", compact(L?.current?.limit), "ATLAS", L?.current ? `${esc(L.current.quarter)} · live 5%: ${compact(L.live.limit)}` : "")}
         ${kpi("Paid to PIPs", compact(paidAtlas), "ATLAS", `${num(paidUsdc, 0)} USDC · matched on-chain`)}
         ${kpi("PIPs voted", String(voted.length), "", `${passed} passed${open ? ` · ${open} open` : ""}`)}
-        ${healthOpen() ? kpi("Data health", String(crit + warn), "flags", `<a href="#health">${crit} critical · ${warn} warnings</a>`) : ""}
+        ${maintOpen() ? kpi("Data health", String(crit + warn), "flags", `<a href="#health">${crit} critical · ${warn} warnings</a>`, maintCls()) : ""}
       </div>
     </section>
     <div class="grid-2">
       <section class="sec">
-        ${sub("Latest proposals", `<a href="#votes" class="src">All results →</a>`)}
+        ${sub("Latest proposals", `<a href="#votes" class="src">All proposals →</a>`)}
         <div class="tbl"><table>
           <thead><tr><th>PIP</th><th>Title</th><th>Result</th><th class="r">Yes</th></tr></thead>
           <tbody>${latest.map((p) => `<tr><td class="pipc">${pipLink(p.pip)}</td><td>${esc(p.title)}</td><td>${outcomeChip(p.outcome)}</td><td class="n">${p.ranked ? "ranked" : yesShare(p) == null ? "—" : num(yesShare(p) * 100, 1) + "%"}</td></tr>`).join("")}</tbody>
@@ -349,7 +458,7 @@
         ${sub("Recent payouts", `<a href="#payments" class="src">All payments →</a>`)}
         <div class="tbl"><table>
           <thead><tr><th>Date</th><th>From</th><th class="r">Amount</th><th>Matched to</th></tr></thead>
-          <tbody>${recent.map((p) => `<tr><td class="mono">${day(p.t)}</td><td>${esc(accLabel(p.account))}</td><td class="n">${num(p.amount, p.symbol === "USDC" ? 2 : 0)} ${p.symbol}</td><td>${p.pip ? pipLink(p.pip) + " " : ""}${confChip(p.confidence)}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">No payouts yet.</td></tr>`}</tbody>
+          <tbody>${recent.map((p) => `<tr><td class="mono">${dayCell(p.t)}</td><td>${esc(accLabel(p.account))}</td><td class="n">${num(p.amount, p.symbol === "USDC" ? 2 : 0)} ${p.symbol}</td><td>${matchCell(p)}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">No payouts yet.</td></tr>`}</tbody>
         </table></div>
       </section>
     </div>`;
@@ -361,6 +470,21 @@
     const paidN = funded.filter((p) => p.funding.state === "paid").length;
     const needLabel = D.payments.filter((p) => p.direction === "out" && (p.confidence === "unlabelled" || p.confidence === "inferred"));
 
+    // Every outflow by purpose. Transfers between DAO accounts, refunds and returns are not spending.
+    const groups = new Map();
+    for (const p of D.payments) {
+      if (p.direction !== "out" || p.confidence === "internal" || p.isReturn) continue;
+      const [key, name] = p.confidence === "category" ? [`cat:${p.category}`, p.category]
+        : p.pip != null && PAID.has(p.confidence) ? ["pips", "PIP payments"] : ["attention", "Not yet labelled or confirmed"];
+      const g = groups.get(key) ?? { key, name, n: 0, ATLAS: 0, USDC: 0, last: 0 };
+      g.n++; g[p.symbol] = (g[p.symbol] ?? 0) + p.amount; g.last = Math.max(g.last, p.t);
+      groups.set(key, g);
+    }
+    const rank = (g) => (g.key === "pips" ? 0 : g.key === "attention" ? 2 : 1);
+    const byPurpose = [...groups.values()].sort((a, b) => rank(a) - rank(b) || b.USDC - a.USDC || b.ATLAS - a.ATLAS);
+    const costUsdc = byPurpose.filter((g) => g.key.startsWith("cat:")).reduce((s, g) => s + g.USDC, 0);
+    const catNames = byPurpose.filter((g) => g.key.startsWith("cat:")).map((g) => g.name);
+
     const rows = funded.map((p) => {
       const f = p.funding;
       const paidCell = Object.entries(f.paid).filter(([, v]) => v > 0).map(([s, v]) => `${num(v, s === "USDC" ? 2 : 0)} ${s}${f.returned?.[s] ? `<div class="sub">${num(f.returned[s], 0)} returned</div>` : ""}`).join("<br>") || `<span class="blank">none found</span>`;
@@ -369,58 +493,72 @@
       const ms = f.milestones.total != null ? `${f.milestones.done ?? "?"}/${f.milestones.total}` : "—";
       const pct = f.milestones.total ? Math.min(100, ((f.milestones.done ?? 0) / f.milestones.total) * 100) : 0;
       const open = ui.openPip === p.pip;
-      const detail = open ? `<tr class="detail"><td colspan="8">${paymentDetail(p)}</td></tr>` : "";
-      return `<tr class="click" data-pip="${p.pip}" aria-expanded="${open}">
+      const detail = open ? `<tr class="detail"><td colspan="7">${paymentDetail(p)}</td></tr>` : "";
+      // Two rows per PIP: the title across the full width with the status on the right, the figures below it.
+      return `<tr class="click lead" data-pip="${p.pip}" aria-expanded="${open}">
         <td class="pipc">PIP-${p.pip}</td>
-        <td>${esc(p.name)}<div class="sub">${esc(p.category ?? "")}${p.sacTerm && p.sacTerm !== "N/A" ? " · " + esc(p.sacTerm) : ""}</div></td>
+        <td colspan="5">${esc(p.name)}<div class="sub">${esc(p.category ?? "")}${p.sacTerm && p.sacTerm !== "N/A" ? " · " + esc(p.sacTerm) : ""}</div></td>
+        <td>${stateChip(f.state)}</td>
+      </tr><tr class="click" data-pip="${p.pip}">
+        <td></td>
         <td class="n">${num(f.authorized, 0)} ${esc(f.currency ?? "")}</td>
         <td class="n">${paidCell}${inferred ? `<div class="sub">${inferred}</div>` : ""}</td>
         <td class="n">${f.remaining != null ? num(f.remaining, 0) + " " + esc(f.currency) : `<span class="sub">${esc(f.remainingNote ?? "—")}</span>`}</td>
         <td class="n">${ms}<div class="bar" style="margin-top:5px"><span style="width:${pct}%"></span></div></td>
         <td class="n">${sheet}</td>
-        <td>${stateChip(f.state)}</td>
+        <td></td>
       </tr>${detail}`;
     }).join("");
 
     const list = D.payments.filter((p) =>
       (ui.payAccount === "all" || p.account === ui.payAccount) &&
-      (ui.payConf === "all" || (ui.payConf === "attention" ? (p.confidence === "unlabelled" || p.confidence === "inferred") : p.confidence === ui.payConf)) &&
+      (ui.payConf === "all" || (ui.payConf === "attention" ? (p.confidence === "unlabelled" || p.confidence === "inferred")
+        : ui.payConf === "pips" ? p.pip != null && PAID.has(p.confidence)
+        : ui.payConf.startsWith("cat:") ? p.category === ui.payConf.slice(4) : p.confidence === ui.payConf)) &&
       (ui.payDir === "all" || (ui.payDir === "out" ? p.direction === "out" || p.isReturn : p.direction === "in")));
 
     return `
     <section class="sec">
-      ${head("PIP payments", `<span class="src">Sheet + Solana mainnet</span>`)}
-      <p class="lede">Every PIP that passed with money attached: what was authorized, what can be seen leaving the DAO's wallets on-chain, and what the Council's tracker says. Amounts paid are taken from the chain, not typed in; only payouts that match the sheet, an authorized amount, or a Council label count as paid.</p>
+      ${head("Payments", `<span class="src">Sheet + Solana mainnet</span>`)}
+      <p class="lede">Everything the DAO pays out: PIP funding, and running costs such as the Foundation that keeps the DAO's legal status. Amounts are taken from the chain, not typed in. Payouts count once they match the sheet, an authorized amount, or a Council label.</p>
       <div class="kpis">
-        ${kpi("ATLAS paid", compact(sum("ATLAS")), "ATLAS")}
-        ${kpi("USDC paid", num(sum("USDC"), 0), "USDC")}
+        ${kpi("Paid to PIPs", compact(sum("ATLAS")), "ATLAS", `${num(sum("USDC"), 0)} USDC`)}
+        ${kpi("Running costs", num(costUsdc, 0), "USDC", catNames.length ? esc(catNames.join(", ")) : "none labelled yet")}
         ${kpi("Fully paid", `${paidN}/${funded.length}`, "PIPs")}
-        ${kpi("Payouts to label", String(needLabel.length), "", `<button class="link" data-act="attention">show them</button>`)}
+        ${maintOpen() ? kpi("Payouts to label", String(needLabel.length), "", `<button class="link" data-act="attention">show them</button>`, maintCls()) : ""}
       </div>
+    </section>
+    <section class="sec">
+      ${sub("By purpose", `<span class="src">Transfers between DAO accounts and returns are left out</span>`)}
+      <div class="tbl"><table>
+        <thead><tr><th>Purpose</th><th class="r">Payouts</th><th class="r">ATLAS</th><th class="r">USDC</th><th>Latest</th></tr></thead>
+        <tbody>${byPurpose.map((g) => `<tr><td><button class="link" data-act="pay-filter" data-key="${esc(g.key)}">${esc(g.name)}</button></td><td class="n">${num(g.n)}</td><td class="n">${g.ATLAS ? num(g.ATLAS, 0) : "—"}</td><td class="n">${g.USDC ? num(g.USDC, 2) : "—"}</td><td class="mono">${day(g.last)}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">No payouts yet.</td></tr>`}</tbody>
+      </table></div>
+      <p class="src">Label a payout with a cost category such as <em>Foundation</em> to list it here; further payouts to the same wallet are then suggested for that category.</p>
     </section>
     <section class="sec">
       ${sub("Funded PIPs", `<span class="src">Click a row for its payouts</span>`)}
       <div class="tbl"><table>
-        <thead><tr><th>PIP</th><th>Name</th><th class="r">Authorized</th><th class="r">Paid on-chain</th><th class="r">Remaining</th><th class="r">Milestones</th><th class="r">Sheet says paid</th><th>Status</th></tr></thead>
+        <thead><tr><th>PIP</th><th class="r">Authorized</th><th class="r">Paid on-chain</th><th class="r">Remaining</th><th class="r">Milestones</th><th class="r">Sheet says paid</th><th>Status</th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
     </section>
     <section class="sec" id="ledger">
       ${sub("On-chain movements", `<div class="controls">
         <select id="f-acc" aria-label="Account"><option value="all">All accounts</option>${Object.entries(D.accounts).map(([k, a]) => `<option value="${k}" ${ui.payAccount === k ? "selected" : ""}>${esc(a.label)}</option>`).join("")}</select>
-        <select id="f-conf" aria-label="Confidence">${[["all", "Any match"], ["attention", "Needs a label"], ...Object.entries(CONF).map(([k, v]) => [k, v.label])].map(([k, l]) => `<option value="${k}" ${ui.payConf === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
+        <select id="f-conf" aria-label="Confidence">${[["all", "Any match"], ["attention", "Needs a label"], ["pips", "PIP payments"], ...catNames.map((c) => [`cat:${c}`, c]), ...Object.entries(CONF).map(([k, v]) => [k, v.label])].map(([k, l]) => `<option value="${k}" ${ui.payConf === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
         <select id="f-dir" aria-label="Direction">${[["out", "Payouts + returns"], ["in", "Inflows"], ["all", "Everything"]].map(([k, l]) => `<option value="${k}" ${ui.payDir === k ? "selected" : ""}>${l}</option>`).join("")}</select>
       </div>`)}
       <div class="tbl"><table>
         <thead><tr><th>Date</th><th>Account</th><th class="r">Amount</th><th>Counterparty</th><th>Matched to</th><th>Why</th><th>Tx</th></tr></thead>
         <tbody>${list.slice(0, 400).map((p) => `<tr>
-          <td class="mono">${day(p.t)}</td>
+          <td class="mono">${dayCell(p.t)}</td>
           <td>${esc(accLabel(p.account))}</td>
           <td class="n">${p.direction === "in" ? "+" : "−"}${num(p.amount, p.symbol === "USDC" ? 2 : 0)} ${p.symbol}</td>
-          <td>${p.owner ? solAcc(p.owner, ownerLabel(p.owner) ?? undefined) : "—"}</td>
-          <td>${p.pip ? pipLink(p.pip) + " " : ""}${confChip(p.confidence)}${p.isReturn ? ` <span class="chip acc">return</span>` : ""}${editing() && canLabel(p) && ed.labelFor !== legKey(p) ? ` <button class="btn sm" data-act="lbl-open" data-key="${esc(legKey(p))}">${ed.msgs[legKey(p)]?.ok ? "Relabel" : "Label"}</button>` : ""}${okMsg(ed.msgs[legKey(p)])}</td>
+          <td>${p.owner ? solFlow(p, ownerLabel(p.owner) ?? undefined) : "—"}</td>
+          <td class="mcell"><span class="mline">${matchCell(p)}${p.isReturn ? ` <span class="chip acc">return</span>` : ""}</span>${editing() && canLabel(p) && ed.labelFor !== legKey(p) ? ` <button class="btn sm ed-btn" data-act="lbl-open" data-key="${esc(legKey(p))}">${ed.msgs[legKey(p)]?.ok ? "Relabel" : p.labelled ? "Relabel" : "Label"}</button>` : ""}${okMsg(ed.msgs[legKey(p)])}${editing() && p.direction === "out" && ed.docFor !== legKey(p) ? ` <button class="btn sm ed-btn" data-act="doc-open" data-key="${esc(legKey(p))}">${docsOf(p).length ? `Documents (${docsOf(p).length})` : "Documents"}</button>` : ""}</td>
           <td class="sub">${esc(p.reason ?? "")}</td>
-          <td>${solTx(p.sig)}</td></tr>${editing() && ed.labelFor === legKey(p) ? `<tr class="detail"><td colspan="7">${labelForm(p)}</td></tr>` : ""}`).join("") || `<tr><td colspan="7" class="muted">Nothing matches these filters.</td></tr>`}</tbody>
+          <td>${solTx(p.sig)}</td></tr>${editing() && ed.labelFor === legKey(p) ? `<tr class="detail ed-only"><td colspan="7">${labelForm(p)}</td></tr>` : ""}${editing() && ed.docFor === legKey(p) ? `<tr class="detail ed-only"><td colspan="7">${docPanel(p)}</td></tr>` : ""}`).join("") || `<tr><td colspan="7" class="muted">Nothing matches these filters.</td></tr>`}</tbody>
       </table></div>
       ${list.length > 400 ? `<p class="src">Showing the latest 400 of ${list.length}.</p>` : ""}
     </section>`;
@@ -430,7 +568,7 @@
     const legs = D.payments.filter((x) => x.pip === p.pip);
     const roi = p.roi ? `<p style="margin-bottom:10px"><strong>DAO ROI:</strong> ${esc(p.roi)}</p>` : "";
     const note = p.note ? `<p class="sub" style="margin-bottom:10px">Note: ${esc(p.note)}</p>` : "";
-    const tbl = legs.length ? `<table><thead><tr><th>Date</th><th>Account</th><th class="r">Amount</th><th>Recipient</th><th>Confidence</th><th>Tx</th></tr></thead><tbody>${legs.map((x) => `<tr><td class="mono">${day(x.t)}</td><td>${esc(accLabel(x.account))}</td><td class="n">${x.isReturn ? "+" : "−"}${num(x.amount, x.symbol === "USDC" ? 2 : 0)} ${x.symbol}</td><td>${x.owner ? solAcc(x.owner) : "—"}</td><td>${confChip(x.confidence)}${x.isReturn ? ` <span class="chip acc">return</span>` : ""}</td><td>${solTx(x.sig)}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No on-chain payout has been matched to this PIP yet.</p>`;
+    const tbl = legs.length ? `<table><thead><tr><th>Date</th><th>Account</th><th class="r">Amount</th><th>Recipient</th><th>Confidence</th><th>Tx</th></tr></thead><tbody>${legs.map((x) => `<tr><td class="mono">${dayCell(x.t)}</td><td>${esc(accLabel(x.account))}</td><td class="n">${x.isReturn ? "+" : "−"}${num(x.amount, x.symbol === "USDC" ? 2 : 0)} ${x.symbol}</td><td>${x.owner ? solFlow(x) : "—"}</td><td>${confChip(x.confidence)}${x.isReturn ? ` <span class="chip acc">return</span>` : ""}</td><td>${solTx(x.sig)}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No on-chain payout has been matched to this PIP yet.</p>`;
     return `${roi}${note}${tbl}${p.url ? `<p class="src" style="margin-top:10px"><a href="${esc(p.url)}" target="_blank" rel="noopener">Read the proposal →</a></p>` : ""}${pipEditor(p)}`;
   }
 
@@ -536,6 +674,7 @@
         <tbody>${Object.values(A).map((a) => `<tr><td><strong>${esc(a.label)}</strong></td><td>${solAcc(a.wallet)}</td><td class="n">${num(a.now.ATLAS)}</td><td class="n">${num(a.now.USDC, 2)}</td><td class="n">${num(a.now.SOL, 2)}</td></tr>`).join("")}</tbody>
       </table></div>
     </section>
+    ${walletsSection()}
     <div class="grid-2">
       <section class="sec panel">
         ${sub("Treasury USDC", `<span class="src">rebuilt from every transaction</span>`)}
@@ -576,7 +715,7 @@
     const rows = [...D.pips].reverse();
     return `
     <section class="sec">
-      ${head("Vote results", `<span class="src">Governance API</span>`)}
+      ${head("Proposals", `<span class="src">Governance API</span>`)}
       <div class="tbl"><table>
         <thead><tr><th>PIP</th><th>Title</th><th>Voting ended</th><th>Result</th><th class="r">Votes</th><th class="r">PVP voted</th><th>Split (PVP)</th><th class="r">Yes</th></tr></thead>
         <tbody>${rows.map((p) => `<tr class="click" data-go="#votes/${p.pip}"><td class="pipc">PIP-${p.pip}</td><td>${esc(p.title)}</td><td class="mono">${isoDay(p.votingEndsAt)}</td><td>${outcomeChip(p.outcome)}</td><td class="n">${num(p.totalVotes)}</td><td class="n">${compact(p.totalPvp)}</td><td>${splitBar(p)}</td><td class="n">${p.ranked ? "ranked" : yesShare(p) == null ? "—" : num(yesShare(p) * 100, 1) + "%"}</td></tr>`).join("")}</tbody>
@@ -586,7 +725,7 @@
 
   function voteDetail(n) {
     const p = D.pips.find((x) => x.pip === n);
-    if (!p) return `<p class="muted">PIP-${n} not found. <a href="#votes">Back to all results</a></p>`;
+    if (!p) return `<p class="muted">PIP-${n} not found. <a href="#votes">Back to all proposals</a></p>`;
     const v = voteCache.get(n);
     if (!v) {
       fetch(`data/votes/${n}.json`).then((r) => (r.ok ? r.json() : null)).then((j) => { voteCache.set(n, j ?? { votes: [], buckets: [], timeline: [], missing: true }); render(); });
@@ -623,7 +762,7 @@
 
     return `
     <section class="sec">
-      <p class="src"><a href="#votes">← All results</a></p>
+      <p class="src"><a href="#votes">← All proposals</a></p>
       ${head(`PIP-${p.pip}: ${p.title}`, outcomeChip(p.outcome))}
       <p class="src">Voting ${isoDay(p.votingStartsAt)} → ${isoDay(p.votingEndsAt)}${p.url ? ` · <a href="${esc(p.url)}" target="_blank" rel="noopener">Read the proposal</a>` : ""}</p>
       <div class="kpis">
@@ -648,33 +787,33 @@
       ${head("Data health", `<span class="src">checked on every build</span>`)}
       <p class="lede">Every build compares the Council's sheet, the governance API, and the chain. Anything that disagrees or is missing is listed here. Sheet issues are fixed in the sheet; payouts that need a label are labelled in the sheet's payment-labels tab. The list clears itself on the next build once the source is corrected.</p>
       <div class="kpis">
-        ${kpi("Critical", String(counts.critical), "", "a figure on this site is probably wrong")}
-        ${kpi("Warnings", String(counts.warning), "", "the sources disagree or a value is missing")}
-        ${kpi("Info", String(counts.info), "", "worth a look")}
+        ${kpi("Critical", String(counts.critical), "", "a figure on this site is probably wrong", maintCls())}
+        ${kpi("Warnings", String(counts.warning), "", "the sources disagree or a value is missing", maintCls())}
+        ${kpi("Info", String(counts.info), "", "worth a look", maintCls())}
       </div>
       <div class="controls"><select id="f-sev" aria-label="Severity">${[["all", "All flags"], ...sevs.map((s) => [s, s])].map(([k, l]) => `<option value="${k}" ${ui.healthSev === k ? "selected" : ""}>${l}</option>`).join("")}</select></div>
-      <div class="panel flush"><div class="flags">${list.map((h) => `<div class="flag"><span class="chip ${chip[h.severity]}">${h.severity}</span><span class="chip">${esc(h.area)}</span><p>${h.pip ? pipLink(h.pip) + ": " : ""}${esc(h.message.replace(/^PIP-\d+:\s*/, ""))}</p></div>`).join("") || `<p class="muted" style="padding:14px">No flags. Everything agrees.</p>`}</div></div>
+      <div class="panel flush${maintCls()}"><div class="flags">${list.map((h) => `<div class="flag"><span class="chip ${chip[h.severity]}">${h.severity}</span><span class="chip">${esc(h.area)}</span><p>${h.pip ? pipLink(h.pip) + ": " : ""}${esc(h.message.replace(/^PIP-\d+:\s*/, ""))}</p></div>`).join("") || `<p class="muted" style="padding:14px">No flags. Everything agrees.</p>`}</div></div>
     </section>`;
   };
 
   // ---------- routing ----------
   function render() {
     const [route, param] = (location.hash.slice(1) || "overview").split("/");
-    const r = views[route] && (route !== "health" || healthOpen()) ? route : "overview";
+    const r = views[route] && (route !== "health" || maintOpen()) ? route : "overview";
     document.querySelectorAll(".tabs a").forEach((a) => {
       a.setAttribute("aria-current", a.dataset.route === r ? "page" : "false");
-      if (a.dataset.route === "health") a.hidden = !healthOpen();
+      if (a.dataset.route === "health") { a.hidden = !maintOpen(); a.classList?.toggle("ed-only", Boolean(maintCls())); }
     });
     Charts.reset();
     const view = $("#view");
-    view.innerHTML = previewInfo() + (r === "payments" || r === "council" ? editBanner() : "") + views[r](param);
+    view.innerHTML = previewInfo() + (r === "payments" || r === "council" || r === "balance" ? editBanner() : "") + views[r](param);
     Charts.mount(view);
     $("#tip").hidden = true;
     const bar = $("#editbar");
     if (bar) bar.innerHTML = editBar();
   }
 
-  const EDIT_ACTIONS = new Set(["ed-signin", "ed-signout", "ed-update", "ed-preview", "lbl-open", "lbl-cancel", "lbl-save", "pip-edit", "pip-reload", "pip-cancel", "pip-save", "pip-overwrite", "mem-seed", "mem-open", "mem-cancel", "mem-save"]);
+  const EDIT_ACTIONS = new Set(["ed-signin", "ed-signout", "ed-update", "doc-open", "doc-close", "doc-upload", "wal-open", "wal-cancel", "wal-save", "ed-preview", "lbl-open", "lbl-cancel", "lbl-save", "pip-edit", "pip-reload", "pip-cancel", "pip-save", "pip-overwrite", "mem-seed", "mem-open", "mem-cancel", "mem-save"]);
   function editClick(e) {
     const el = e.target.closest("[data-act]");
     if (!el || !EDIT_ACTIONS.has(el.dataset.act)) return false;
@@ -692,7 +831,7 @@
       const row = e.target.closest("tr.click[data-pip]");
       if (row && !e.target.closest("a")) { const n = Number(row.dataset.pip); ui.openPip = ui.openPip === n ? null : n; render(); return; }
       const act = e.target.closest("[data-act]");
-      if (act?.dataset.act === "attention") { ui.payConf = "attention"; ui.payDir = "out"; render(); $("#ledger")?.scrollIntoView({ behavior: "smooth" }); }
+      if (act?.dataset.act === "attention" || act?.dataset.act === "pay-filter") { ui.payConf = act.dataset.key ?? "attention"; ui.payDir = "out"; render(); $("#ledger")?.scrollIntoView({ behavior: "smooth" }); }
     });
     view.addEventListener("change", (e) => {
       const id = e.target.id;
@@ -705,7 +844,7 @@
     });
     window.addEventListener("hashchange", () => { render(); window.scrollTo({ top: 0 }); });
     $("#editbar")?.addEventListener("click", editClick);
-    window.addEventListener("editor:change", () => render());
+    window.addEventListener("editor:change", () => { if (editing() && !ed.docs) loadDocs(); render(); });
   }
 
   async function boot() {

@@ -8,6 +8,8 @@
 
   // Headers of the tabs the dashboard writes to.
   const LABEL_HEADERS = ["Signature", "Recipient", "PIP", "Confirmed"];
+  const DOC_HEADERS = ["Signature", "Recipient", "File", "Link", "Uploaded (UTC)", "By"];
+  const WALLET_HEADERS = ["Wallet", "Name", "Label", "Track balance", "Note"];
   const MEMBER_HEADERS = ["Name", "Role", "Term", "Start", "End", "Elected (PIP)", "Wallet", "Discord", "X", "Image", "Show"];
 
   // Editable PIP fields -> header text in the Tracker tab (matched by prefix, like the importer).
@@ -64,7 +66,8 @@
     const v = clean(value);
     switch (kind) {
       case "int": return v === "" || /^\d+$/.test(v) ? "" : "Enter a whole number.";
-      case "pipLabel": return /^PIP-\d+$/i.test(v) || ["internal", "refund", "not a payout"].includes(v.toLowerCase()) ? "" : "Choose a PIP, or internal / refund / not a payout.";
+      case "pipLabel": return /^PIP-\d+$/i.test(v) || (/[a-z]{2}/i.test(v) && !/^PIP/i.test(v)) ? "" : "Choose a PIP, a cost category such as Foundation, or internal / refund / not a payout.";
+      case "wallet": return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(v) ? "" : "Enter a Solana address.";
       case "date": return v === "" || /^\d{4}-\d{2}-\d{2}$/.test(v) ? "" : "Use the format YYYY-MM-DD.";
       case "url": return v === "" || /^https:\/\/\S+$/i.test(v) ? "" : "Image links must start with https://";
       case "required": return v ? "" : "This field is required.";
@@ -81,5 +84,5 @@
     return [m.name, m.role || "Council member", m.term || "", textDate(m.start), textDate(m.end), m.electedIn ? `PIP-${m.electedIn}` : "", m.wallet || "", m.discord || "", m.x ? String(m.x).replace(/^@/, "") : "", m.image || "", "TRUE"];
   }
 
-  root.SheetMap = { clean, LABEL_HEADERS, MEMBER_HEADERS, PIP_FIELDS, findHeaderRow, colIndex, colLetter, a1, a1Tab, locatePip, validate, memberRow };
+  root.SheetMap = { clean, LABEL_HEADERS, DOC_HEADERS, WALLET_HEADERS, MEMBER_HEADERS, PIP_FIELDS, findHeaderRow, colIndex, colLetter, a1, a1Tab, locatePip, validate, memberRow };
 })(typeof window !== "undefined" ? window : globalThis);

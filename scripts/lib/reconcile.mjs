@@ -5,12 +5,15 @@
 //   matches-sheet   the payout, or all payouts to one recipient, equal the PIP's "paid" figure in the sheet
 //   matches-amount  the payout equals the PIP's authorized amount in the same currency
 //   inferred        same recipient as a payout already matched to exactly one PIP; needs a person to confirm
-//   internal        a transfer between DAO accounts (e.g. Ecosystem Fund refill)
+//   category        a Council label naming a cost instead of a PIP (e.g. Foundation); `category` holds the name
+//   internal        a transfer between DAO accounts (e.g. Ecosystem Fund refill), or labelled refund / not a payout
 //   unlabelled      nothing matched; listed for the Council to label
 // Only confirmed / matches-sheet / matches-amount count toward "paid".
 
 export const COUNTS_AS_PAID = new Set(["confirmed", "matches-sheet", "matches-amount"]);
 const EPS = 1e-6;
+// Labels that mean "no money was spent"; any other non-PIP label is a cost category.
+const NOT_SPENDING = /^(internal|refund|not a payout)$/i;
 const eq = (a, b) => a != null && b != null && Math.abs(a - b) < 0.5; // whole-token tolerance
 
 // PIPs that can receive money: passed, amount > 0, not withdrawn.
@@ -22,7 +25,7 @@ function sheetPaid(p, symbol) {
   return symbol === "ATLAS" ? p.paidAtlas.value : symbol === "USDC" ? p.paidUsdc.value : null;
 }
 
-export function reconcile({ pips, ledger, labels = [], config }) {
+export function reconcile({ pips, ledger, labels = [], wallets = [], config }) {
   const funded = fundedPips(pips);
   const byPip = new Map(funded.map((p) => [p.pip, p]));
   const labelBySig = new Map();
@@ -47,15 +50,23 @@ export function reconcile({ pips, ledger, labels = [], config }) {
   const set = (leg, confidence, pip, reason) => { leg.confidence = confidence; leg.pip = pip ?? null; leg.reason = reason; };
   const pipLabel = (s) => { const m = String(s).match(/PIP-?(\d+)/i); return m ? Number(m[1]) : null; };
 
-  // Pass 1: internal transfers and Council labels.
+  // A label is a PIP, "internal" / "refund" / "not a payout", or a cost category such as Foundation.
+  const applyLabel = (leg, text, confirmed, reason) => {
+    const pip = pipLabel(text);
+    if (pip != null) set(leg, confirmed ? "confirmed" : "inferred", pip, reason);
+    else if (NOT_SPENDING.test(text)) set(leg, "internal", null, text);
+    else { set(leg, confirmed ? "category" : "inferred", null, reason); leg.category = text; }
+  };
+  // Wallets with an automatic label ("Wallets" tab): every payout to them gets it.
+  const walletLabel = new Map(wallets.filter((w) => w.label).map((w) => [w.wallet, w]));
+
+  // Pass 1: internal transfers, Council labels on a payout, then wallet labels.
   for (const leg of legs) {
     if (leg.ownerDao) { set(leg, "internal", null, `${leg.direction === "out" ? "to" : "from"} ${config.accounts[leg.ownerDao]?.label ?? leg.ownerDao}`); continue; }
     const l = labelBySig.get(`${leg.sig}:${leg.owner}`) ?? labelBySig.get(leg.sig);
-    if (l) {
-      const pip = pipLabel(l.label);
-      if (pip != null) set(leg, l.confirmed ? "confirmed" : "inferred", pip, "Council label");
-      else set(leg, "internal", null, l.label);
-    }
+    if (l) { leg.labelled = true; applyLabel(leg, l.label, l.confirmed, "Council label"); continue; }
+    const w = leg.direction === "out" && leg.owner ? walletLabel.get(leg.owner) : null;
+    if (w) applyLabel(leg, w.label, true, `wallet label${w.name ? ` (${w.name})` : ""}`);
   }
 
   // A sheet "paid" figure can be claimed by one payout (or one recipient group) only;
@@ -107,6 +118,14 @@ export function reconcile({ pips, ledger, labels = [], config }) {
     recipientPips.get(leg.owner).add(leg.pip);
   }
 
+  // Recipients already labelled with exactly one cost category (e.g. the Foundation's wallet).
+  const recipientCats = new Map();
+  for (const leg of legs) {
+    if (!leg.owner || leg.confidence !== "category") continue;
+    if (!recipientCats.has(leg.owner)) recipientCats.set(leg.owner, new Set());
+    recipientCats.get(leg.owner).add(leg.category);
+  }
+
   // Pass 5: returns (inflows from a known PIP recipient) and inferred outflows.
   for (const leg of legs) {
     if (leg.confidence) continue;
@@ -116,10 +135,22 @@ export function reconcile({ pips, ledger, labels = [], config }) {
       else set(leg, "income", null, "inflow");
       continue;
     }
-    if (known?.size === 1) { const pip = [...known][0]; set(leg, "inferred", pip, `same recipient as PIP-${pip}`); }
+    const cats = leg.owner ? recipientCats.get(leg.owner) : null;
+    if (!known?.size && cats?.size === 1) { const c = [...cats][0]; set(leg, "inferred", null, `same recipient as other ${c} payouts`); leg.category = c; }
+    else if (known?.size === 1) { const pip = [...known][0]; set(leg, "inferred", pip, `same recipient as PIP-${pip}`); }
     else if (known?.size > 1) set(leg, "unlabelled", null, `recipient was paid for ${[...known].map((p) => `PIP-${p}`).join(", ")}`);
     else set(leg, "unlabelled", null, "no match");
   }
+
+  // One spelling per cost category ("foundation" and "Foundation" are the same): the most used one wins.
+  const spellings = new Map();
+  for (const l of legs) {
+    if (!l.category) continue;
+    const m = spellings.get(l.category.toLowerCase()) ?? new Map();
+    m.set(l.category, (m.get(l.category) ?? 0) + 1);
+    spellings.set(l.category.toLowerCase(), m);
+  }
+  for (const l of legs) if (l.category) l.category = [...spellings.get(l.category.toLowerCase())].sort((a, b) => b[1] - a[1])[0][0];
 
   // Per-PIP payment summary. "paid" is gross (what left the DAO); "returned" is what came back.
   // Remaining is measured against gross paid: money sent and later returned is not "still owed".

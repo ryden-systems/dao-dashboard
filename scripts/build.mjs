@@ -9,12 +9,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { ROOT, readJSON, writeJSON, log, warn, parseCSV } from "./lib/util.mjs";
 import { makeRpc } from "./lib/rpc.mjs";
-import { fetchTabRaw, fetchTabIndex, resolveTab, parsePipTab, parseCouncilTab, parseLabelTab, parseMembersTab } from "./lib/sheet.mjs";
+import { fetchTabRaw, fetchTabIndex, resolveTab, parsePipTab, parseCouncilTab, parseLabelTab, parseMembersTab, parseWalletsTab } from "./lib/sheet.mjs";
 import { writeSheetBackup } from "./lib/backup.mjs";
 import { councilTerms } from "./lib/members.mjs";
 import { loadGovernance } from "./lib/governance.mjs";
 import { updateLedger } from "./lib/ledger.mjs";
-import { readBalances, recordSnapshot, rebuildSeries, fullyIndexed } from "./lib/balances.mjs";
+import { readBalances, readTracked, recordSnapshot, rebuildSeries, fullyIndexed } from "./lib/balances.mjs";
 import { reconcile } from "./lib/reconcile.mjs";
 import { fundLimits } from "./lib/limit.mjs";
 import { healthChecks } from "./lib/health.mjs";
@@ -69,11 +69,12 @@ async function fetchPhase() {
   const council = T.council ? parseCouncilTab(rowsOf(T.council)) : null;
   const labels = T.paymentLabels ? parseLabelTab(rowsOf(T.paymentLabels)) : [];
   const members = T.councilMembers ? parseMembersTab(rowsOf(T.councilMembers)) : [];
+  const wallets = T.wallets ? parseWalletsTab(rowsOf(T.wallets)) : [];
   const backup = writeSheetBackup(allTabs, { complete: Object.keys(tabIndex).length > 0 });
   log(`sheet backup: ${backup.index.length} tabs in data/sheet/${backup.removed.length ? `, removed ${backup.removed.join(", ")}` : ""}${backup.stale.length ? `, kept previous copy of ${backup.stale.join(", ")}` : ""}`);
   const nameOf = (gid) => Object.keys(tabIndex).find((n) => tabIndex[n] === gid) ?? null;
   const tabs = Object.fromEntries(Object.entries(config.sheet.tabs).map(([k, ref]) => [k, { gid: T[k], name: /^\d+$/.test(String(ref)) ? nameOf(T[k]) : ref }]));
-  writeJSON("data/sources.json", { ...pipTab, council, labels, members, tabs, fetchedAt: new Date().toISOString() });
+  writeJSON("data/sources.json", { ...pipTab, council, labels, members, wallets, tabs, fetchedAt: new Date().toISOString() });
   log(`sheet: tabs ${Object.entries(tabs).map(([k, t]) => `${k}=${t.name ?? "?"}${t.gid ? "" : " (not created yet)"}`).join(", ")}`);
   log(`sheet: ${pipTab.pips.length} PIPs, ${council?.months.length ?? 0} council months, ${labels.length} payment labels, ${members.length} council members`);
 
@@ -82,8 +83,10 @@ async function fetchPhase() {
 
   await updateLedger({ rpc, sigRpc }, config);
   const now = await readBalances(rpc, config);
-  recordSnapshot(now);
-  writeJSON("data/now.json", { at: new Date().toISOString(), balances: now });
+  const tracked = await readTracked(rpc, config, wallets.filter((w) => w.track).map((w) => w.wallet));
+  recordSnapshot({ ...now, tracked });
+  writeJSON("data/now.json", { at: new Date().toISOString(), balances: now, tracked });
+  log(`sheet: ${wallets.length} wallets, ${Object.keys(tracked).length} tracked`);
   log(`fetch: ${rpc.calls + (sigRpc === rpc ? 0 : sigRpc.calls)} RPC calls`);
 }
 
@@ -92,15 +95,21 @@ function computePhase() {
   const { proposals } = readJSON("data/governance.json");
   const ledger = readJSON("data/ledger.json");
   const history = readJSON("data/balances.json", { days: {} });
-  const { balances: now, at: nowAt } = readJSON("data/now.json");
+  const { balances: now, at: nowAt, tracked = {} } = readJSON("data/now.json");
   const seedLabels = readJSON("data/labels.seed.json", { labels: [] }).labels;
   const nowTs = Date.parse(nowAt) / 1000;
 
   // Sheet labels override seed labels for the same payout.
   const labels = [...seedLabels.filter((s) => !sources.labels.some((l) => l.signature === s.signature)), ...sources.labels];
-  const recon = reconcile({ pips: sources.pips, ledger, labels, config });
+  const recon = reconcile({ pips: sources.pips, ledger, labels, wallets: sources.wallets ?? [], config });
   const limit = fundLimits({ ledger, fundNow: now.fund.ATLAS, percent: config.fundLimit.percent, nowTs });
   const flags = healthChecks({ pips: sources.pips, missingColumns: sources.missingColumns, proposals, recon, ledger, history, now, config, nowTs });
+  // A payout labelled in more than one row: the last row is used, which is easy to miss in the sheet.
+  const labelCount = new Map();
+  for (const l of sources.labels) labelCount.set(`${l.signature}:${l.recipient}`, (labelCount.get(`${l.signature}:${l.recipient}`) ?? 0) + 1);
+  for (const [k, n] of labelCount) {
+    if (n > 1) flags.push({ severity: "warning", area: "payments", message: `Payment labels: payout ${k.slice(0, 8)}… is labelled in ${n} rows; the last one is used. Delete the others, or relabel it from the dashboard (that removes them).` });
+  }
   const council = councilTerms({ sheetMembers: sources.members ?? [], proposals, history: readJSON("data/council_history.json", { terms: [] }) });
   for (const w of council.warnings) flags.push({ severity: "warning", area: "council", message: w });
   const sevOrder = { critical: 0, warning: 1, info: 2 };
@@ -191,10 +200,13 @@ function computePhase() {
     accounts: Object.fromEntries(Object.entries(config.accounts).map(([k, a]) => [k, { label: a.label, wallet: a.wallet, now: now[k] }])),
     pips,
     knownWallets: known,
+    // Names for counterparties: the Council's "Wallets" tab, plus known income sources from config.
+    walletNames: { ...known, ...Object.fromEntries((sources.wallets ?? []).filter((w) => w.name).map((w) => [w.wallet, w.name])) },
+    wallets: (sources.wallets ?? []).map((w) => ({ ...w, now: w.track ? tracked[w.wallet] ?? null : null })),
     income,
     payments: recon.legs
       .filter((l) => l.amount > 0 && !(l.confidence === "income" && recurring.has(l.owner)))
-      .map((l) => ({ sig: l.sig, t: l.t, account: l.account, symbol: l.symbol, amount: round2(l.amount), direction: l.direction, owner: l.owner, confidence: l.confidence, pip: l.pip, reason: l.reason, isReturn: Boolean(l.isReturn) }))
+      .map((l) => ({ sig: l.sig, t: l.t, account: l.account, symbol: l.symbol, amount: round2(l.amount), direction: l.direction, owner: l.owner, confidence: l.confidence, pip: l.pip, category: l.category ?? null, labelled: Boolean(l.labelled), reason: l.reason, isReturn: Boolean(l.isReturn) }))
       .sort((a, b) => b.t - a.t),
     limit,
     series,
@@ -209,6 +221,8 @@ function computePhase() {
           googleClientId: config.editing.googleClientId,
           sheetId: config.sheet.id,
           tabs: Object.fromEntries(Object.entries(sources.tabs ?? {}).map(([k, t]) => [k, t.name])),
+          // Payment documents: only this account may upload (named on the disabled button for everyone else).
+          documents: config.editing.documents?.owner ? { owner: config.editing.documents.owner, folder: config.editing.documents.folder || "Payment documents" } : null,
         }
       : process.env.EDITING_PREVIEW ? { preview: true } : null,
     health: flags,

@@ -55,7 +55,7 @@ export function healthChecks({ pips, missingColumns, proposals, recon, ledger, h
   // Unlabelled payouts above the noise threshold
   const min = { USDC: config.reconcile.ignoreUsdcBelow, ATLAS: config.reconcile.ignoreAtlasBelow };
   const unl = recon.legs.filter((l) => l.direction === "out" && (l.confidence === "unlabelled" || l.confidence === "inferred") && l.amount >= (min[l.symbol] ?? 0));
-  if (unl.length) add("warning", "payments", `${unl.length} on-chain payouts need a Council label (${unl.filter((l) => l.confidence === "inferred").length} have a suggested PIP).`);
+  if (unl.length) add("warning", "payments", `${unl.length} on-chain payouts need a Council label (${unl.filter((l) => l.confidence === "inferred").length} have a suggestion).`);
 
   // Ledger completeness: a stored snapshot must equal the balance the ledger implies for that moment.
   for (const [day, snap] of Object.entries(history.days ?? {})) {
