@@ -2371,6 +2371,13 @@
    "label": "Foundation",
    "track": false,
    "note": ""
+  },
+  {
+   "wallet": "9q3ZZnezQyVXvBKYkKwjxpvVVPp7CFY9VYbaW5gBhX7Y",
+   "name": "Iris Bounty",
+   "label": "PIP-22",
+   "track": true,
+   "note": ""
   }
  ],
  "tabs": {
@@ -2399,5 +2406,5 @@
    "name": "Wallets"
   }
  },
- "fetchedAt": "2026-11-04T18:35:30.380Z"
+ "fetchedAt": "2026-11-04T18:40:41.423Z"
 }
