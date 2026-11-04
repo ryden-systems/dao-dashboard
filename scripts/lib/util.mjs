@@ -8,14 +8,23 @@ export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 export function log(...a) { console.log("[build]", ...a); }
 export function warn(...a) { console.warn("[warn]", ...a); }
 
+// A local test build (config.local.json present) keeps its state in data.local/ (git-ignored)
+// instead of the committed data/, so test data never mixes with what gets published. Reads fall
+// back to data/ for files the local build has not written yet (ledger so far, Council history,
+// vote cache), so a fresh local build starts from the committed state.
+let localDataDir = null;
+export function useLocalData(dir) { localDataDir = dir; }
+export function dataPath(rel) { return localDataDir && rel.startsWith("data/") ? localDataDir + rel.slice(4) : rel; }
+
 export function readJSON(rel, fallback) {
-  const p = path.join(ROOT, rel);
+  const local = path.join(ROOT, dataPath(rel));
+  const p = fs.existsSync(local) ? local : path.join(ROOT, rel);
   if (!fs.existsSync(p)) return fallback;
   return JSON.parse(fs.readFileSync(p, "utf8"));
 }
 
 export function writeJSON(rel, data, pretty = true) {
-  const p = path.join(ROOT, rel);
+  const p = path.join(ROOT, dataPath(rel));
   fs.mkdirSync(path.dirname(p), { recursive: true });
   fs.writeFileSync(p, JSON.stringify(data, null, pretty ? 1 : 0) + "\n");
 }

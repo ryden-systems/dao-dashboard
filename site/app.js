@@ -20,15 +20,18 @@
   const day = (ts) => (ts ? new Date(ts * 1000).toISOString().slice(0, 10) : "—");
   const isoDay = (s) => (s ? String(s).slice(0, 10) : "—");
   const short = (a) => (a ? `${a.slice(0, 4)}…${a.slice(-4)}` : "—");
+  // A small copy button after every Solana address; the click is handled once for the whole page (copyClick).
+  const COPY_ICON = `<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>`;
+  const copyBtn = (a) => (a ? `<button type="button" class="copy" data-copy="${esc(a)}" title="Copy address" aria-label="Copy address">${COPY_ICON}</button>` : "");
   const solTx = (sig) => `<a class="mono" href="https://solscan.io/tx/${esc(sig)}" target="_blank" rel="noopener">${esc(sig.slice(0, 8))}…</a>`;
   // A counterparty's transfers on Solscan, filtered to those with the DAO account of this movement,
   // e.g. every payment from the Treasury to the Foundation.
   const solFlow = (p, label) => {
     const dao = D.accounts[p.account]?.wallet;
     const filter = dao ? `&amp;${p.direction === "in" ? "to_address" : "from_address"}=${esc(dao)}` : "";
-    return `<a class="mono addr" href="https://solscan.io/account/${esc(p.owner)}?exclude_amount_zero=true&amp;remove_spam=false${filter}#transfers" target="_blank" rel="noopener" title="Transfers between this wallet and the ${esc(D.accounts[p.account]?.label ?? "DAO account")}">${esc(label ?? short(p.owner))}</a>`;
+    return `<a class="mono addr" href="https://solscan.io/account/${esc(p.owner)}?exclude_amount_zero=true&amp;remove_spam=false${filter}#transfers" target="_blank" rel="noopener" title="Transfers between this wallet and the ${esc(D.accounts[p.account]?.label ?? "DAO account")}">${esc(label ?? short(p.owner))}</a>${copyBtn(p.owner)}`;
   };
-  const solAcc = (a, label) => `<a class="mono addr" href="https://solscan.io/account/${esc(a)}" target="_blank" rel="noopener">${esc(label ?? short(a))}</a>`;
+  const solAcc = (a, label) => `<a class="mono addr" href="https://solscan.io/account/${esc(a)}" target="_blank" rel="noopener">${esc(label ?? short(a))}</a>${copyBtn(a)}`;
   const pipLink = (n) => `<a class="mono" href="#votes/${n}">PIP-${n}</a>`;
   const css = (v) => `var(${v})`;
 
@@ -113,22 +116,24 @@
         </div>
       </div>`;
   const termMeta = (t) => `${esc([t.label, termDates(t)].filter(Boolean).join(" · "))}${t.electedIn ? ` · elected in ${pipLink(t.electedIn)}` : ""}`;
-  const termSource = (t) => (t.sourceUrl && /^https:\/\//i.test(t.sourceUrl) ? `<a href="${esc(t.sourceUrl)}" target="_blank" rel="noopener">${esc(t.source)}</a>` : esc(t.source));
+  // A link taken from the sheet or another source: only https:// becomes a link, anything else
+  // (javascript:, data: ...) is shown as plain text so it can never run in an editor's session.
+  const extLink = (url, html) => (url && /^https:\/\//i.test(url) ? `<a href="${esc(url)}" target="_blank" rel="noopener">${html}</a>` : html);
+  const termSource = (t) => extLink(t.sourceUrl, esc(t.source));
 
-  // Current Council, then any incoming Council (handover overlap). Top of the Council page.
-  function membersSection() {
+  // Current Council, then any incoming Council (handover overlap). Top of the Council page, inside
+  // the page heading's section so the gap under the heading matches every other page.
+  function membersBlocks() {
     const terms = termsWithStatus();
     const live = [...terms.filter((t) => t.status === "current"), ...terms.filter((t) => t.status === "incoming").reverse()];
     if (!live.length) return "";
+    // The current Council sits right under the page heading; only an incoming one gets its own heading.
+    // The term, its dates, the electing PIP and the source go below the cards.
     const block = (t) => `
-      ${sub(t.status === "current" ? "Current Council" : "Incoming Council", `<span class="src">${termMeta(t)}</span>`)}
-      ${t.members.length ? `<div class="members">${t.members.map((m) => memberCard(m, t)).join("")}</div>` : `<p class="muted">The result of this election has not been published yet.</p>`}`;
-    const sources = live.map((t) => `${esc(t.label)}: ${termSource(t)}`).join(" · ");
-    return `
-    <section class="sec">
-      ${live.map(block).join("")}
-      <p class="src">Source: ${sources}</p>
-    </section>`;
+      ${t.status === "incoming" ? sub("Incoming Council") : ""}
+      ${t.members.length ? `<div class="members">${t.members.map((m) => memberCard(m, t)).join("")}</div>` : `<p class="muted">The result of this election has not been published yet.</p>`}
+      <p class="src">${termMeta(t)} · Source: ${termSource(t)}</p>`;
+    return live.map(block).join("");
   }
 
   // Every finished term, newest first, with its roster and source (Council page).
@@ -200,7 +205,7 @@
   function docPanel(p) {
     const key = legKey(p), docs = docsOf(p), owner = D.editing?.documents?.owner;
     const list = docs.length
-      ? `<ul class="clean">${docs.map((d) => `<li><a href="${esc(d.link)}" target="_blank" rel="noopener">${esc(d.file || "document")}</a> <span class="sub">${esc(d.at)}${d.by ? " · " + esc(d.by) : ""}</span></li>`).join("")}</ul>`
+      ? `<ul class="clean">${docs.map((d) => `<li>${extLink(d.link, esc(d.file || "document"))} <span class="sub">${esc(d.at)}${d.by ? " · " + esc(d.by) : ""}</span></li>`).join("")}</ul>`
       : `<p class="muted">${ed.docsErr ? esc(ed.docsErr) : ed.docs ? "No documents on this payout yet." : "Loading documents…"}</p>`;
     const close = `<button class="btn" data-act="doc-close">Close</button>`;
     const upload = !owner ? `<div class="edact wide">${close}</div>`
@@ -334,6 +339,19 @@
       }
       case "ed-update": {
         el.disabled = true;
+        // Local test copy (npm run serve): the local server runs the build itself, then the page reloads.
+        if (["localhost", "127.0.0.1"].includes(location.hostname)) {
+          ed.updateMsg = { ok: "Rebuilding locally from the sheet, about 30 seconds..." };
+          render();
+          try {
+            const res = await fetch("/__rebuild", { method: "POST" });
+            const r = await res.json().catch(() => ({ error: `local server answered ${res.status}; restart it with npm run serve` }));
+            if (r.ok) { location.reload(); return; }
+            ed.updateMsg = { err: `Local rebuild failed: ${r.error}` };
+          } catch (e) { ed.updateMsg = { err: `Local rebuild failed: ${e.message}` }; }
+          render();
+          return;
+        }
         try {
           const r = await ED.core.requestUpdate(ED.state.email);
           ed.updateMsg = { ok: `Update requested at ${r.at.slice(11, 16)} UTC. The site refreshes in about five minutes.` };
@@ -451,7 +469,7 @@
         ${sub("Latest proposals", `<a href="#votes" class="src">All proposals →</a>`)}
         <div class="tbl"><table>
           <thead><tr><th>PIP</th><th>Title</th><th>Result</th><th class="r">Yes</th></tr></thead>
-          <tbody>${latest.map((p) => `<tr><td class="pipc">${pipLink(p.pip)}</td><td>${esc(p.title)}</td><td>${outcomeChip(p.outcome)}</td><td class="n">${p.ranked ? "ranked" : yesShare(p) == null ? "—" : num(yesShare(p) * 100, 1) + "%"}</td></tr>`).join("")}</tbody>
+          <tbody>${latest.map((p) => `<tr><td class="pipc">${pipLink(p.pip)}</td><td><div class="t2">${esc(p.title)}</div></td><td>${outcomeChip(p.outcome)}</td><td class="n">${p.ranked ? "ranked" : yesShare(p) == null ? "—" : num(yesShare(p) * 100, 1) + "%"}</td></tr>`).join("")}</tbody>
         </table></div>
       </section>
       <section class="sec">
@@ -470,20 +488,19 @@
     const paidN = funded.filter((p) => p.funding.state === "paid").length;
     const needLabel = D.payments.filter((p) => p.direction === "out" && (p.confidence === "unlabelled" || p.confidence === "inferred"));
 
-    // Every outflow by purpose. Transfers between DAO accounts, refunds and returns are not spending.
+    // Every outflow by paying account and purpose. Transfers between DAO accounts, refunds and returns are not spending.
     const groups = new Map();
     for (const p of D.payments) {
       if (p.direction !== "out" || p.confidence === "internal" || p.isReturn) continue;
       const [key, name] = p.confidence === "category" ? [`cat:${p.category}`, p.category]
         : p.pip != null && PAID.has(p.confidence) ? ["pips", "PIP payments"] : ["attention", "Not yet labelled or confirmed"];
-      const g = groups.get(key) ?? { key, name, n: 0, ATLAS: 0, USDC: 0, last: 0 };
+      const g = groups.get(`${p.account}|${key}`) ?? { key, acc: p.account, name: `${D.accounts[p.account]?.label ?? p.account} · ${name}`, n: 0, ATLAS: 0, USDC: 0, last: 0 };
       g.n++; g[p.symbol] = (g[p.symbol] ?? 0) + p.amount; g.last = Math.max(g.last, p.t);
-      groups.set(key, g);
+      groups.set(`${p.account}|${key}`, g);
     }
-    const rank = (g) => (g.key === "pips" ? 0 : g.key === "attention" ? 2 : 1);
-    const byPurpose = [...groups.values()].sort((a, b) => rank(a) - rank(b) || b.USDC - a.USDC || b.ATLAS - a.ATLAS);
+    const byPurpose = [...groups.values()].sort((a, b) => a.name.localeCompare(b.name));
     const costUsdc = byPurpose.filter((g) => g.key.startsWith("cat:")).reduce((s, g) => s + g.USDC, 0);
-    const catNames = byPurpose.filter((g) => g.key.startsWith("cat:")).map((g) => g.name);
+    const catNames = [...new Set(byPurpose.filter((g) => g.key.startsWith("cat:")).map((g) => g.key.slice(4)))];
 
     const rows = funded.map((p) => {
       const f = p.funding;
@@ -496,15 +513,15 @@
       const detail = open ? `<tr class="detail"><td colspan="7">${paymentDetail(p)}</td></tr>` : "";
       // Two rows per PIP: the title across the full width with the status on the right, the figures below it.
       return `<tr class="click lead" data-pip="${p.pip}" aria-expanded="${open}">
-        <td class="pipc">PIP-${p.pip}</td>
-        <td colspan="5">${esc(p.name)}<div class="sub">${esc(p.category ?? "")}${p.sacTerm && p.sacTerm !== "N/A" ? " · " + esc(p.sacTerm) : ""}</div></td>
-        <td>${stateChip(f.state)}</td>
+        <td class="pipc">${pipLink(p.pip)}</td>
+        <td colspan="5"><a href="#votes/${p.pip}">${esc(p.name)}</a><div class="sub">${esc(p.category ?? "")}${p.sacTerm && p.sacTerm !== "N/A" ? " · " + esc(p.sacTerm) : ""}</div></td>
+        <td class="r">${stateChip(f.state)}</td>
       </tr><tr class="click" data-pip="${p.pip}">
         <td></td>
-        <td class="n">${num(f.authorized, 0)} ${esc(f.currency ?? "")}</td>
+        <td class="nw">${num(f.authorized, 0)} ${esc(f.currency ?? "")}</td>
         <td class="n">${paidCell}${inferred ? `<div class="sub">${inferred}</div>` : ""}</td>
         <td class="n">${f.remaining != null ? num(f.remaining, 0) + " " + esc(f.currency) : `<span class="sub">${esc(f.remainingNote ?? "—")}</span>`}</td>
-        <td class="n">${ms}<div class="bar" style="margin-top:5px"><span style="width:${pct}%"></span></div></td>
+        <td class="n">${ms}<div class="bar${pct >= 100 ? " done" : ""}" style="margin-top:5px"><span style="width:${pct}%"></span></div></td>
         <td class="n">${sheet}</td>
         <td></td>
       </tr>${detail}`;
@@ -532,14 +549,14 @@
       ${sub("By purpose", `<span class="src">Transfers between DAO accounts and returns are left out</span>`)}
       <div class="tbl"><table>
         <thead><tr><th>Purpose</th><th class="r">Payouts</th><th class="r">ATLAS</th><th class="r">USDC</th><th>Latest</th></tr></thead>
-        <tbody>${byPurpose.map((g) => `<tr><td><button class="link" data-act="pay-filter" data-key="${esc(g.key)}">${esc(g.name)}</button></td><td class="n">${num(g.n)}</td><td class="n">${g.ATLAS ? num(g.ATLAS, 0) : "—"}</td><td class="n">${g.USDC ? num(g.USDC, 2) : "—"}</td><td class="mono">${day(g.last)}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">No payouts yet.</td></tr>`}</tbody>
+        <tbody>${byPurpose.map((g) => `<tr><td><button class="link" data-act="pay-filter" data-key="${esc(g.key)}" data-acc="${esc(g.acc)}">${esc(g.name)}</button></td><td class="n">${num(g.n)}</td><td class="n">${g.ATLAS ? num(g.ATLAS, 0) : "—"}</td><td class="n">${g.USDC ? num(g.USDC, 2) : "—"}</td><td class="mono">${day(g.last)}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">No payouts yet.</td></tr>`}</tbody>
       </table></div>
       <p class="src">Label a payout with a cost category such as <em>Foundation</em> to list it here; further payouts to the same wallet are then suggested for that category.</p>
     </section>
     <section class="sec">
       ${sub("Funded PIPs", `<span class="src">Click a row for its payouts</span>`)}
       <div class="tbl"><table>
-        <thead><tr><th>PIP</th><th class="r">Authorized</th><th class="r">Paid on-chain</th><th class="r">Remaining</th><th class="r">Milestones</th><th class="r">Sheet says paid</th><th>Status</th></tr></thead>
+        <thead><tr><th>PIP</th><th>Authorized</th><th class="r">Paid on-chain</th><th class="r">Remaining</th><th class="r">Milestones</th><th class="r">Sheet says paid</th><th class="r">Status</th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
     </section>
@@ -569,34 +586,58 @@
     const roi = p.roi ? `<p style="margin-bottom:10px"><strong>DAO ROI:</strong> ${esc(p.roi)}</p>` : "";
     const note = p.note ? `<p class="sub" style="margin-bottom:10px">Note: ${esc(p.note)}</p>` : "";
     const tbl = legs.length ? `<table><thead><tr><th>Date</th><th>Account</th><th class="r">Amount</th><th>Recipient</th><th>Confidence</th><th>Tx</th></tr></thead><tbody>${legs.map((x) => `<tr><td class="mono">${dayCell(x.t)}</td><td>${esc(accLabel(x.account))}</td><td class="n">${x.isReturn ? "+" : "−"}${num(x.amount, x.symbol === "USDC" ? 2 : 0)} ${x.symbol}</td><td>${x.owner ? solFlow(x) : "—"}</td><td>${confChip(x.confidence)}${x.isReturn ? ` <span class="chip acc">return</span>` : ""}</td><td>${solTx(x.sig)}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No on-chain payout has been matched to this PIP yet.</p>`;
-    return `${roi}${note}${tbl}${p.url ? `<p class="src" style="margin-top:10px"><a href="${esc(p.url)}" target="_blank" rel="noopener">Read the proposal →</a></p>` : ""}${pipEditor(p)}`;
+    return `${roi}${note}${tbl}${p.url ? `<p class="src" style="margin-top:10px">${extLink(p.url, "Read the proposal →")}</p>` : ""}${pipEditor(p)}`;
   }
 
+  const councilTerms = () => [...new Set(D.pips.map((p) => p.sacTerm).filter((t) => t && t !== "N/A"))].sort();
+
+  // Council: who sits on it, what it records, and how it was elected.
   views.council = () => {
+    const C = D.council;
+    // Council elections only: the title says so and members are elected (ranked vote), not a yes/no/abstain vote.
+    const elections = D.pips.filter((p) => /council election/i.test(p.title) && p.ranked);
+
+    return `
+    <section class="sec">
+      ${head("Council", `<span class="src">Council sheet + Governance API · <a href="${KB_URL}" target="_blank" rel="noopener">How the DAO and Council work: DAO Knowledge Base ↗</a></span>`)}
+      ${membersBlocks()}
+    </section>
+    ${membersEditor()}
+    ${C && C.months?.length ? `
+    <section class="sec panel">
+      ${sub("Council activity per month", `<span class="src">Council sheet</span>`)}
+      ${Charts.bar({ categories: C.months.map((m) => m.month), stacked: true, label: "Council activity", series: C.terms.map((t, i) => ({ name: t, color: css(`--series-${(i % 4) + 1}`), values: C.months.map((m) => m.counts[t] ?? 0) })) })}
+    </section>` : ""}
+    <section class="sec">
+      ${sub("Elections")}
+      <div class="tbl"><table>
+        <thead><tr><th>PIP</th><th>Election</th><th>Voting ended</th><th class="r">Seats</th><th class="r">Ballots</th><th>Most first preferences (PVP)</th></tr></thead>
+        <tbody>${elections.map((p) => `<tr><td class="pipc">${pipLink(p.pip)}</td><td><div class="t2">${esc(p.title)}</div></td><td class="mono">${isoDay(p.votingEndsAt)}</td><td class="n">${p.seats ?? "—"}</td><td class="n">${num(p.totalVotes)}</td><td class="sub">${esc([...p.options].sort((a, b) => b.pvp - a.pvp).filter((o) => o.pvp > 0).slice(0, p.seats ?? 5).map((o) => optName(p, o.option)).join(", "))}</td></tr>`).join("")}</tbody>
+      </table></div>
+      <p class="src">Ranked elections allocate seats by single transferable vote. This table shows first preferences only; it does not recount the election.</p>
+    </section>
+    ${pastCouncilsSection()}`;
+  };
+
+  // Governance: how PIP votes went, per Council term and per PIP.
+  views.governance = () => {
     const voted = D.pips.filter((p) => p.outcome === "passed" || p.outcome === "failed");
-    const terms = [...new Set(D.pips.map((p) => p.sacTerm).filter((t) => t && t !== "N/A"))].sort();
-    const termCats = ["Pre-Council", ...terms];
+    const termCats = ["Pre-Council", ...councilTerms()];
     const inTerm = (p, t) => (t === "Pre-Council" ? !p.sacTerm || p.sacTerm === "N/A" : p.sacTerm === t);
     const passedBy = termCats.map((t) => voted.filter((p) => inTerm(p, t) && p.outcome === "passed").length);
     const failedBy = termCats.map((t) => voted.filter((p) => inTerm(p, t) && p.outcome === "failed").length);
     const part = voted.filter((p) => p.daoPvpM && p.totalPvp).map((p) => ({ pip: p.pip, v: (p.totalPvp / (p.daoPvpM * 1e6)) * 100 }));
     const avgPart = part.length ? part.reduce((s, x) => s + x.v, 0) / part.length : null;
-    const C = D.council;
-    const elections = D.pips.filter((p) => /election/i.test(p.title) || p.categories.some((c) => /council/i.test(c)));
-    const cur = terms[terms.length - 1];
 
     return `
     <section class="sec">
-      ${head("Council & governance", `<span class="src">Governance API + Council sheet · <a href="${KB_URL}" target="_blank" rel="noopener">How the DAO and Council work: DAO Knowledge Base ↗</a></span>`)}
+      ${head("Governance", `<span class="src">Governance API · <a href="${KB_URL}" target="_blank" rel="noopener">How the DAO and Council work: DAO Knowledge Base ↗</a></span>`)}
       <div class="kpis">
         ${kpi("PIPs voted", String(voted.length), "", `${voted.filter((p) => p.outcome === "passed").length} passed · ${voted.filter((p) => p.outcome === "failed").length} failed`)}
         ${kpi("Pass rate", voted.length ? num((voted.filter((p) => p.outcome === "passed").length / voted.length) * 100, 0) + "%" : "—", "")}
         ${kpi("Avg. participation", avgPart == null ? "—" : num(avgPart, 1) + "%", "", "of DAO voting power, per PIP")}
-        ${C && cur ? kpi(`Council activity ${cur}`, num(C.totals?.[cur] ?? 0), "", "as recorded by the Council") : ""}
       </div>
     </section>
-    ${membersSection()}
-    ${membersEditor()}
     <div class="grid-2">
       <section class="sec panel">
         ${sub("PIPs by Council term")}
@@ -606,21 +647,7 @@
         ${sub("Participation per PIP", `<span class="src">PVP voted ÷ DAO PVP</span>`)}
         ${Charts.bar({ categories: part.map((x) => String(x.pip)), label: "Participation per PIP", yFmt: (v) => v + "%", series: [{ name: "Participation", color: css("--series-1"), values: part.map((x) => Math.round(x.v * 10) / 10) }] })}
       </section>
-    </div>
-    ${C && C.months?.length ? `
-    <section class="sec panel">
-      ${sub("Council activity per month", `<span class="src">Council sheet · ${esc(C.title || "monthly counts")}</span>`)}
-      ${Charts.bar({ categories: C.months.map((m) => m.month), stacked: true, label: "Council activity", series: C.terms.map((t, i) => ({ name: t, color: css(`--series-${(i % 4) + 1}`), values: C.months.map((m) => m.counts[t] ?? 0) })) })}
-    </section>` : ""}
-    <section class="sec">
-      ${sub("Elections")}
-      <div class="tbl"><table>
-        <thead><tr><th>PIP</th><th>Election</th><th>Voting ended</th><th class="r">Seats</th><th class="r">Ballots</th><th>Most first preferences (PVP)</th></tr></thead>
-        <tbody>${elections.map((p) => `<tr><td class="pipc">${pipLink(p.pip)}</td><td>${esc(p.title)}</td><td class="mono">${isoDay(p.votingEndsAt)}</td><td class="n">${p.seats ?? "—"}</td><td class="n">${num(p.totalVotes)}</td><td class="sub">${esc([...p.options].sort((a, b) => b.pvp - a.pvp).filter((o) => o.pvp > 0).slice(0, p.seats ?? 5).map((o) => optName(p, o.option)).join(", "))}</td></tr>`).join("")}</tbody>
-      </table></div>
-      <p class="src">Ranked elections allocate seats by single transferable vote. This table shows first preferences only; it does not recount the election.</p>
-    </section>
-    ${pastCouncilsSection()}`;
+    </div>`;
   };
 
   views.limit = () => {
@@ -666,6 +693,8 @@
     const ma = monthly("ATLAS"), mu = monthly("USDC");
     const S = D.series;
     const tA = S.treasuryATLAS;
+    // Both Treasury charts share one time axis, from whichever history starts first.
+    const axisFrom = [S.treasuryUSDC?.points?.[0]?.[0], tA?.points?.[0]?.[0]].filter(Boolean).sort()[0];
     return `
     <section class="sec">
       ${head("DAO balance sheet", `<span class="src">Solana mainnet · as of ${esc(isoDay(D.dataAt))}</span>`)}
@@ -677,35 +706,37 @@
     ${walletsSection()}
     <div class="grid-2">
       <section class="sec panel">
-        ${sub("Treasury USDC", `<span class="src">rebuilt from every transaction</span>`)}
-        ${Charts.line({ label: "Treasury USDC", yFmt: compact, series: [{ name: "Treasury USDC", color: css("--series-2"), points: S.treasuryUSDC?.points ?? [] }] })}
+        ${sub("Treasury USDC", `<span class="src" title="Rebuilt from every transaction of the Treasury's USDC account">daily balance history</span>`)}
+        ${Charts.line({ label: "Treasury USDC", yFmt: compact, xFrom: axisFrom, series: [{ name: "Treasury USDC", color: css("--series-2"), points: S.treasuryUSDC?.points ?? [] }] })}
       </section>
       <section class="sec panel">
-        ${sub("Ecosystem Fund ATLAS", `<span class="src">rebuilt from every transaction</span>`)}
-        ${Charts.line({ label: "Fund ATLAS", yFmt: compact, series: [{ name: "Fund ATLAS", color: css("--series-1"), points: S.fundATLAS?.points ?? [] }] })}
+        ${sub("Treasury ATLAS", `<span class="src" title="${tA?.source === "import+snapshots" ? `Imported daily balances until ${tA.snapshotsFrom}, then the dashboard's own daily snapshots` : "The dashboard's own daily snapshots"}">daily balance history</span>`)}
+        ${tA?.points?.length > 1 ? Charts.line({ label: "Treasury ATLAS", yFmt: compact, xFrom: axisFrom, series: [{ name: "Treasury ATLAS", color: css("--series-1"), points: tA.points }] }) : `<p class="muted">The Treasury's ATLAS account receives tens of thousands of fee transfers a day, so its history is recorded as one balance snapshot per build rather than rebuilt from transactions. ${tA?.points?.length ? `First snapshot: ${num(tA.points[0][1])} ATLAS on ${tA.points[0][0]}.` : ""}</p>`}
       </section>
     </div>
-    <section class="sec panel">
-      ${sub("Treasury ATLAS", `<span class="src">${tA?.points?.length > 1 ? "daily snapshots" : "daily snapshots — history builds up from the first run"}</span>`)}
-      ${tA?.points?.length > 1 ? Charts.line({ label: "Treasury ATLAS", yFmt: compact, series: [{ name: "Treasury ATLAS", color: css("--series-1"), points: tA.points }] }) : `<p class="muted">The Treasury's ATLAS account receives tens of thousands of fee transfers a day, so its history is recorded as one balance snapshot per build rather than rebuilt from transactions. ${tA?.points?.length ? `First snapshot: ${num(tA.points[0][1])} ATLAS on ${tA.points[0][0]}.` : ""}</p>`}
-    </section>
     ${D.income?.monthly?.length ? `
     <section class="sec">
       ${sub("Recurring income", `<span class="src">${esc(D.income.sources.map((s) => s.label ?? short(s.owner)).join(", "))} · summed per month</span>`)}
       <div class="kpis">${D.income.sources.map((s) => kpi(s.label ?? short(s.owner), compact(s.totals.ATLAS ?? 0), "ATLAS", `${num(s.totals.USDC ?? 0, 0)} USDC · ${num(s.transfers)} transfers since ${esc(D.income.monthly[0].month)}`)).join("")}</div>
       <div class="grid-2">
-        <section class="panel">${Charts.bar({ categories: D.income.monthly.map((m) => m.month), label: "ATLAS income per month", yFmt: compact, series: [{ name: "ATLAS", color: css("--series-1"), values: D.income.monthly.map((m) => Math.round(m.ATLAS)) }] })}</section>
-        <section class="panel">${Charts.bar({ categories: D.income.monthly.map((m) => m.month), label: "USDC income per month", yFmt: compact, series: [{ name: "USDC", color: css("--series-2"), values: D.income.monthly.map((m) => Math.round(m.USDC)) }] })}</section>
+        <section class="sec panel">
+          ${sub("USDC income per month")}
+          ${Charts.bar({ categories: D.income.monthly.map((m) => m.month), label: "USDC income per month", yFmt: compact, series: [{ name: "USDC", color: css("--series-2"), values: D.income.monthly.map((m) => Math.round(m.USDC)) }] })}
+        </section>
+        <section class="sec panel">
+          ${sub("ATLAS income per month")}
+          ${Charts.bar({ categories: D.income.monthly.map((m) => m.month), label: "ATLAS income per month", yFmt: compact, series: [{ name: "ATLAS", color: css("--series-1"), values: D.income.monthly.map((m) => Math.round(m.ATLAS)) }] })}
+        </section>
       </div>
     </section>` : ""}
     <div class="grid-2">
       <section class="sec panel">
-        ${sub("ATLAS paid out per month", `<span class="src">excludes Treasury → Fund refills</span>`)}
-        ${Charts.bar({ categories: ma.categories, label: "ATLAS outflows per month", yFmt: compact, series: [{ name: "ATLAS", color: css("--series-1"), values: ma.values }] })}
-      </section>
-      <section class="sec panel">
         ${sub("USDC paid out per month")}
         ${Charts.bar({ categories: mu.categories, label: "USDC outflows per month", yFmt: compact, series: [{ name: "USDC", color: css("--series-2"), values: mu.values }] })}
+      </section>
+      <section class="sec panel">
+        ${sub("ATLAS paid out per month", `<span class="src">excludes Treasury → Fund refills</span>`)}
+        ${Charts.bar({ categories: ma.categories, label: "ATLAS outflows per month", yFmt: compact, series: [{ name: "ATLAS", color: css("--series-1"), values: ma.values }] })}
       </section>
     </div>`;
   };
@@ -718,7 +749,7 @@
       ${head("Proposals", `<span class="src">Governance API</span>`)}
       <div class="tbl"><table>
         <thead><tr><th>PIP</th><th>Title</th><th>Voting ended</th><th>Result</th><th class="r">Votes</th><th class="r">PVP voted</th><th>Split (PVP)</th><th class="r">Yes</th></tr></thead>
-        <tbody>${rows.map((p) => `<tr class="click" data-go="#votes/${p.pip}"><td class="pipc">PIP-${p.pip}</td><td>${esc(p.title)}</td><td class="mono">${isoDay(p.votingEndsAt)}</td><td>${outcomeChip(p.outcome)}</td><td class="n">${num(p.totalVotes)}</td><td class="n">${compact(p.totalPvp)}</td><td>${splitBar(p)}</td><td class="n">${p.ranked ? "ranked" : yesShare(p) == null ? "—" : num(yesShare(p) * 100, 1) + "%"}</td></tr>`).join("")}</tbody>
+        <tbody>${rows.map((p) => `<tr class="click" data-go="#votes/${p.pip}"><td class="pipc">PIP-${p.pip}</td><td><div class="t2">${esc(p.title)}</div></td><td class="mono">${isoDay(p.votingEndsAt)}</td><td>${outcomeChip(p.outcome)}</td><td class="n">${num(p.totalVotes)}</td><td class="n">${compact(p.totalPvp)}</td><td>${splitBar(p)}</td><td class="n">${p.ranked ? "ranked" : yesShare(p) == null ? "—" : num(yesShare(p) * 100, 1) + "%"}</td></tr>`).join("")}</tbody>
       </table></div>
     </section>`;
   };
@@ -764,7 +795,7 @@
     <section class="sec">
       <p class="src"><a href="#votes">← All proposals</a></p>
       ${head(`PIP-${p.pip}: ${p.title}`, outcomeChip(p.outcome))}
-      <p class="src">Voting ${isoDay(p.votingStartsAt)} → ${isoDay(p.votingEndsAt)}${p.url ? ` · <a href="${esc(p.url)}" target="_blank" rel="noopener">Read the proposal</a>` : ""}</p>
+      <p class="src">Voting ${isoDay(p.votingStartsAt)} → ${isoDay(p.votingEndsAt)}${p.url ? ` · ${extLink(p.url, "Read the proposal")}` : ""}</p>
       <div class="kpis">
         ${kpi("Ballots", num(p.totalVotes))}
         ${kpi("PVP voted", compact(p.totalPvp))}
@@ -797,6 +828,15 @@
   };
 
   // ---------- routing ----------
+  // A table wider than its box scrolls sideways (.scroll); one that fits keeps its header pinned (styles.css).
+  function fitTables() {
+    for (const t of document.querySelectorAll(".tbl")) {
+      t.classList.remove("scroll");
+      const tb = t.querySelector("table");
+      if (tb && tb.scrollWidth > t.clientWidth + 1) t.classList.add("scroll");
+    }
+  }
+
   function render() {
     const [route, param] = (location.hash.slice(1) || "overview").split("/");
     const r = views[route] && (route !== "health" || maintOpen()) ? route : "overview";
@@ -808,6 +848,7 @@
     const view = $("#view");
     view.innerHTML = previewInfo() + (r === "payments" || r === "council" || r === "balance" ? editBanner() : "") + views[r](param);
     Charts.mount(view);
+    fitTables();
     $("#tip").hidden = true;
     const bar = $("#editbar");
     if (bar) bar.innerHTML = editBar();
@@ -831,7 +872,7 @@
       const row = e.target.closest("tr.click[data-pip]");
       if (row && !e.target.closest("a")) { const n = Number(row.dataset.pip); ui.openPip = ui.openPip === n ? null : n; render(); return; }
       const act = e.target.closest("[data-act]");
-      if (act?.dataset.act === "attention" || act?.dataset.act === "pay-filter") { ui.payConf = act.dataset.key ?? "attention"; ui.payDir = "out"; render(); $("#ledger")?.scrollIntoView({ behavior: "smooth" }); }
+      if (act?.dataset.act === "attention" || act?.dataset.act === "pay-filter") { ui.payConf = act.dataset.key ?? "attention"; ui.payAccount = act.dataset.acc ?? "all"; ui.payDir = "out"; render(); $("#ledger")?.scrollIntoView({ behavior: "smooth" }); }
     });
     view.addEventListener("change", (e) => {
       const id = e.target.id;
@@ -843,7 +884,21 @@
       render();
     });
     window.addEventListener("hashchange", () => { render(); window.scrollTo({ top: 0 }); });
+    window.addEventListener("resize", fitTables);
+    // Pinned table headers sit right under the page header, whose height changes with wrapping.
+    const top = document.querySelector(".top");
+    if (top && "ResizeObserver" in window) new ResizeObserver(() => document.documentElement.style.setProperty("--top-h", `${top.getBoundingClientRect().height}px`)).observe(top);
     $("#editbar")?.addEventListener("click", editClick);
+    // Copy buttons: handled before any row click, so copying never opens or follows the row.
+    window.addEventListener("click", (e) => {
+      const b = e.target.closest?.("button.copy");
+      if (!b) return;
+      e.preventDefault(); e.stopPropagation();
+      navigator.clipboard?.writeText(b.dataset.copy).then(() => {
+        b.classList.add("done"); b.title = "Copied";
+        setTimeout(() => { b.classList.remove("done"); b.title = "Copy address"; }, 1200);
+      });
+    }, true);
     window.addEventListener("editor:change", () => { if (editing() && !ed.docs) loadDocs(); render(); });
   }
 
@@ -859,10 +914,8 @@
     $("#stamp").innerHTML = `Data as of ${esc(new Date(D.dataAt).toISOString().slice(0, 16).replace("T", " "))} UTC`;
     $("#foot").innerHTML = `
       <p>This dashboard is a third-party created service, funded through the Star Atlas DAO Ecosystem Fund and maintained by the DAO Council.</p>
-      <p>Built from public sources: the Council's <a href="${esc(D.sources.sheet)}" target="_blank" rel="noopener">PIP tracker sheet</a>, the Star Atlas governance API, and Solana mainnet. Rebuilt automatically; no server.</p>
-      <p>New to the DAO? The <a href="${KB_URL}" target="_blank" rel="noopener">Star Atlas DAO Knowledge Base</a> explains governance, PIPs, the Council, and the treasury.</p>
-      <p>${Object.values(D.accounts).map((a) => `${esc(a.label)} <span class="mono addr">${esc(a.wallet)}</span>`).join(" · ")}</p>
-      <p>Payout-to-PIP labels marked “inferred” are suggestions and are not counted as paid until confirmed.</p>`;
+      <p>Built from public sources: the Council's <a href="${esc(D.sources.sheet)}" target="_blank" rel="noopener">PIP tracker sheet</a>, the Star Atlas governance API, and Solana mainnet.</p>
+      <p>New to the DAO? The <a href="${KB_URL}" target="_blank" rel="noopener">Star Atlas DAO Knowledge Base</a> explains governance, PIPs, the Council, and the treasury.</p>`;
     if (D.testNotice) { $("#notice").hidden = false; $("#notice").innerHTML = `<div class="note">${esc(D.testNotice)}</div>`; }
     ED?.init(D.editing);
     bind();

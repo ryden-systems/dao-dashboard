@@ -5,9 +5,11 @@
 // Phase 1 (fetch) writes raw inputs to data/ — this directory is committed, so the
 // repository itself carries the ledger history between runs.
 // Phase 2 (compute) derives everything the site shows into dist/data/dashboard.json.
+// With config.local.json present, phase 1 writes to data.local/ instead (git-ignored), so a
+// local test build never changes the committed data/.
 import fs from "node:fs";
 import path from "node:path";
-import { ROOT, readJSON, writeJSON, log, warn, parseCSV } from "./lib/util.mjs";
+import { ROOT, readJSON, writeJSON, log, warn, parseCSV, useLocalData, dataPath } from "./lib/util.mjs";
 import { makeRpc } from "./lib/rpc.mjs";
 import { fetchTabRaw, fetchTabIndex, resolveTab, parsePipTab, parseCouncilTab, parseLabelTab, parseMembersTab, parseWalletsTab } from "./lib/sheet.mjs";
 import { writeSheetBackup } from "./lib/backup.mjs";
@@ -30,7 +32,10 @@ const deepMerge = (a, b) => {
 // NO_LOCAL_CONFIG=1 builds exactly what the shared config describes (e.g. before publishing).
 const localConfig = process.env.NO_LOCAL_CONFIG ? null : readJSON("config.local.json", null);
 const config = deepMerge(readJSON("config.json"), localConfig);
-if (localConfig) console.log("[build] using config.local.json overrides:", Object.keys(localConfig).join(", "));
+if (localConfig) {
+  console.log("[build] using config.local.json overrides:", Object.keys(localConfig).join(", "), "; state in data.local/");
+  useLocalData("data.local");
+}
 // Safety: local editing must target a copy of the sheet, never the Council's real one.
 if (localConfig?.editing?.enabled && !localConfig?.sheet?.id) {
   console.warn("[warn] config.local.json enables editing without a sheet copy (sheet.id); editing stays OFF so a test cannot write to the Council's real sheet.");
@@ -71,7 +76,7 @@ async function fetchPhase() {
   const members = T.councilMembers ? parseMembersTab(rowsOf(T.councilMembers)) : [];
   const wallets = T.wallets ? parseWalletsTab(rowsOf(T.wallets)) : [];
   const backup = writeSheetBackup(allTabs, { complete: Object.keys(tabIndex).length > 0 });
-  log(`sheet backup: ${backup.index.length} tabs in data/sheet/${backup.removed.length ? `, removed ${backup.removed.join(", ")}` : ""}${backup.stale.length ? `, kept previous copy of ${backup.stale.join(", ")}` : ""}`);
+  log(`sheet backup: ${backup.index.length} tabs in ${dataPath("data/sheet")}/${backup.removed.length ? `, removed ${backup.removed.join(", ")}` : ""}${backup.stale.length ? `, kept previous copy of ${backup.stale.join(", ")}` : ""}`);
   const nameOf = (gid) => Object.keys(tabIndex).find((n) => tabIndex[n] === gid) ?? null;
   const tabs = Object.fromEntries(Object.entries(config.sheet.tabs).map(([k, ref]) => [k, { gid: T[k], name: /^\d+$/.test(String(ref)) ? nameOf(T[k]) : ref }]));
   writeJSON("data/sources.json", { ...pipTab, council, labels, members, wallets, tabs, fetchedAt: new Date().toISOString() });
@@ -115,14 +120,21 @@ function computePhase() {
   const sevOrder = { critical: 0, warning: 1, info: 2 };
   flags.sort((a, b) => sevOrder[a.severity] - sevOrder[b.severity] || (a.pip ?? 0) - (b.pip ?? 0));
 
-  // Balance history: exact series where the ledger is complete, daily snapshots elsewhere.
+  // Balance history: exact series where the ledger is complete, daily snapshots elsewhere. Where
+  // snapshots started late, a one-time import of earlier daily balances (balance_history_import.json)
+  // fills the time before the first snapshot.
+  const imported = readJSON("data/balance_history_import.json", {});
   const series = {};
   for (const account of Object.keys(config.accounts)) {
     for (const symbol of ["ATLAS", "USDC"]) {
       const key = `${account}${symbol}`;
-      series[key] = fullyIndexed(config, account, symbol)
-        ? { source: "ledger", points: rebuildSeries(ledger, now[account][symbol], account, symbol, nowTs) }
-        : { source: "snapshots", points: Object.entries(history.days).sort().map(([d, s]) => [d, s[account]?.[symbol] ?? null]).filter(([, v]) => v != null) };
+      if (fullyIndexed(config, account, symbol)) {
+        series[key] = { source: "ledger", points: rebuildSeries(ledger, now[account][symbol], account, symbol, nowTs) };
+        continue;
+      }
+      const snaps = Object.entries(history.days).sort().map(([d, s]) => [d, s[account]?.[symbol] ?? null]).filter(([, v]) => v != null);
+      const before = (imported[account]?.[symbol] ?? []).filter(([d]) => !snaps.length || d < snaps[0][0]);
+      series[key] = { source: before.length ? "import+snapshots" : "snapshots", snapshotsFrom: snaps[0]?.[0] ?? null, points: [...before, ...snaps] };
     }
   }
 
@@ -233,6 +245,7 @@ function computePhase() {
   copyDir(path.join(ROOT, "site"), dist);
   writeJSON("dist/data/dashboard.json", out, false);
   copyDir(path.join(ROOT, "data", "votes"), path.join(dist, "data", "votes"));
+  if (dataPath("data/votes") !== "data/votes") copyDir(path.join(ROOT, dataPath("data/votes")), path.join(dist, "data", "votes"));
 
   const paidCount = recon.summary.filter((s) => s.state === "paid").length;
   log(`compute: ${pips.length} PIPs, ${recon.summary.length} funded, ${paidCount} fully paid, ${out.payments.length} payment legs, ${flags.length} health flags`);

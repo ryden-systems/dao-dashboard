@@ -204,6 +204,10 @@ ok(upCall && upCall[1].files.length === 2 && upCall[1].signature === need.sig, "
 ok(nodes.view.innerHTML.includes("Uploaded 2 files") && nodes.view.innerHTML.includes("https://drive.example/b.pdf"), "uploaded files are listed on the payout");
 await click("doc-close");
 ok(nodes.view.innerHTML.includes("Documents (2)"), "the payout's button counts its documents");
+docsInSheet.push({ signature: need.sig, recipient: need.owner ?? "", file: "evil.pdf", link: "javascript:alert(1)", at: "2026-11-04 10:00:00", by: "x@example.org" });
+await click("doc-open", { key: dkey });
+ok(nodes.view.innerHTML.includes("evil.pdf") && !nodes.view.innerHTML.includes("javascript:"), "a non-https document link from the sheet is shown as plain text, never as a link");
+await click("doc-close");
 
 // ---------- sign out ----------
 ctx.Editor.state = { available: true, signedIn: false, email: null, error: null };

@@ -115,6 +115,9 @@ h1, h2, h3 { text-wrap: balance; line-height: 1.15; margin: 0; color: var(--ink-
 p { margin: 0; }
 .mono { font-variant-numeric: tabular-nums; }  /* govern sets addresses and dates in the body face */
 .addr, a.addr { color: var(--address); }
+.copy { display: inline-flex; vertical-align: -2px; margin-left: 4px; padding: 1px; border: 0; background: none; color: var(--muted); cursor: pointer; }
+.copy:hover { color: var(--ink); }
+.copy.done { color: var(--good); }
 .num { font-variant-numeric: tabular-nums; }
 .muted { color: var(--muted); }
 /* Containers: standard radius on three corners, a 45° chamfer at the bottom right.
@@ -283,6 +286,14 @@ tr.ed-only > td { background-color: var(--editor-soft); }
 table { border-collapse: collapse; width: 100%; font-size: 13px; }
 th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
 thead th { font: 500 11px/1.3 var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: transparent; border-bottom: 1px solid var(--line-strong); white-space: nowrap; }
+/* Table headers stay pinned under the page header while their table scrolls past. That needs the
+   table to lay out in the page, not in a sideways scroller, so app.js marks a table that does not
+   fit its width with .scroll: that one scrolls sideways as before and its header is not pinned.
+   --top-h is the page header's exact (fractional) height (app.js); the header tucks 1px under the
+   page header's bottom border so no strip of rows shows between them. The shadow redraws the
+   bottom line, since a collapsed border does not travel with a pinned cell. */
+.tbl:not(.scroll) { overflow-x: visible; }
+.tbl:not(.scroll) thead th { position: sticky; top: calc(var(--top-h, 1px) - 1px); z-index: 1; background-color: var(--surface); box-shadow: inset 0 -1px 0 var(--line-strong); }
 /* Every table row, on every page: rows are separated by a strip of page background, and the row
    under the mouse lights up so its buttons are easy to place. */
 tbody td { border-bottom: 2px solid var(--bg); }
@@ -322,10 +333,15 @@ tr.detail td { background: var(--surface-2); padding: 14px 16px 18px; }
 /* Progress bar */
 .bar { position: relative; height: 4px; border-radius: 2px; background: var(--line-strong); overflow: hidden; min-width: 70px; }
 .bar > span { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+.bar.done > span { background: var(--good); }
 
 /* Vote split bar */
 .split { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--line-strong); min-width: 120px; }
 .split > span { display: block; height: 100%; }
+/* Inside a table row the bar sits centred on the first text line. */
+td > .split { margin-block: calc((1lh - 6px) / 2); }
+/* Proposal titles: every row is as tall as a two-line title, so lists of PIPs keep an even rhythm. */
+.t2 { min-height: 2lh; }
 
 /* Controls: chamfered bottom-right corner like govern's buttons */
 .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }

@@ -5,7 +5,7 @@
 // export only contains values.
 import fs from "node:fs";
 import path from "node:path";
-import { ROOT, writeJSON, parseCSV } from "./util.mjs";
+import { ROOT, writeJSON, parseCSV, dataPath } from "./util.mjs";
 
 export const BACKUP_DIR = "data/sheet";
 
@@ -21,7 +21,7 @@ export function backupFileName(name, gid, taken) {
 // complete: true when the list of tabs itself is known to be complete (so files of tabs that no
 // longer exist may be removed). A failed download never deletes the previous copy of that tab.
 export function writeSheetBackup(tabs, { complete, fetchedAt = new Date().toISOString(), dir = BACKUP_DIR } = {}) {
-  const abs = path.join(ROOT, dir);
+  const abs = path.join(ROOT, dataPath(dir));
   fs.mkdirSync(abs, { recursive: true });
   const prev = (() => { try { return JSON.parse(fs.readFileSync(path.join(abs, "index.json"), "utf8")); } catch { return { tabs: [] }; } })();
   const taken = new Set();

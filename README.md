@@ -302,6 +302,14 @@ included; the export only has values). A tab that fails to download keeps its pr
 the last fetched sheet and governance data, and cached votes of closed proposals (`votes/`). Deleting `ledger.json` and
 `cursors.json` triggers a full backfill on the next run (a few minutes).
 
+`data/balance_history_import.json` is a one-time import of the Treasury's daily ATLAS balance from 2023-05-16 until
+the dashboard's own snapshots began (2026-10-09); its `_source` field says where it came from. The build never
+changes it.
+
+A local build with a `config.local.json` writes all of this to `data.local/` instead (git-ignored), starting from
+the committed `data/` for anything it has not fetched yet. Local test data therefore never reaches the repository,
+and a commit never changes what the local page shows.
+
 ---
 
 ## Known limitations

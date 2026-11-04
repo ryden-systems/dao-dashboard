@@ -36,7 +36,9 @@ window.Charts = (() => {
     if (!all.length) { el.innerHTML = `<p class="muted">No data yet.</p>`; return; }
     const tx = (d) => Date.parse(d + "T00:00:00Z");
     const xs = all.map((p) => tx(p[0])), ys = all.map((p) => p[1]);
-    const x0 = Math.min(...xs), x1 = Math.max(...xs);
+    // spec.xFrom (YYYY-MM-DD) starts the time axis at that date even where the data starts later,
+    // so charts side by side share one time axis.
+    const x0 = Math.min(...xs, ...(s.xFrom ? [tx(s.xFrom)] : [])), x1 = Math.max(...xs);
     const yt = ticks(s.zeroBase === false ? Math.min(...ys) : Math.min(0, ...ys), Math.max(...ys), 4);
     const y0 = yt[0], y1 = yt[yt.length - 1];
     const X = (t) => m.l + ((t - x0) / Math.max(1, x1 - x0)) * (W - m.l - m.r);

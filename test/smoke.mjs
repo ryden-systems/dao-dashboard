@@ -49,7 +49,7 @@ await tick();
 
 const D = JSON.parse(fs.readFileSync(path.join(dist, "data", "dashboard.json"), "utf8"));
 const lastPip = D.pips[D.pips.length - 1].pip;
-const routes = ["overview", "payments", "council", "limit", "balance", "votes", `votes/${lastPip}`, "health"];
+const routes = ["overview", "payments", "council", "governance", "limit", "balance", "votes", `votes/${lastPip}`, "health"];
 let failed = 0;
 for (const r of routes) {
   ctx.location.hash = "#" + r;
