@@ -2364,7 +2364,15 @@
    "image": "https://cdn.staratlas.com/dao/council-election/4/Earther_Headshot.png"
   }
  ],
- "wallets": [],
+ "wallets": [
+  {
+   "wallet": "B5hX2Aj8FYmdYjXQFVF1jpz7BkrdpLXgSPs92G6DFGjA",
+   "name": "Foundation",
+   "label": "Foundation",
+   "track": false,
+   "note": ""
+  }
+ ],
  "tabs": {
   "pips": {
    "gid": "0",
@@ -2387,9 +2395,9 @@
    "name": "Payment documents"
   },
   "wallets": {
-   "gid": null,
+   "gid": "854841751",
    "name": "Wallets"
   }
  },
- "fetchedAt": "2026-11-04T17:36:39.436Z"
+ "fetchedAt": "2026-11-04T18:35:30.380Z"
 }
