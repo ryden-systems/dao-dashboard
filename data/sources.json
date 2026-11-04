@@ -2146,7 +2146,224 @@
   ]
  },
  "labels": [],
- "members": [],
+ "members": [
+  {
+   "name": "JP",
+   "role": "Council member",
+   "term": "Term 1",
+   "start": "2024-10-11",
+   "end": "2025-04-11",
+   "electedIn": 7,
+   "wallet": null,
+   "discord": "https://discord.com/users/360133561262538754",
+   "x": "missionpoole",
+   "image": "https://cdn.staratlas.com/dao/council-election/1/JP.jpg"
+  },
+  {
+   "name": "Funcracker",
+   "role": "Council member",
+   "term": "Term 1",
+   "start": "2024-10-11",
+   "end": "2025-04-11",
+   "electedIn": 7,
+   "wallet": null,
+   "discord": "https://discord.com/users/287632162570895361",
+   "x": "ronaldtreur",
+   "image": "https://cdn.staratlas.com/dao/council-election/1/Funcracker.png"
+  },
+  {
+   "name": "Bodhi [TREE]",
+   "role": "Council member",
+   "term": "Term 1",
+   "start": "2024-10-11",
+   "end": "2025-04-11",
+   "electedIn": 7,
+   "wallet": null,
+   "discord": "https://discord.com/users/694773417400074260",
+   "x": "Tree_guild",
+   "image": "https://cdn.staratlas.com/dao/council-election/1/Bodhi_TREE.png"
+  },
+  {
+   "name": "King Bryan",
+   "role": "Council member",
+   "term": "Term 1",
+   "start": "2024-10-11",
+   "end": "2025-04-11",
+   "electedIn": 7,
+   "wallet": null,
+   "discord": "https://discord.com/users/366908607591350283",
+   "x": "Bryan_Cogent",
+   "image": "https://cdn.staratlas.com/dao/council-election/1/King_Bryan.jpg"
+  },
+  {
+   "name": "DRUMCARL05",
+   "role": "Council member",
+   "term": "Term 1",
+   "start": "2024-10-11",
+   "end": "2025-04-11",
+   "electedIn": 7,
+   "wallet": null,
+   "discord": "https://discord.com/users/390532337730977793",
+   "x": "Carlito99897464",
+   "image": "https://cdn.staratlas.com/dao/council-election/1/DRUMCARL05.png"
+  },
+  {
+   "name": "Emperor ===[]",
+   "role": "Council Chair",
+   "term": "Term 2",
+   "start": "2025-04-11",
+   "end": "2026-01-11",
+   "electedIn": 11,
+   "wallet": null,
+   "discord": null,
+   "x": null,
+   "image": "https://cdn.staratlas.com/dao/council-election/2/Emperor.png"
+  },
+  {
+   "name": "Lanzer",
+   "role": "Presiding Officer",
+   "term": "Term 2",
+   "start": "2025-04-11",
+   "end": "2026-01-11",
+   "electedIn": 11,
+   "wallet": null,
+   "discord": null,
+   "x": null,
+   "image": "https://cdn.staratlas.com/dao/council-election/2/Lanzer.png"
+  },
+  {
+   "name": "DRUMCARL05",
+   "role": "Secretary",
+   "term": "Term 2",
+   "start": "2025-04-11",
+   "end": "2026-01-11",
+   "electedIn": 11,
+   "wallet": null,
+   "discord": null,
+   "x": null,
+   "image": "https://cdn.staratlas.com/dao/council-election/2/DRUMCARL05.JPG"
+  },
+  {
+   "name": "bodhitree_",
+   "role": "Treasurer",
+   "term": "Term 2",
+   "start": "2025-04-11",
+   "end": "2026-01-11",
+   "electedIn": 11,
+   "wallet": null,
+   "discord": null,
+   "x": null,
+   "image": "https://cdn.staratlas.com/dao/council-election/2/Bodhi_TREE.png"
+  },
+  {
+   "name": "ROME | Signal",
+   "role": "Public Relations Lead",
+   "term": "Term 2",
+   "start": "2025-04-11",
+   "end": "2026-01-11",
+   "electedIn": 11,
+   "wallet": null,
+   "discord": null,
+   "x": null,
+   "image": "https://cdn.staratlas.com/dao/council-election/2/Signal.jpeg"
+  },
+  {
+   "name": "ROME | Winston",
+   "role": "Council member",
+   "term": "Term 3",
+   "start": "2026-01-11",
+   "end": "2026-10-11",
+   "electedIn": 25,
+   "wallet": null,
+   "discord": null,
+   "x": null,
+   "image": "https://cdn.staratlas.com/dao/council-election/3/Winston.png"
+  },
+  {
+   "name": "Q | Morangø",
+   "role": "Council member",
+   "term": "Term 3",
+   "start": "2026-01-11",
+   "end": "2026-10-11",
+   "electedIn": 25,
+   "wallet": null,
+   "discord": null,
+   "x": null,
+   "image": "https://cdn.staratlas.com/dao/council-election/3/Morango.jpg"
+  },
+  {
+   "name": "[EMP] jith blade",
+   "role": "Council member",
+   "term": "Term 3",
+   "start": "2026-01-11",
+   "end": "2026-10-11",
+   "electedIn": 25,
+   "wallet": null,
+   "discord": null,
+   "x": null,
+   "image": "https://cdn.staratlas.com/dao/council-election/3/Jith_Blade.png"
+  },
+  {
+   "name": "LANZER",
+   "role": "Council member",
+   "term": "Term 3",
+   "start": "2026-01-11",
+   "end": "2026-10-11",
+   "electedIn": 25,
+   "wallet": null,
+   "discord": null,
+   "x": null,
+   "image": "https://cdn.staratlas.com/dao/council-election/3/Lanzer.png"
+  },
+  {
+   "name": "Emperor ===[]",
+   "role": "Council member",
+   "term": "Term 3",
+   "start": "2026-01-11",
+   "end": "2026-10-11",
+   "electedIn": 25,
+   "wallet": null,
+   "discord": null,
+   "x": null,
+   "image": "https://cdn.staratlas.com/dao/council-election/3/Emperor.png"
+  },
+  {
+   "name": "Emperor ===[]",
+   "role": "Council member",
+   "term": "Term 4",
+   "start": "2026-10-11",
+   "end": "2027-07-11",
+   "electedIn": 35,
+   "wallet": null,
+   "discord": null,
+   "x": null,
+   "image": "https://cdn.staratlas.com/dao/council-election/3/Emperor.png"
+  },
+  {
+   "name": "[EMP] jith blade",
+   "role": "Council member",
+   "term": "Term 4",
+   "start": "2026-10-11",
+   "end": "2027-07-11",
+   "electedIn": 35,
+   "wallet": null,
+   "discord": null,
+   "x": null,
+   "image": "https://cdn.staratlas.com/dao/council-election/3/Jith_Blade.png"
+  },
+  {
+   "name": "ROME | Earther",
+   "role": "Council member",
+   "term": "Term 4",
+   "start": "2026-10-11",
+   "end": "2027-07-11",
+   "electedIn": 35,
+   "wallet": null,
+   "discord": null,
+   "x": null,
+   "image": "https://cdn.staratlas.com/dao/council-election/4/Earther_Headshot.png"
+  }
+ ],
  "tabs": {
   "pips": {
    "gid": "0",
@@ -2161,9 +2378,9 @@
    "name": "Payment labels"
   },
   "councilMembers": {
-   "gid": null,
+   "gid": "822690761",
    "name": "Council members"
   }
  },
- "fetchedAt": "2026-11-04T02:25:29.482Z"
+ "fetchedAt": "2026-11-04T02:35:30.069Z"
 }
