@@ -274,6 +274,56 @@
     </section>`;
   }
 
+  // ---------- live token prices (Jupiter, fetched by the visitor's browser) ----------
+  // Loaded when the page opens and every five minutes while it stays open; no key, no server.
+  // Without an answer the USD columns show "—" rather than a stale or made-up value.
+  const PRICE_MINTS = { ATLAS: "ATLASXmbPQxBUYbxPsV97usA3fPQYEqzQBUHgiFCUsXx", POLIS: "poLisWXnNRwC6oBu1vHiuKQzFjGL4XDSu4g9qjz9qVk", SOL: "So11111111111111111111111111111111111111112" };
+  const prices = { usd: null, at: null, err: null };
+  async function loadPrices() {
+    try {
+      const r = await fetch(`https://lite-api.jup.ag/price/v3?ids=${Object.values(PRICE_MINTS).join(",")}`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const j = await r.json();
+      const usd = { USDC: 1 };
+      for (const [sym, mint] of Object.entries(PRICE_MINTS)) if (typeof j[mint]?.usdPrice === "number") usd[sym] = j[mint].usdPrice;
+      Object.assign(prices, { usd, at: new Date(), err: null });
+    } catch (e) { prices.err = e.message; }
+    const fp = $("#foot-prices");
+    if (fp) fp.innerHTML = prices.usd
+      ? `Prices ${priceList()} at ${prices.at.toISOString().slice(11, 16)} UTC, from the <a href="https://dev.jup.ag/docs/price" target="_blank" rel="noopener">Jupiter Price API</a>; USD values on this site use them.`
+      : `Live prices from the <a href="https://dev.jup.ag/docs/price" target="_blank" rel="noopener">Jupiter Price API</a> are unavailable right now${prices.err ? ` (${esc(prices.err)})` : ""}.`;
+    // Redraw only the page that shows prices, and never under an open form (it would lose typing).
+    const formOpen = ed.wallet || ed.labelFor || ed.docFor || ed.pip || ed.member;
+    if (["overview", "balance", "payments"].includes((location.hash.slice(1) || "overview").split("/")[0]) && !formOpen) render();
+  }
+  // USD value of a balance set; null when a held token has no price.
+  const usdOf = (b) => {
+    if (!prices.usd || !b) return null;
+    let v = 0;
+    for (const sym of ["ATLAS", "USDC", "SOL", "POLIS"]) {
+      if (!b[sym]) continue;
+      if (prices.usd[sym] == null) return null;
+      v += b[sym] * prices.usd[sym];
+    }
+    return v;
+  };
+  // A card whose headline is the USD value at live prices, with the token amounts below it. Until
+  // prices arrive (or if they never do) the headline is the ATLAS amount, as before.
+  // Below it: one line per currency when only amounts are shown, otherwise one line joined by " · ".
+  const usdKpi = (label, b, extra = "") => {
+    const v = usdOf(b);
+    const amounts = [b.ATLAS ? `${compact(b.ATLAS)} ATLAS` : "", b.USDC ? `${num(b.USDC, 0)} USDC` : ""].filter(Boolean);
+    if (v == null) return b.ATLAS || !b.USDC
+      ? kpi(label, compact(b.ATLAS ?? 0), "ATLAS", [...amounts.slice(b.ATLAS ? 1 : 0), extra].filter(Boolean).join(" · "))
+      : kpi(label, num(b.USDC, 0), "USDC", extra);
+    return kpi(label, "$" + compact(v), "", extra ? [...amounts, extra].join(" · ") : amounts.join("<br>"));
+  };
+  const usdCell = (b) => { const v = usdOf(b); return `<td class="n">${v == null ? `<span class="blank">—</span>` : "$" + num(v, 0)}</td>`; };
+  const priceList = () => ["ATLAS", "POLIS", "SOL"].filter((s) => prices.usd[s] != null).map((s) => `${s} $${prices.usd[s] < 0.01 ? prices.usd[s].toPrecision(3) : num(prices.usd[s], 2)}`).join(" · ");
+  const pricesNote = () => prices.usd
+    ? `USD at live prices: ${priceList()} · Jupiter, ${prices.at.toISOString().slice(11, 16)} UTC`
+    : prices.err ? `Live prices unavailable (${esc(prices.err)}), so no USD values.` : "Loading live prices...";
+
   // Other wallets the Council names, labels or tracks (the sheet's "Wallets" tab).
   function walletsSection() {
     // Visitors see tracked wallets only; untracked ones (names and labels) are listed for editors, tinted.
@@ -283,7 +333,7 @@
       <td><strong>${esc(w.name || short(w.wallet))}</strong>${w.note ? `<div class="sub">${esc(w.note)}</div>` : ""}</td>
       <td>${solAcc(w.wallet)}</td>
       <td>${w.label ? `<span class="chip">${esc(w.label)}</span>` : `<span class="blank">—</span>`}</td>
-      ${w.now ? `<td class="n">${num(w.now.ATLAS)}</td><td class="n">${num(w.now.USDC, 2)}</td><td class="n">${num(w.now.SOL, 2)}</td>` : `<td colspan="3" class="sub">${w.track ? "balances appear after the next update" : "balance not tracked"}</td>`}
+      ${w.now ? `<td class="n">${num(w.now.ATLAS)}</td><td class="n">${num(w.now.USDC, 2)}</td><td class="n">${num(w.now.SOL, 2)}</td>${usdCell(w.now)}` : `<td colspan="4" class="sub">${w.track ? "balances appear after the next update" : "balance not tracked"}</td>`}
       ${editing() ? `<td><button class="btn sm ed-btn" data-act="wal-open" data-wallet="${esc(w.wallet)}">Edit</button></td>` : ""}
     </tr>`).join("");
     const d = ed.walletDraft ?? {};
@@ -297,7 +347,7 @@
     return `<section class="sec">
       ${sub("Other wallets", `<span class="src">Council's sheet, "Wallets" tab${W.some((w) => w.track) ? " · balances from Solana mainnet" : ""}</span>`)}
       ${W.length ? `<div class="tbl"><table>
-        <thead><tr><th>Name</th><th>Address</th><th>Label</th><th class="r">ATLAS</th><th class="r">USDC</th><th class="r">SOL</th>${editing() ? "<th></th>" : ""}</tr></thead>
+        <thead><tr><th>Name</th><th>Address</th><th>Label</th><th class="r">ATLAS</th><th class="r">USDC</th><th class="r">SOL</th><th class="r">USD</th>${editing() ? "<th></th>" : ""}</tr></thead>
         <tbody>${rows}</tbody>
       </table></div>` : ""}
       ${editing() ? `<div class="ed-zone">${ed.wallet ? form : `<p class="edact"><button class="btn ed-btn" data-act="wal-open">Add a wallet</button></p>`}
@@ -456,10 +506,10 @@
     return `
     <section class="sec">
       <div class="kpis">
-        ${kpi("DAO Treasury", compact(t.ATLAS), "ATLAS", `${num(t.USDC, 0)} USDC`)}
-        ${kpi("Ecosystem Fund", compact(f.ATLAS), "ATLAS", L?.lastRefill ? `last refilled ${day(L.lastRefill.t)}` : "")}
-        ${kpi("PIP limit this quarter", compact(L?.current?.limit), "ATLAS", L?.current ? `${esc(L.current.quarter)} · live 5%: ${compact(L.live.limit)}` : "")}
-        ${kpi("Paid to PIPs", compact(paidAtlas), "ATLAS", `${num(paidUsdc, 0)} USDC · matched on-chain`)}
+        ${usdKpi("DAO Treasury", t)}
+        ${usdKpi("Ecosystem Fund", f, L?.lastRefill ? `last refilled ${day(L.lastRefill.t)}` : "")}
+        ${usdKpi("PIP limit this quarter", { ATLAS: L?.current?.limit ?? 0 }, L?.current ? `${esc(L.current.quarter)} · live 5%: ${compact(L.live.limit)}` : "")}
+        ${usdKpi("Paid to PIPs", { ATLAS: paidAtlas, USDC: paidUsdc })}
         ${kpi("PIPs voted", String(voted.length), "", `${passed} passed${open ? ` · ${open} open` : ""}`)}
         ${maintOpen() ? kpi("Data health", String(crit + warn), "flags", `<a href="#health">${crit} critical · ${warn} warnings</a>`, maintCls()) : ""}
       </div>
@@ -500,6 +550,7 @@
     }
     const byPurpose = [...groups.values()].sort((a, b) => a.name.localeCompare(b.name));
     const costUsdc = byPurpose.filter((g) => g.key.startsWith("cat:")).reduce((s, g) => s + g.USDC, 0);
+    const costAtlas = byPurpose.filter((g) => g.key.startsWith("cat:")).reduce((s, g) => s + g.ATLAS, 0);
     const catNames = [...new Set(byPurpose.filter((g) => g.key.startsWith("cat:")).map((g) => g.key.slice(4)))];
 
     const rows = funded.map((p) => {
@@ -539,8 +590,8 @@
       ${head("Payments", `<span class="src">Sheet + Solana mainnet</span>`)}
       <p class="lede">Everything the DAO pays out: PIP funding, and running costs such as the Foundation that keeps the DAO's legal status. Amounts are taken from the chain, not typed in. Payouts count once they match the sheet, an authorized amount, or a Council label.</p>
       <div class="kpis">
-        ${kpi("Paid to PIPs", compact(sum("ATLAS")), "ATLAS", `${num(sum("USDC"), 0)} USDC`)}
-        ${kpi("Running costs", num(costUsdc, 0), "USDC", catNames.length ? esc(catNames.join(", ")) : "none labelled yet")}
+        ${usdKpi("Paid to PIPs", { ATLAS: sum("ATLAS"), USDC: sum("USDC") })}
+        ${usdKpi("Running costs", { ATLAS: costAtlas, USDC: costUsdc }, catNames.length ? esc(catNames.join(", ")) : "none labelled yet")}
         ${kpi("Fully paid", `${paidN}/${funded.length}`, "PIPs")}
         ${maintOpen() ? kpi("Payouts to label", String(needLabel.length), "", `<button class="link" data-act="attention">show them</button>`, maintCls()) : ""}
       </div>
@@ -699,9 +750,11 @@
     <section class="sec">
       ${head("DAO balance sheet", `<span class="src">Solana mainnet · as of ${esc(isoDay(D.dataAt))}</span>`)}
       <div class="tbl"><table>
-        <thead><tr><th>Account</th><th>Address</th><th class="r">ATLAS</th><th class="r">USDC</th><th class="r">SOL</th></tr></thead>
-        <tbody>${Object.values(A).map((a) => `<tr><td><strong>${esc(a.label)}</strong></td><td>${solAcc(a.wallet)}</td><td class="n">${num(a.now.ATLAS)}</td><td class="n">${num(a.now.USDC, 2)}</td><td class="n">${num(a.now.SOL, 2)}</td></tr>`).join("")}</tbody>
+        <thead><tr><th>Account</th><th>Address</th><th class="r">ATLAS</th><th class="r">USDC</th><th class="r">SOL</th><th class="r">USD</th></tr></thead>
+        <tbody>${Object.values(A).map((a) => `<tr><td><strong>${esc(a.label)}</strong></td><td>${solAcc(a.wallet)}</td><td class="n">${num(a.now.ATLAS)}</td><td class="n">${num(a.now.USDC, 2)}</td><td class="n">${num(a.now.SOL, 2)}</td>${usdCell(a.now)}</tr>`).join("")}
+          <tr><td><strong>Total</strong></td><td></td>${["ATLAS", "USDC", "SOL"].map((s) => `<td class="n"><strong>${num(Object.values(A).reduce((t, a) => t + (a.now[s] ?? 0), 0), s === "ATLAS" ? 0 : 2)}</strong></td>`).join("")}${(() => { const vs = Object.values(A).map((a) => usdOf(a.now)); return `<td class="n"><strong>${vs.some((v) => v == null) ? `<span class="blank">—</span>` : "$" + num(vs.reduce((t, v) => t + v, 0), 0)}</strong></td>`; })()}</tr></tbody>
       </table></div>
+      <p class="src">${pricesNote()}</p>
     </section>
     ${walletsSection()}
     <div class="grid-2">
@@ -915,11 +968,14 @@
     $("#foot").innerHTML = `
       <p>This dashboard is a third-party created service, funded through the Star Atlas DAO Ecosystem Fund and maintained by the DAO Council.</p>
       <p>Built from public sources: the Council's <a href="${esc(D.sources.sheet)}" target="_blank" rel="noopener">PIP tracker sheet</a>, the Star Atlas governance API, and Solana mainnet.</p>
-      <p>New to the DAO? The <a href="${KB_URL}" target="_blank" rel="noopener">Star Atlas DAO Knowledge Base</a> explains governance, PIPs, the Council, and the treasury.</p>`;
+      <p>New to the DAO? The <a href="${KB_URL}" target="_blank" rel="noopener">Star Atlas DAO Knowledge Base</a> explains governance, PIPs, the Council, and the treasury.</p>
+      <p id="foot-prices">Loading live prices from the Jupiter Price API...</p>`;
     if (D.testNotice) { $("#notice").hidden = false; $("#notice").innerHTML = `<div class="note">${esc(D.testNotice)}</div>`; }
     ED?.init(D.editing);
     bind();
     render();
+    loadPrices();
+    if (typeof setInterval === "function") setInterval(loadPrices, 5 * 60 * 1000);
   }
 
   boot();
