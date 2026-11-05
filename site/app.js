@@ -679,12 +679,12 @@
     <section class="sec" id="ledger">
       ${head("Transactions", `<span class="src">Solana mainnet</span>`)}
       <p class="lede">Every token movement of the DAO accounts, read from the chain: payouts, returns, inflows and transfers between DAO accounts, with what each was matched to and why.</p>
-      ${sub("On-chain movements", `<div class="controls">
-        <input type="search" id="f-q" aria-label="Filter" placeholder="Address, name, PIP, tx..." value="${esc(ui.payQuery)}">
+      <div class="controls">
+        <input type="search" class="grow" id="f-q" aria-label="Filter" placeholder="Address, name, PIP, tx..." value="${esc(ui.payQuery)}">
         <select id="f-acc" aria-label="Account"><option value="all">All accounts</option>${Object.entries(D.accounts).map(([k, a]) => `<option value="${k}" ${ui.payAccount === k ? "selected" : ""}>${esc(a.label)}</option>`).join("")}</select>
         <select id="f-conf" aria-label="Confidence">${[["all", "Any match"], ["attention", "Needs a label"], ["pips", "PIP payments"], ...catNames.map((c) => [`cat:${c}`, c]), ...Object.entries(CONF).map(([k, v]) => [k, v.label])].map(([k, l]) => `<option value="${k}" ${ui.payConf === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
         <select id="f-dir" aria-label="Direction">${[["out", "Payouts + returns"], ["in", "Inflows"], ["all", "Everything"]].map(([k, l]) => `<option value="${k}" ${ui.payDir === k ? "selected" : ""}>${l}</option>`).join("")}</select>
-      </div>`)}
+      </div>
       <div class="tbl"><table>
         ${MOVE_HEAD}
         <tbody>${list.slice(0, 400).map(movementRow).join("") || `<tr><td colspan="7" class="muted">Nothing matches these filters.</td></tr>`}</tbody>
@@ -977,7 +977,7 @@
       <div class="tbl"><table>
         <thead><tr><th>Account</th><th>Address</th><th class="r">ATLAS</th><th class="r">USDC</th><th class="r">SOL</th><th class="r">USD</th></tr></thead>
         <tbody>${Object.values(A).map((a) => `<tr><td><strong>${esc(a.label)}</strong></td><td>${solAcc(a.wallet)}</td><td class="n">${num(a.now.ATLAS)}</td><td class="n">${num(a.now.USDC, 2)}</td><td class="n">${num(a.now.SOL, 2)}</td>${usdCell(a.now)}</tr>`).join("")}
-          <tr><td><strong>Total</strong></td><td></td>${["ATLAS", "USDC", "SOL"].map((s) => `<td class="n"><strong>${num(Object.values(A).reduce((t, a) => t + (a.now[s] ?? 0), 0), s === "ATLAS" ? 0 : 2)}</strong></td>`).join("")}${(() => { const vs = Object.values(A).map((a) => usdOf(a.now)); return `<td class="n"><strong>${vs.some((v) => v == null) ? `<span class="blank">—</span>` : "$" + num(vs.reduce((t, v) => t + v, 0), 0)}</strong></td>`; })()}</tr></tbody>
+          <tr class="total"><td class="total-label">Total Funds</td><td></td>${["ATLAS", "USDC", "SOL"].map((s) => `<td class="n">${num(Object.values(A).reduce((t, a) => t + (a.now[s] ?? 0), 0), s === "ATLAS" ? 0 : 2)}</td>`).join("")}${(() => { const vs = Object.values(A).map((a) => usdOf(a.now)); return `<td class="n">${vs.some((v) => v == null) ? `<span class="blank">—</span>` : "$" + num(vs.reduce((t, v) => t + v, 0), 0)}</td>`; })()}</tr></tbody>
       </table></div>
       <p class="src">${pricesNote()}</p>
     </section>
@@ -1179,17 +1179,43 @@
   // Section navigation beside the page (wide screens only, see .toc in styles.css): the page's
   // headlines, when it has more than two. A click scrolls to that section; the one in view is marked.
   let tocTargets = [];
+  // Each section gets an id from its headline (a section that has one keeps it), so a link like
+  // #council/elections opens the page at that section. The entries are real links (copyable); a click
+  // scrolls there and puts that link in the address bar without redrawing the page.
+  const ANCHOR_RE = /^[a-z][a-z0-9-]*$/;
+  const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").replace(/^(\d)/, "s-$1") || "section";
+  // The page part of the address: the route, plus a proposal number (#votes/36), without a section.
+  const pageHash = () => { const [route, param] = location.hash.slice(1).split("/"); return `#${route || "overview"}${/^\d+$/.test(param ?? "") ? `/${param}` : ""}`; };
   function buildToc() {
     const nav = $("#toc");
     if (!nav) return;
     if (!nav.dataset.bound) {
       nav.dataset.bound = "1";
-      nav.addEventListener("click", (e) => { const b = e.target.closest("[data-toc]"); if (b) tocTargets[Number(b.dataset.toc)]?.scrollIntoView({ behavior: "smooth" }); });
+      nav.addEventListener("click", (e) => {
+        const a = e.target.closest("[data-toc]");
+        if (!a) return;
+        e.preventDefault();
+        history.replaceState(null, "", a.getAttribute("href"));
+        const i = Number(a.dataset.toc);
+        if (i === 0) window.scrollTo({ top: 0, behavior: "smooth" }); else tocTargets[i]?.scrollIntoView({ behavior: "smooth" });
+      });
     }
     const heads = [...$("#view").querySelectorAll(".sec-head h2, .sec-head h3")].filter((h) => !h.closest("tr.detail") && h.textContent.trim());
     tocTargets = heads.map((h) => h.closest(".sec") ?? h.parentElement);
+    const used = new Set();
+    tocTargets.forEach((el, i) => {
+      if (!el.id) {
+        const want = slug(heads[i].textContent.trim());
+        let id = want, n = 2;
+        while (used.has(id) || document.getElementById(id)) id = `${want}-${n++}`;
+        el.id = id;
+      }
+      used.add(el.id);
+    });
     nav.hidden = heads.length <= 2;
-    nav.innerHTML = nav.hidden ? "" : heads.map((h, i) => `<button class="toc-link${h.tagName === "H2" ? " top" : ""}" data-toc="${i}">${esc(h.textContent.trim())}</button>`).join("");
+    const base = pageHash();
+    // The page headline links to the page itself; every other entry to its section.
+    nav.innerHTML = nav.hidden ? "" : heads.map((h, i) => `<a class="toc-link${h.tagName === "H2" ? " top" : ""}" data-toc="${i}" href="${esc(i === 0 ? base : `${base}/${tocTargets[i].id}`)}">${esc(h.textContent.trim())}</a>`).join("");
     markToc();
   }
   function markToc() {
@@ -1205,8 +1231,9 @@
 
   // "#council/meetings" opens the Council page at its #meetings section; any other page opens at the top.
   function scrollToAnchor() {
-    const param = (location.hash.slice(1).split("/")[1] ?? "");
-    const el = /^[a-z][a-z-]*$/.test(param) ? document.getElementById(param) : null;
+    const parts = location.hash.slice(1).split("/");
+    const anchor = parts.length > 1 ? parts[parts.length - 1] : "";
+    const el = ANCHOR_RE.test(anchor) ? document.getElementById(anchor) : null;
     if (el) el.scrollIntoView(); else window.scrollTo({ top: 0 });
   }
 

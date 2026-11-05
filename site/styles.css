@@ -297,7 +297,11 @@ thead th { font: 500 11px/1.3 var(--f-body); letter-spacing: .06em; text-transfo
 /* Every table row, on every page: rows are separated by a strip of page background, and the row
    under the mouse lights up so its buttons are easy to place. */
 tbody td { border-bottom: 2px solid var(--bg); }
-tbody tr:not(.detail):hover > td { background-color: var(--surface-2); }
+/* A table's total row. The table frame's 12px bottom padding reads as part of the last row, so the
+   text is moved down to sit in the middle of both; its label is plain grey text. */
+tbody tr.total > td { padding-top: 16px; padding-bottom: 4px; }
+tbody tr.total .total-label { color: var(--ink-2); }
+tbody tr:not(.detail):not(.total):hover > td { background-color: var(--surface-2); }
 tbody tr.ed-only:not(.detail):hover > td { background-color: color-mix(in srgb, var(--editor) 24%, var(--surface)); }
 tbody tr:last-child td { border-bottom: 0; }
 /* A row that continues in the next one (tr.lead + its follower) reads and hovers as one entry. */
@@ -345,6 +349,8 @@ td > .split { margin-block: calc((1lh - 6px) / 2); }
 
 /* Controls: chamfered bottom-right corner like govern's buttons */
 .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+/* A filter field that takes the room its row leaves. */
+.controls .grow { flex: 1 1 220px; min-width: 0; }
 select, input[type="search"] {
   --cut: 8px;
   font: 500 12.5px var(--f-body); color: var(--accent); background-color: var(--surface); border: 1px solid var(--cut-line);
@@ -402,7 +408,7 @@ button.link.muted { color: var(--muted); }
 @media (min-width: 1560px) {
   .toc:not([hidden]) { display: flex; flex-direction: column; gap: 2px; position: fixed; z-index: 5; top: calc(var(--top-h, 0px) + 24px); left: calc(50% + 606px); width: min(220px, calc(50% - 622px)); max-height: calc(100vh - var(--top-h, 0px) - 48px); overflow-y: auto; border-left: 1px solid var(--line); }
 }
-.toc-link { font: 400 13px/1.35 var(--f-body); color: var(--ink-2); background: none; border: 0; border-left: 2px solid transparent; margin-left: -1px; padding: 4px 0 4px 12px; text-align: left; cursor: pointer; }
+.toc-link { display: block; font: 400 13px/1.35 var(--f-body); color: var(--ink-2); text-decoration: none; border-left: 2px solid transparent; margin-left: -1px; padding: 4px 0 4px 12px; }
 .toc-link.top { color: var(--ink); font-weight: 500; }
 .toc-link:hover { color: var(--accent); }
 .toc-link.on { color: var(--accent); border-left-color: var(--accent); }
