@@ -1,6 +1,6 @@
 {
  "note": "Raw CSV export of every tab of the Council's sheet (values only), one file per tab.",
- "fetchedAt": "2026-11-05T14:21:54.061Z",
+ "fetchedAt": "2026-11-05T16:55:31.473Z",
  "tabs": [
   {
    "name": "Tracker",
@@ -8,7 +8,7 @@
    "file": "Tracker.csv",
    "bytes": 13149,
    "rows": 52,
-   "fetchedAt": "2026-11-05T14:21:54.061Z"
+   "fetchedAt": "2026-11-05T16:55:31.473Z"
   },
   {
    "name": "Accomplishment Numbers",
@@ -16,7 +16,7 @@
    "file": "Accomplishment Numbers.csv",
    "bytes": 375,
    "rows": 22,
-   "fetchedAt": "2026-11-05T14:21:54.061Z"
+   "fetchedAt": "2026-11-05T16:55:31.473Z"
   },
   {
    "name": "PIP Step Process",
@@ -24,7 +24,7 @@
    "file": "PIP Step Process.csv",
    "bytes": 143,
    "rows": 31,
-   "fetchedAt": "2026-11-05T14:21:54.061Z"
+   "fetchedAt": "2026-11-05T16:55:31.473Z"
   },
   {
    "name": "Lanzer Grading Rubric",
@@ -32,7 +32,7 @@
    "file": "Lanzer Grading Rubric.csv",
    "bytes": 4292,
    "rows": 19,
-   "fetchedAt": "2026-11-05T14:21:54.061Z"
+   "fetchedAt": "2026-11-05T16:55:31.473Z"
   },
   {
    "name": "Carlos Grading Rubric",
@@ -40,7 +40,7 @@
    "file": "Carlos Grading Rubric.csv",
    "bytes": 2888,
    "rows": 74,
-   "fetchedAt": "2026-11-05T14:21:54.061Z"
+   "fetchedAt": "2026-11-05T16:55:31.473Z"
   },
   {
    "name": "Dashboard",
@@ -48,7 +48,7 @@
    "file": "Dashboard.csv",
    "bytes": 75,
    "rows": 2,
-   "fetchedAt": "2026-11-05T14:21:54.061Z"
+   "fetchedAt": "2026-11-05T16:55:31.473Z"
   },
   {
    "name": "Council members",
@@ -56,7 +56,7 @@
    "file": "Council members.csv",
    "bytes": 2762,
    "rows": 19,
-   "fetchedAt": "2026-11-05T14:21:54.061Z"
+   "fetchedAt": "2026-11-05T16:55:31.473Z"
   },
   {
    "name": "Wallets",
@@ -64,15 +64,15 @@
    "file": "Wallets.csv",
    "bytes": 482,
    "rows": 7,
-   "fetchedAt": "2026-11-05T14:21:54.061Z"
+   "fetchedAt": "2026-11-05T16:55:31.473Z"
   },
   {
    "name": "Payment labels",
    "gid": "1250273902",
    "file": "Payment labels.csv",
-   "bytes": 1215,
-   "rows": 9,
-   "fetchedAt": "2026-11-05T14:21:54.061Z"
+   "bytes": 1362,
+   "rows": 10,
+   "fetchedAt": "2026-11-05T16:55:31.473Z"
   }
  ]
 }
