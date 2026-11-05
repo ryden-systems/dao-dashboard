@@ -2553,6 +2553,12 @@
    "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
    "label": "unknown",
    "confirmed": true
+  },
+  {
+   "signature": "3zvwNQkV4qJZkpNXzjJRVhcuYVE1b6kqVHJonz5VdMAMZEmDX2VUfBDNefNLDRgf9bZukcFawnKCkyARNNFeRg5K",
+   "recipient": "B5hX2Aj8FYmdYjXQFVF1jpz7BkrdpLXgSPs92G6DFGjA",
+   "label": "Operating costs",
+   "confirmed": true
   }
  ],
  "members": [
@@ -2798,7 +2804,7 @@
   {
    "wallet": "B5hX2Aj8FYmdYjXQFVF1jpz7BkrdpLXgSPs92G6DFGjA",
    "name": "Foundation",
-   "label": "Foundation",
+   "label": "Operating costs",
    "track": false,
    "note": ""
   },
@@ -2843,5 +2849,5 @@
    "name": "Wallets"
   }
  },
- "fetchedAt": "2026-11-05T13:40:37.183Z"
+ "fetchedAt": "2026-11-05T13:45:30.699Z"
 }
