@@ -9,6 +9,6 @@
     "build": "node scripts/build.mjs",
     "build:offline": "node scripts/build.mjs --offline",
     "serve": "node scripts/serve.mjs",
-    "test": "node test/smoke.mjs && node test/editor.test.mjs && node test/editor_ui.test.mjs && node test/editor_preview.test.mjs && node test/backup.test.mjs"
+    "test": "node test/smoke.mjs && node test/editor.test.mjs && node test/editor_ui.test.mjs && node test/editor_preview.test.mjs && node test/backup.test.mjs && node test/live.test.mjs"
   }
 }

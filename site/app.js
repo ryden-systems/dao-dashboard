@@ -238,7 +238,7 @@
       <p class="src">Sign-in is switched off in this preview, because the preview is not connected to the Council's sheet.</p>
     </section>` : "");
 
-  const editBanner = () => (editing() ?`<div class="note ed-note">Editor mode. Saves go straight into the Council's sheet, and everyone sees them after the next update, within about five minutes. The sheet's version history records every change.</div>` : "");
+  const editBanner = () => (editing() ?`<div class="note ed-note">Editor mode. Saves go straight into the Council's sheet, and the page reads the sheet live, so everyone sees them on their next page load. The sheet's version history records every change.</div>` : "");
 
   // Documents on a payout, read live from the sheet's "Payment documents" tab (signed-in editors only).
   const docsOf = (p) => (ed.docs ?? []).filter((d) => d.signature === p.sig && (!d.recipient || d.recipient === (p.owner ?? "")));
@@ -305,7 +305,7 @@
       ${st.conflicts ? `<div class="ed-conflict wide"><strong>Changed in the sheet since you opened this:</strong>${st.conflicts.map((c) => `<div>${esc(c.label)}: the sheet now says “${esc(c.sheet)}”, you entered “${esc(c.yours)}”.</div>`).join("")}
         <div class="edact"><button class="btn danger" data-act="pip-overwrite">Overwrite with mine</button><button class="btn" data-act="pip-reload">Use the sheet's values</button></div></div>` : ""}
       ${st.error ? `<p class="ed-err wide">${esc(st.error)}</p>` : ""}
-      ${st.saved ? `<p class="ed-ok wide">Saved to the sheet. Visible to everyone after the next update.</p>` : ""}
+      ${st.saved ? `<p class="ed-ok wide">Saved to the sheet. Visible to everyone now.</p>` : ""}
       <div class="edact wide"><button class="btn primary" data-act="pip-save">Save to sheet</button><button class="btn" data-act="pip-cancel">Close</button></div>
     </div></div>`;
   }
@@ -350,7 +350,7 @@
       ? `Prices ${priceList()} at ${prices.at.toISOString().slice(11, 16)} UTC, from the <a href="https://dev.jup.ag/docs/price" target="_blank" rel="noopener">Jupiter Price API</a>; USD values on this site use them.`
       : `Live prices from the <a href="https://dev.jup.ag/docs/price" target="_blank" rel="noopener">Jupiter Price API</a> are unavailable right now${prices.err ? ` (${esc(prices.err)})` : ""}.`;
     // Redraw only the page that shows prices, and never under an open form (it would lose typing).
-    const formOpen = ed.wallet || ed.labelFor || ed.docFor || ed.pip || ed.member;
+    const formOpen = anyFormOpen();
     if (["overview", "balance", "payments"].includes((location.hash.slice(1) || "overview").split("/")[0]) && !formOpen) render();
   }
   // USD value of a balance set; null when a held token has no price.
@@ -479,10 +479,10 @@
         el.disabled = true;
         try {
           const r = await ED.core.removeLabel({ signature: el.dataset.sig, recipient: el.dataset.owner });
-          ed.msgs[key] = r.removed ? { ok: "Label removed. The payout goes back to automatic matching after the next update." } : { err: "No label row for this payout was found in the sheet." };
+          ed.msgs[key] = r.removed ? { ok: "Label removed. The payout is matched automatically again." } : { err: "No label row for this payout was found in the sheet." };
           ed.labelFor = null; ed.clearFor = null;
         } catch (e) { ed.msgs[key] = { err: e.message }; }
-        render(); return;
+        render(); liveRefresh(); return;
       }
       case "lbl-save": {
         const key = `${el.dataset.sig}:${el.dataset.owner}`;
@@ -490,7 +490,8 @@
         el.disabled = true;
         try {
           const r = await ED.core.addLabel({ signature: el.dataset.sig, recipient: el.dataset.owner, pip, confirmed });
-          ed.msgs[key] = r.error ? { err: r.error } : { ok: `Labelled ${pip}${confirmed ? "" : " (unconfirmed)"}. Appears after the next update.` };
+          ed.msgs[key] = r.error ? { err: r.error } : { ok: `Labelled ${pip}${confirmed ? "" : " (unconfirmed)"}.` };
+          if (!r.error) liveRefresh();
           if (!r.error) ed.labelFor = null;
         } catch (e) { ed.msgs[key] = { err: e.message }; }
         render(); return;
@@ -512,6 +513,7 @@
           else if (r.conflicts) { st.conflicts = r.conflicts; st.error = null; }
           else {
             st.saved = true; st.error = null; st.conflicts = null;
+            liveRefresh();
             for (const [k, c] of Object.entries(changes)) st.values[k] = c.to;
           }
         } catch (e) { st.error = e.message; }
@@ -537,7 +539,8 @@
         el.disabled = true;
         try {
           const r = await ED.core.saveWallet(ed.walletDraft);
-          ed.walletMsg = r.error ? { err: r.error } : { ok: `${r.updated ? "Updated" : "Added"} ${ed.walletDraft.name}. Appears after the next update.` };
+          ed.walletMsg = r.error ? { err: r.error } : { ok: `${r.updated ? "Updated" : "Added"} ${ed.walletDraft.name}.${r.updated ? "" : " A new wallet's name shows right away; a tracked balance after the next update."}` };
+          if (!r.error) liveRefresh();
           if (!r.error) { ed.wallet = false; ed.walletDraft = null; }
         } catch (e) { ed.walletMsg = { err: e.message }; }
         render(); return;
@@ -551,7 +554,8 @@
         el.disabled = true;
         try {
           const r = await ED.core.addMember(m);
-          ed.memberMsg = r.error ? { err: r.error } : { ok: `Added ${m.name}. Appears after the next update.` };
+          ed.memberMsg = r.error ? { err: r.error } : { ok: `Added ${m.name}.` };
+          if (!r.error) liveRefresh();
           if (!r.error) { ed.member = false; ed.memberDraft = null; }
         } catch (e) { ed.memberMsg = { err: e.message }; }
         render(); return;
@@ -1147,7 +1151,7 @@
       $("#view").innerHTML = `<p class="note">The dashboard data could not be loaded (${esc(e.message)}). If you opened this file directly, run <span class="mono">npm run serve</span> and open the local address instead.</p>`;
       return;
     }
-    $("#stamp").innerHTML = `Data as of ${esc(new Date(D.dataAt).toISOString().slice(0, 16).replace("T", " "))} UTC`;
+    setStamp();
     $("#foot").innerHTML = `
       <p>This dashboard is a third-party created service, funded through the Star Atlas DAO Ecosystem Fund and maintained by the DAO Council.</p>
       <p>Built from public sources: the Council's <a href="${esc(D.sources.sheet)}" target="_blank" rel="noopener">PIP tracker sheet</a>, the Star Atlas governance API, and Solana mainnet.</p>
@@ -1159,7 +1163,26 @@
     render();
     loadPrices();
     if (typeof setInterval === "function") setInterval(loadPrices, 5 * 60 * 1000);
+    // Live sheet (live.mjs): start it with the built data; it answers with the data recomputed from the sheet.
+    window.__dashBase = D;
+    window.addEventListener("dash:data", (e) => {
+      D = e.detail.D; liveAt = e.detail.at;
+      setStamp();
+      // Never redraw under an open form (it would lose what is being typed); the next redraw shows it.
+      if (!anyFormOpen()) render();
+    });
+    window.dispatchEvent(new CustomEvent("dash:ready"));
   }
+
+  // Header stamp: when the chain data was read, and when the sheet was last read live.
+  let liveAt = null;
+  function setStamp() {
+    const t = (d) => new Date(d).toISOString().slice(0, 16).replace("T", " ");
+    $("#stamp").innerHTML = `Data as of ${esc(t(D.dataAt))} UTC${liveAt ? ` · sheet live ${esc(t(liveAt).slice(11))} UTC` : ""}`;
+  }
+  const anyFormOpen = () => Boolean(ed.wallet || ed.labelFor || ed.docFor || ed.pip || ed.member || ed.clearFor);
+  // After a save: read the sheet again right away, so the change shows within seconds.
+  const liveRefresh = () => window.DashLive?.refresh?.();
 
   boot();
 })();

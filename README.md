@@ -156,6 +156,18 @@ its own copy. It is off until it is configured, and the dashboard works the same
 
 All of this is free. Google may change console wording; the steps above describe it as of October 2026.
 
+## Live sheet
+
+The page reads the Council's sheet itself, straight from Google, every time it opens (and again after an editor saves,
+when the tab comes back into view, and every few minutes). It then redoes the build's calculation in the browser with
+the same code, so a change in the sheet (a label, a wallet name, a milestone, a Council member) shows on the next page
+load, without waiting for a build. The header shows when the sheet was last read ("sheet live HH:MM UTC").
+
+What still needs a build (daily, or *Update now*): new on-chain transactions and balances, a newly tracked wallet's
+balance, and a tab that did not exist at the last build (e.g. the first "Wallets" row creates that tab). If Google
+cannot be reached, the page shows the data of the last build. `test/live.test.mjs` checks that the browser's
+calculation gives exactly what the build publishes.
+
 ## Instant updates from the sheet
 
 `integrations/sheet-sync.gs` is a small Google Apps Script attached to the Council's sheet. Every five minutes it
@@ -237,12 +249,34 @@ Percent and cadence are set in `config.json` (`fundLimit`).
 1. Transfer this repository to the DAO's GitHub organization (or push it to a new repository there).
 2. *Settings → Pages → Build and deployment → Source:* **GitHub Actions**.
 3. Optional: *Settings → Secrets and variables → Actions* → add `RPC_URL` and/or `SIGNATURES_RPC_URL` (see below).
-4. Optional custom domain (e.g. `council.staratlas.com`): *Settings → Pages → Custom domain*, then a DNS `CNAME` record pointing to `<org>.github.io`.
+4. Custom domain, e.g. `council.staratlas.com` (see *Hosting on a Star Atlas domain* below).
 5. *Actions → Build and publish dashboard → Run workflow* once, and open the published URL.
 6. In `config.json`, make sure `sheet.id` is the Council's real sheet and remove `testNotice` if it is there.
 7. If two-way editing stays on: repeat its *Setup* on a DAO-owned Google account and put the new client ID in `config.json`.
 8. If instant updates stay on: install the script on the real sheet from a DAO account, with a new token owned by the
    DAO's organization and the repository's new name in `GITHUB_REPO`. Remove any earlier copy of the script and revoke its token.
+
+### Hosting on a Star Atlas domain
+
+The RFP has ATMTA hosting the site. The suggested way: GitHub Pages keeps serving and rebuilding it (free, no
+server), and ATMTA provides the address. ATMTA only adds DNS records; nothing runs on ATMTA's servers.
+
+1. **Repository first.** The site should be published from the Council's own GitHub organization (step 1 above), so
+   the domain points at the Council, not at the developer's account.
+2. **ATMTA, DNS for `staratlas.com`:** a `CNAME` record `council` → `<org>.github.io` (the Council organization's
+   GitHub Pages host).
+3. **GitHub, the Council organization:** *Settings → Pages → Add a domain* to verify `council.staratlas.com`; GitHub
+   shows a `TXT` record for ATMTA to add. Verification stops anyone else from claiming the subdomain if the site is
+   ever unpublished.
+4. **GitHub, this repository:** *Settings → Pages → Custom domain* `council.staratlas.com`, then **Enforce HTTPS** once
+   the certificate is issued (GitHub issues and renews it; this can take up to an hour). The site is published by a
+   GitHub Actions workflow, so no `CNAME` file is needed in the repository.
+5. **Editor sign-in:** in the Google Cloud project, add `https://council.staratlas.com` to the client's *Authorized
+   JavaScript origins* (see *Setup*), or sign-in fails on the new address.
+6. **Check on the new address:** the pages load, live prices appear in the footer, an editor can sign in and
+   *Update now* works. The old `<org>.github.io/<repo>` address redirects to the custom domain by itself.
+
+The daily build, the sheet sync script and the data are not affected by the address.
 
 ### RPC endpoints
 

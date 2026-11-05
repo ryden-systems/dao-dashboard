@@ -2,7 +2,7 @@
 // severity: "critical" (a number on the dashboard is probably wrong)
 //           "warning"  (the sheet and the chain disagree, or a value is missing)
 //           "info"     (worth a look, not necessarily wrong)
-import { balanceAt, fullyIndexed } from "./balances.mjs";
+import { balanceAt, fullyIndexed } from "./series.mjs";
 
 const fmt = (n) => (n == null ? "—" : Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 }));
 

@@ -11,15 +11,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { ROOT, readJSON, writeJSON, log, warn, parseCSV, useLocalData, dataPath } from "./lib/util.mjs";
 import { makeRpc } from "./lib/rpc.mjs";
-import { fetchTabRaw, fetchTabIndex, resolveTab, parsePipTab, parseCouncilTab, parseLabelTab, parseMembersTab, parseWalletsTab } from "./lib/sheet.mjs";
+import { fetchTabRaw, fetchTabIndex, resolveTab, sheetSources } from "./lib/sheet.mjs";
 import { writeSheetBackup } from "./lib/backup.mjs";
-import { councilTerms } from "./lib/members.mjs";
 import { loadGovernance } from "./lib/governance.mjs";
 import { updateLedger } from "./lib/ledger.mjs";
-import { readBalances, readTracked, recordSnapshot, rebuildSeries, fullyIndexed } from "./lib/balances.mjs";
-import { reconcile } from "./lib/reconcile.mjs";
-import { fundLimits } from "./lib/limit.mjs";
-import { healthChecks } from "./lib/health.mjs";
+import { readBalances, readTracked, recordSnapshot } from "./lib/balances.mjs";
+import { compute } from "./lib/compute.mjs";
 
 // config.local.json (git-ignored, optional) is layered over config.json for local testing,
 // e.g. a copy of the sheet and test Google IDs, so they never end up in the shared config.
@@ -70,16 +67,14 @@ async function fetchPhase() {
     if (byGid[gid] == null) throw new Error(`sheet: tab ${gid} could not be downloaded`);
     return parseCSV(byGid[gid]);
   };
-  const pipTab = parsePipTab(rowsOf(T.pips));
-  const council = T.council ? parseCouncilTab(rowsOf(T.council)) : null;
-  const labels = T.paymentLabels ? parseLabelTab(rowsOf(T.paymentLabels)) : [];
-  const members = T.councilMembers ? parseMembersTab(rowsOf(T.councilMembers)) : [];
-  const wallets = T.wallets ? parseWalletsTab(rowsOf(T.wallets)) : [];
-  const backup = writeSheetBackup(allTabs, { complete: Object.keys(tabIndex).length > 0 });
-  log(`sheet backup: ${backup.index.length} tabs in ${dataPath("data/sheet")}/${backup.removed.length ? `, removed ${backup.removed.join(", ")}` : ""}${backup.stale.length ? `, kept previous copy of ${backup.stale.join(", ")}` : ""}`);
   const nameOf = (gid) => Object.keys(tabIndex).find((n) => tabIndex[n] === gid) ?? null;
   const tabs = Object.fromEntries(Object.entries(config.sheet.tabs).map(([k, ref]) => [k, { gid: T[k], name: /^\d+$/.test(String(ref)) ? nameOf(T[k]) : ref }]));
-  writeJSON("data/sources.json", { ...pipTab, council, labels, members, wallets, tabs, fetchedAt: new Date().toISOString() });
+  const sources = sheetSources({ rowsOf: (key) => (T[key] ? rowsOf(T[key]) : null), tabs });
+  const { labels, members, wallets, council } = sources;
+  const pipTab = { pips: sources.pips };
+  const backup = writeSheetBackup(allTabs, { complete: Object.keys(tabIndex).length > 0 });
+  log(`sheet backup: ${backup.index.length} tabs in ${dataPath("data/sheet")}/${backup.removed.length ? `, removed ${backup.removed.join(", ")}` : ""}${backup.stale.length ? `, kept previous copy of ${backup.stale.join(", ")}` : ""}`);
+  writeJSON("data/sources.json", sources);
   log(`sheet: tabs ${Object.entries(tabs).map(([k, t]) => `${k}=${t.name ?? "?"}${t.gid ? "" : " (not created yet)"}`).join(", ")}`);
   log(`sheet: ${pipTab.pips.length} PIPs, ${council?.months.length ?? 0} council months, ${labels.length} payment labels, ${members.length} council members`);
 
@@ -102,230 +97,42 @@ function computePhase() {
   const history = readJSON("data/balances.json", { days: {} });
   const { balances: now, at: nowAt, tracked = {} } = readJSON("data/now.json");
   const seedLabels = readJSON("data/labels.seed.json", { labels: [] }).labels;
-  const nowTs = Date.parse(nowAt) / 1000;
-
-  // Sheet labels override seed labels for the same payout.
-  const labels = [...seedLabels.filter((s) => !sources.labels.some((l) => l.signature === s.signature)), ...sources.labels];
-  const recon = reconcile({ pips: sources.pips, ledger, labels, wallets: sources.wallets ?? [], config });
-  const limit = fundLimits({ ledger, fundNow: now.fund.ATLAS, percent: config.fundLimit.percent, nowTs });
-  const flags = healthChecks({ pips: sources.pips, missingColumns: sources.missingColumns, proposals, recon, ledger, history, now, config, nowTs });
-  // A payout labelled in more than one row: the last row is used, which is easy to miss in the sheet.
-  const labelCount = new Map();
-  for (const l of sources.labels) labelCount.set(`${l.signature}:${l.recipient}`, (labelCount.get(`${l.signature}:${l.recipient}`) ?? 0) + 1);
-  for (const [k, n] of labelCount) {
-    if (n > 1) flags.push({ severity: "warning", area: "payments", message: `Payment labels: payout ${k.slice(0, 8)}… is labelled in ${n} rows; the last one is used. Delete the others, or relabel it from the dashboard (that removes them).` });
-  }
-  const council = councilTerms({ sheetMembers: sources.members ?? [], proposals, history: readJSON("data/council_history.json", { terms: [] }) });
-  for (const w of council.warnings) flags.push({ severity: "warning", area: "council", message: w });
-  const sevOrder = { critical: 0, warning: 1, info: 2 };
-  flags.sort((a, b) => sevOrder[a.severity] - sevOrder[b.severity] || (a.pip ?? 0) - (b.pip ?? 0));
-
-  // Balance history: exact series where the ledger is complete, daily snapshots elsewhere. Where
-  // snapshots started late, a one-time import of earlier daily balances (balance_history_import.json)
-  // fills the time before the first snapshot.
+  const councilHistory = readJSON("data/council_history.json", { terms: [] });
   const imported = readJSON("data/balance_history_import.json", {});
-  const series = {};
-  for (const account of Object.keys(config.accounts)) {
-    for (const symbol of ["ATLAS", "USDC"]) {
-      const key = `${account}${symbol}`;
-      if (fullyIndexed(config, account, symbol)) {
-        series[key] = { source: "ledger", points: rebuildSeries(ledger, now[account][symbol], account, symbol, nowTs) };
-        continue;
-      }
-      const snaps = Object.entries(history.days).sort().map(([d, s]) => [d, s[account]?.[symbol] ?? null]).filter(([, v]) => v != null);
-      const before = (imported[account]?.[symbol] ?? []).filter(([d]) => !snaps.length || d < snaps[0][0]);
-      series[key] = { source: before.length ? "import+snapshots" : "snapshots", snapshotsFrom: snaps[0]?.[0] ?? null, points: [...before, ...snaps] };
-    }
-  }
-
-  // One record per PIP: sheet + governance API + payment summary.
-  const api = new Map(proposals.map((p) => [p.pip, p]));
-  const pay = new Map(recon.summary.map((s) => [s.pip, s]));
-  const pipNums = [...new Set([...sources.pips.map((p) => p.pip), ...proposals.map((p) => p.pip)])].sort((a, b) => a - b);
-  const pips = pipNums.map((n) => {
-    const s = sources.pips.find((p) => p.pip === n);
-    const a = api.get(n);
-    return {
-      pip: n,
-      name: s?.name || a?.title,
-      title: a?.title ?? s?.name,
-      id: a?.id ?? null,
-      url: a ? `${config.governance.site}${a.id}` : null,
-      categories: a?.categories ?? [],
-      category: s?.category ?? null,
-      sacTerm: s?.sacTerm ?? null,
-      phase: s?.phase ?? null,
-      outcome: a?.outcome ?? (s?.voteResult || "").toLowerCase(),
-      votingStartsAt: a?.votingStartsAt ?? null,
-      votingEndsAt: a?.votingEndsAt ?? null,
-      options: a?.options ?? [],
-      totalVotes: a?.totalVotes ?? s?.sheetVotes ?? null,
-      totalPvp: a?.totalPvp ?? null,
-      daoPvpM: s?.sheetTotalPvpM ?? null,
-      ranked: Boolean(a?.ranked),
-      seats: a?.ranked ? a.winners : null,
-      distinctBallots: a?.distinctBallots ?? null,
-      candidates: a?.candidates ?? null,
-      amount: s?.amount?.value ?? null,
-      currency: s?.currency ?? null,
-      ecosystemFund: s?.ecosystemFund ?? false,
-      roi: s?.roi ?? "",
-      note: s?.note ?? "",
-      funding: pay.get(n) ?? null,
-    };
+  const { out, recon, flags } = compute({
+    config, sources, proposals, ledger, history, now, nowAt, tracked, seedLabels, councilHistory, imported,
+    votesOf: (pip) => readJSON(`data/votes/${pip}.json`, null), editingPreview: Boolean(process.env.EDITING_PREVIEW),
   });
-
-  // Recurring inflow sources (e.g. marketplace fee sweeps) are summarised per month;
-  // every other movement is listed individually.
-  const incomeLegs = recon.legs.filter((l) => l.direction === "in" && l.confidence === "income");
-  const perOwner = new Map();
-  for (const l of incomeLegs) perOwner.set(l.owner, (perOwner.get(l.owner) ?? 0) + 1);
-  const known = config.knownWallets ?? {};
-  const recurring = new Set([...perOwner].filter(([o, n]) => n >= (config.income?.recurringMinTransfers ?? 20) || known[o]).map(([o]) => o));
-  const monthly = new Map();
-  const sourceTotals = new Map();
-  for (const l of incomeLegs) {
-    if (!recurring.has(l.owner)) continue;
-    const m = new Date(l.t * 1000).toISOString().slice(0, 7);
-    const row = monthly.get(m) ?? { month: m, ATLAS: 0, USDC: 0, transfers: 0 };
-    row[l.symbol] = (row[l.symbol] ?? 0) + l.amount;
-    row.transfers++;
-    monthly.set(m, row);
-    const s = sourceTotals.get(l.owner) ?? { owner: l.owner, label: known[l.owner] ?? null, transfers: 0, totals: {} };
-    s.transfers++;
-    s.totals[l.symbol] = round2((s.totals[l.symbol] ?? 0) + l.amount);
-    sourceTotals.set(l.owner, s);
-  }
-  // Crafting fees: every SAGE crafting transaction pays a small ATLAS fee straight into the
-  // Treasury's ATLAS account (tens of thousands a day), so that account is not scanned. Per month
-  // they are what remains of the balance change after every movement the ledger did record
-  // (payouts, transfers, marketplace fees): change of month-end balance minus recorded deltas.
-  // A movement the ledger missed therefore shows up inside this figure.
-  const tAtlas = series.treasuryATLAS?.points ?? [];
-  const monthEnd = new Map();
-  for (const [d, v] of tAtlas) monthEnd.set(d.slice(0, 7), v);
-  const recordedAtlas = new Map();
-  for (const r of ledger.rows) {
-    if (r.account !== "treasury" || r.symbol !== "ATLAS") continue;
-    const m = new Date(r.t * 1000).toISOString().slice(0, 7);
-    recordedAtlas.set(m, (recordedAtlas.get(m) ?? 0) + r.delta);
-  }
-  // Before the crafting stream began, the account's history is scanned in full, so nothing is left
-  // to derive there: crafting fees start with the month of indexTokensBefore.
-  const craftFrom = (config.accounts.treasury?.indexTokensBefore?.ATLAS ?? "0000-00").slice(0, 7);
-  const allEnds = [...monthEnd.keys()].sort();
-  const endMonths = allEnds.filter((m, i) => m >= craftFrom || allEnds[i + 1] >= craftFrom);
-  let craftingTotal = 0;
-  for (let i = 1; i < endMonths.length; i++) {
-    const m = endMonths[i];
-    const crafting = monthEnd.get(m) - monthEnd.get(endMonths[i - 1]) - (recordedAtlas.get(m) ?? 0);
-    const row = monthly.get(m) ?? { month: m, ATLAS: 0, USDC: 0, transfers: 0 };
-    row.crafting = round2(crafting);
-    monthly.set(m, row);
-    craftingTotal += crafting;
-  }
-
-  // Every month from the first to the last income, so a month without income shows as an empty bar.
-  const mkeys = [...monthly.keys()].sort();
-  if (mkeys.length) {
-    for (let [y, mo] = mkeys[0].split("-").map(Number); ; mo === 12 ? (y++, mo = 1) : mo++) {
-      const k = `${y}-${String(mo).padStart(2, "0")}`;
-      if (k > mkeys[mkeys.length - 1]) break;
-      if (!monthly.has(k)) monthly.set(k, { month: k, ATLAS: 0, USDC: 0, transfers: 0, crafting: null });
-    }
-  }
-  // Health: crafting fees are what remains of the balance change, so a transfer the ledger missed
-  // lands in them. Each complete month is compared with the average of the months on either side
-  // (a gradual change moves both together, a one-off transfer stands out); beyond the tolerance
-  // it is flagged. The current month is still running and is skipped.
-  const tol = config.income?.craftingTolerance ?? 0.25;
-  const cm = [...monthly.values()].filter((r) => r.crafting != null).sort((a, b) => a.month.localeCompare(b.month));
-  const thisMonth = new Date(nowTs * 1000).toISOString().slice(0, 7);
-  const complete = cm.filter((r) => r.month < thisMonth);
-  complete.forEach((r, i) => {
-    const nb = [complete[i - 1], complete[i + 1]].filter(Boolean).map((x) => x.crafting);
-    if (!nb.length) return;
-    const base = nb.reduce((a, b) => a + b, 0) / nb.length;
-    const dev = base > 0 ? (r.crafting - base) / base : 0;
-    if (Math.abs(dev) > tol) flags.push({ severity: "warning", area: "income", message: `Crafting fees ${r.month}: ${Math.round(r.crafting).toLocaleString("en-US")} ATLAS, ${dev > 0 ? "+" : ""}${Math.round(dev * 100)}% against the months around it (tolerance ${Math.round(tol * 100)}%). Crafting fees are the Treasury's ATLAS balance change minus recorded movements, so a transfer the ledger missed shows up here. Check the Treasury's ATLAS transfers that month on Solscan; a missed sender can be added to the scan.` });
-  });
-
-  const income = {
-    sources: [...sourceTotals.values()],
-    crafting: endMonths.length > 1 ? { total: round2(craftingTotal), from: endMonths[1] } : null,
-    monthly: [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)).map((r) => ({ ...r, ATLAS: round2(r.ATLAS), USDC: round2(r.USDC) })),
-  };
-
-  // Largest voters: each wallet's voting power at its most recent vote (PVP changes with the lock,
-  // so the latest vote is the best reading), as a share of the DAO's total PVP for that proposal.
-  const voterMap = new Map();
-  for (const p of pips) {
-    const v = readJSON(`data/votes/${p.pip}.json`, null);
-    if (!v?.votes) continue;
-    for (const x of v.votes) {
-      const w = voterMap.get(x.wallet) ?? { wallet: x.wallet, pips: 0, t: 0 };
-      w.pips++;
-      if (x.t > w.t) Object.assign(w, { t: x.t, pvp: x.pvp, pip: p.pip, lockedUntil: x.lockedUntil ?? null, polis: x.polis ?? null, daoPvp: p.daoPvpM ? p.daoPvpM * 1e6 : null });
-      voterMap.set(x.wallet, w);
-    }
-  }
-  const voterList = [...voterMap.values()].sort((a, b) => b.pvp - a.pvp);
-  const voters = {
-    count: voterList.length,
-    top: voterList.slice(0, 15).map((w) => ({ ...w, pvp: round2(w.pvp), polis: w.polis == null ? null : round2(w.polis), share: w.daoPvp ? w.pvp / w.daoPvp : null })),
-  };
-
-  const out = {
-    generatedAt: new Date().toISOString(),
-    dataAt: nowAt,
-    sources: {
-      sheet: `https://docs.google.com/spreadsheets/d/${config.sheet.id}`,
-      governance: config.governance.api,
-      sheetFetchedAt: sources.fetchedAt,
-    },
-    accounts: Object.fromEntries(Object.entries(config.accounts).map(([k, a]) => [k, { label: a.label, wallet: a.wallet, now: now[k] }])),
-    pips,
-    knownWallets: known,
-    // Names for counterparties: the Council's "Wallets" tab, plus known income sources from config.
-    walletNames: { ...known, ...Object.fromEntries((sources.wallets ?? []).filter((w) => w.name).map((w) => [w.wallet, w.name])) },
-    wallets: (sources.wallets ?? []).map((w) => ({ ...w, now: w.track ? tracked[w.wallet] ?? null : null })),
-    income,
-    voters,
-    payments: recon.legs
-      .filter((l) => l.amount > 0 && !(l.confidence === "income" && recurring.has(l.owner)))
-      .map((l) => ({ sig: l.sig, t: l.t, account: l.account, symbol: l.symbol, amount: round2(l.amount), direction: l.direction, owner: l.owner, confidence: l.confidence, pip: l.pip, category: l.category ?? null, labelled: Boolean(l.labelled), reason: l.reason, isReturn: Boolean(l.isReturn) }))
-      .sort((a, b) => b.t - a.t),
-    limit,
-    series,
-    council: sources.council,
-    councilTerms: { source: council.source, note: council.note, terms: council.terms },
-    testNotice: config.sheet.testNotice || null,
-    // Two-way editing: public identifiers only. Off unless enabled and a client ID is set.
-    // EDITING_PREVIEW=1 (evaluation previews only) shows the sign-in button with an explanation
-    // instead of a working sign-in, so no preview can write to any sheet.
-    editing: config.editing?.enabled && config.editing.googleClientId
-      ? {
-          googleClientId: config.editing.googleClientId,
-          sheetId: config.sheet.id,
-          tabs: Object.fromEntries(Object.entries(sources.tabs ?? {}).map(([k, t]) => [k, t.name])),
-          // Payment documents: only this account may upload (named on the disabled button for everyone else).
-          documents: config.editing.documents?.owner ? { owner: config.editing.documents.owner, folder: config.editing.documents.folder || "Payment documents" } : null,
-        }
-      : process.env.EDITING_PREVIEW ? { preview: true } : null,
-    health: flags,
-  };
-
   const dist = path.join(ROOT, "dist");
   fs.rmSync(dist, { recursive: true, force: true });
   copyDir(path.join(ROOT, "site"), dist);
+  fs.mkdirSync(path.join(dist, "lib"), { recursive: true });
   writeJSON("dist/data/dashboard.json", out, false);
   copyDir(path.join(ROOT, "data", "votes"), path.join(dist, "data", "votes"));
   if (dataPath("data/votes") !== "data/votes") copyDir(path.join(ROOT, dataPath("data/votes")), path.join(dist, "data", "votes"));
 
+  // Live sheet: the page reads the sheet's tabs itself and redoes this calculation in the browser, so
+  // a sheet edit shows on the next page load. It needs the calculation modules and the chain-side
+  // inputs; those only change with a build. The RPC settings stay out (the page never reads the chain).
+  // Served as .js (every web server sends that as JavaScript; some send .mjs as a download), imports renamed to match.
+  for (const f of LIVE_MODULES) {
+    const src = fs.readFileSync(path.join(ROOT, "scripts", "lib", f), "utf8").replace(/(from\s+"\.\/[a-z]+)\.mjs"/g, '$1.js"');
+    fs.writeFileSync(path.join(dist, "lib", f.replace(/\.mjs$/, ".js")), src);
+  }
+  const { rpc: _rpc, ...pageConfig } = config;
+  writeJSON("dist/data/live.json", {
+    builtAt: out.generatedAt, sheetId: config.sheet.id, tabs: sources.tabs ?? {},
+    // Ledger rows carry only what the calculation reads (no token accounts or slots), to keep the file small.
+    inputs: { config: pageConfig, proposals, ledger: { rows: ledger.rows.map((r) => ({ sig: r.sig, t: r.t, account: r.account, symbol: r.symbol, delta: r.delta, legs: r.legs.map((l) => ({ owner: l.owner, amount: l.amount, dao: l.dao })) })) }, history, now, nowAt, tracked, seedLabels, councilHistory, imported },
+  }, false);
+
   const paidCount = recon.summary.filter((s) => s.state === "paid").length;
-  log(`compute: ${pips.length} PIPs, ${recon.summary.length} funded, ${paidCount} fully paid, ${out.payments.length} payment legs, ${flags.length} health flags`);
+  log(`compute: ${out.pips.length} PIPs, ${recon.summary.length} funded, ${paidCount} fully paid, ${out.payments.length} payment legs, ${flags.length} health flags`);
   return out;
 }
+
+// The calculation and the sheet parsers, served to the page as ES modules (no other files: these import only each other).
+const LIVE_MODULES = ["compute.mjs", "reconcile.mjs", "limit.mjs", "health.mjs", "members.mjs", "series.mjs", "pure.mjs", "sheetparse.mjs"];
 
 function copyDir(from, to) {
   if (!fs.existsSync(from)) return;
