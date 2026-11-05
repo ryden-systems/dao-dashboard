@@ -2505,7 +2505,56 @@
    }
   ]
  },
- "labels": [],
+ "labels": [
+  {
+   "signature": "2CZsYH9kZVXFZvLdsgj7cuxZHvnPc5N5GEj5wfB5y2iPBNjegX1vPn3FMqaCGGuJW3bcJJmwwbX9HLj7pFjmEdun",
+   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
+   "label": "PIP-33",
+   "confirmed": true
+  },
+  {
+   "signature": "4MCuMaXJE4ve8tkXagUAf8EQuud15Doj5M1m8wATKbR7n9U9xEDgeP3hheTZnAtBCC2wSvph6ufpUG2eELJ6t24K",
+   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
+   "label": "PIP-33",
+   "confirmed": true
+  },
+  {
+   "signature": "44VNCiMb4Z9dio2QLy7c5xAfFX8KFu7TtXwiLEHb2Pcky5yHSecijGAh4m9Hs9gkwy6LGAVBFASnWsniW6rNsJ1a",
+   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
+   "label": "unknown",
+   "confirmed": true
+  },
+  {
+   "signature": "64xGRLPVVNyoWcZCKDrWBjNXViR9pJ7gn3K4huKwB5pvDRL9sQ6hf596ktbSA1MtCAUY6cKV3M4ZdT6q9aJ4a1XA",
+   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
+   "label": "unknown",
+   "confirmed": true
+  },
+  {
+   "signature": "42zkXcpwchTWVL6GRYeTfehw4T4CETbTeZTkrRsSkNY3GVEsGB2beAAwsFjHDsvKa1o9vgiQH7C8UebcHRrsMCae",
+   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
+   "label": "unknown",
+   "confirmed": true
+  },
+  {
+   "signature": "43wMFhfx9B8GfcyhhJMzBwjQt9Sem7vb6wUb5P4mQEVgEyWd5mAoHv5g3fHASWaggo5LvhhYT82kEJvngT1URnwA",
+   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
+   "label": "unknown",
+   "confirmed": true
+  },
+  {
+   "signature": "4LHsdHhNfHCcRwzV18xfcV3ynER3VdyvioBquhwEoxKTg6cY3aRx5KJVJBp4Uzp1oqHoGVHrvP4Mmf9t5wmYUbme",
+   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
+   "label": "unknown",
+   "confirmed": true
+  },
+  {
+   "signature": "56xcHzUAt15U4oL17ujh7KPovD5J8TDpdNS5fKFuYDU7rasxTDTt94pUrZ4DiLV5P7QExLC3YFsay1xYzB1GxwXM",
+   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
+   "label": "unknown",
+   "confirmed": true
+  }
+ ],
  "members": [
   {
    "name": "JP",
@@ -2778,7 +2827,7 @@
    "name": "Accomplishment Numbers"
   },
   "paymentLabels": {
-   "gid": null,
+   "gid": "1250273902",
    "name": "Payment labels"
   },
   "councilMembers": {
@@ -2794,5 +2843,5 @@
    "name": "Wallets"
   }
  },
- "fetchedAt": "2026-11-05T13:23:29.487Z"
+ "fetchedAt": "2026-11-05T13:30:27.600Z"
 }
