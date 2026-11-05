@@ -2366,6 +2366,27 @@
  ],
  "wallets": [
   {
+   "wallet": "DRGThVUMGEYcsoTERhmkFSa5q7HVjxBQdKwMNjyvehD1",
+   "name": "Initial Funding",
+   "label": "",
+   "track": false,
+   "note": "likely; Council to confirm"
+  },
+  {
+   "wallet": "NPCxfjPxh6pvRJbGbWZjxfkqWfGBvKkqPbtiJar3mom",
+   "name": "?",
+   "label": "",
+   "track": false,
+   "note": "Council to find out"
+  },
+  {
+   "wallet": "AUTHSpZXYptT5aj3iDw1PCEAZQHgAGjHWc9KbiWdBwFH",
+   "name": "?",
+   "label": "",
+   "track": false,
+   "note": "Council to find out"
+  },
+  {
    "wallet": "B5hX2Aj8FYmdYjXQFVF1jpz7BkrdpLXgSPs92G6DFGjA",
    "name": "Foundation",
    "label": "Foundation",
@@ -2406,5 +2427,5 @@
    "name": "Wallets"
   }
  },
- "fetchedAt": "2026-11-05T10:58:27.454Z"
+ "fetchedAt": "2026-11-05T11:45:35.540Z"
 }
