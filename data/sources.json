@@ -2776,24 +2776,24 @@
  "wallets": [
   {
    "wallet": "DRGThVUMGEYcsoTERhmkFSa5q7HVjxBQdKwMNjyvehD1",
-   "name": "Initial Funding",
+   "name": "ATMTA",
    "label": "",
    "track": false,
-   "note": "likely; Council to confirm"
+   "note": "Initial Funding"
   },
   {
    "wallet": "NPCxfjPxh6pvRJbGbWZjxfkqWfGBvKkqPbtiJar3mom",
    "name": "?",
    "label": "",
    "track": false,
-   "note": "Council to find out"
+   "note": "[Council to find out]"
   },
   {
    "wallet": "AUTHSpZXYptT5aj3iDw1PCEAZQHgAGjHWc9KbiWdBwFH",
    "name": "?",
    "label": "",
    "track": false,
-   "note": "Council to find out"
+   "note": "[Council to find out]"
   },
   {
    "wallet": "B5hX2Aj8FYmdYjXQFVF1jpz7BkrdpLXgSPs92G6DFGjA",
@@ -2843,5 +2843,5 @@
    "name": "Wallets"
   }
  },
- "fetchedAt": "2026-11-05T13:30:27.600Z"
+ "fetchedAt": "2026-11-05T13:40:37.183Z"
 }
