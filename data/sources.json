@@ -2782,10 +2782,10 @@
  "wallets": [
   {
    "wallet": "DRGThVUMGEYcsoTERhmkFSa5q7HVjxBQdKwMNjyvehD1",
-   "name": "Dao Treasury",
+   "name": "Initial DAO Treasury",
    "label": "",
    "track": false,
-   "note": "Initial wallet"
+   "note": "Funds transferred to new account on 2023-05-16"
   },
   {
    "wallet": "NPCxfjPxh6pvRJbGbWZjxfkqWfGBvKkqPbtiJar3mom",
@@ -2849,5 +2849,5 @@
    "name": "Wallets"
   }
  },
- "fetchedAt": "2026-11-05T19:15:31.312Z"
+ "fetchedAt": "2026-11-05T19:25:29.440Z"
 }
