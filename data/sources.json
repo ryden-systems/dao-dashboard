@@ -2389,21 +2389,21 @@
   {
    "wallet": "B5hX2Aj8FYmdYjXQFVF1jpz7BkrdpLXgSPs92G6DFGjA",
    "name": "Foundation",
-   "label": "Foundation",
+   "label": "",
    "track": false,
    "note": ""
   },
   {
    "wallet": "9q3ZZnezQyVXvBKYkKwjxpvVVPp7CFY9VYbaW5gBhX7Y",
    "name": "Iris Bounty",
-   "label": "PIP-22",
+   "label": "",
    "track": true,
    "note": ""
   },
   {
    "wallet": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
    "name": "ATMTA",
-   "label": "ATMTA",
+   "label": "",
    "track": false,
    "note": ""
   }
@@ -2434,5 +2434,5 @@
    "name": "Wallets"
   }
  },
- "fetchedAt": "2026-11-05T12:25:32.761Z"
+ "fetchedAt": "2026-11-05T12:45:36.001Z"
 }
