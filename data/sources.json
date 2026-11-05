@@ -2785,21 +2785,21 @@
    "name": "Dao Treasury",
    "label": "",
    "track": false,
-   "note": "Old wallet"
+   "note": "Initial wallet"
   },
   {
    "wallet": "NPCxfjPxh6pvRJbGbWZjxfkqWfGBvKkqPbtiJar3mom",
    "name": "?",
    "label": "",
    "track": false,
-   "note": "[Council to find out]"
+   "note": "[Council to name]"
   },
   {
    "wallet": "AUTHSpZXYptT5aj3iDw1PCEAZQHgAGjHWc9KbiWdBwFH",
    "name": "?",
    "label": "",
    "track": false,
-   "note": "[Council to find out]"
+   "note": "[Council to name]"
   },
   {
    "wallet": "B5hX2Aj8FYmdYjXQFVF1jpz7BkrdpLXgSPs92G6DFGjA",
@@ -2849,5 +2849,5 @@
    "name": "Wallets"
   }
  },
- "fetchedAt": "2026-11-05T19:10:28.637Z"
+ "fetchedAt": "2026-11-05T19:15:31.312Z"
 }
