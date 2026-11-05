@@ -13,6 +13,13 @@
       "label": "Ecosystem Fund",
       "wallet": "BxKehkp298nQunu8BWxh5U6VvfphFyjEB3t7USst7Uag",
       "indexTokens": ["ATLAS", "USDC"]
+    },
+    "oldTreasury": {
+      "label": "Initial DAO Treasury",
+      "wallet": "DRGThVUMGEYcsoTERhmkFSa5q7HVjxBQdKwMNjyvehD1",
+      "indexTokens": ["ATLAS", "USDC"],
+      "retired": "2023-05-16",
+      "_note": "The Treasury before the multisig (Dec 2021 to May 2023). Its funds moved to the DAO Treasury on 16 May 2023; it is empty since and kept for its history."
     }
   },
   "multisigs": [],

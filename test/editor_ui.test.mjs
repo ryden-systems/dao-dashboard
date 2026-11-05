@@ -85,6 +85,7 @@ ok(text().includes("Editor mode"), "editor banner on the payments page");
 ok(nodes.view.innerHTML.includes('<div class="kpi ed-only"><span class="k">Payouts to label'), "Payouts to label shown to editors, with the editor tint");
 
 // ---------- label a payout ----------
+await go("#transactions");
 const need = D.payments.find((p) => p.direction === "out" && (p.confidence === "unlabelled" || p.confidence === "inferred"));
 const key = `${need.sig}:${need.owner ?? ""}`;
 ok(nodes.view.innerHTML.includes(`data-key="${key}"`), "Label button on a payout that needs a label");
@@ -129,7 +130,7 @@ ok(text().includes("Labelled PIP-28"), "saved message shown on the payout");
   await go("#overview");
   const recent = D.payments.find((p) => p.direction === "out" && p.confidence !== "internal");
   ok(nodes.view.innerHTML.includes(`data-act="lbl-open" data-key="${recent.sig}:${recent.owner ?? ""}"`), "recent payouts on Overview can be labelled");
-  await go("#payments");
+  await go("#transactions");
 }
 
 // ---------- edit a PIP: conflict, then overwrite ----------
@@ -180,7 +181,7 @@ ok(calls.some((c) => c[0] === "requestUpdate" && c[1] === "editor@example.org") 
 
 // ---------- labels can be changed; DAO-internal transfers cannot be labelled ----------
 {
-  await go("#payments");
+  await go("#transactions");
   const html = nodes.view.innerHTML;
   const auto = D.payments.find((p) => p.direction === "out" && (p.confidence === "matches-sheet" || p.confidence === "matches-amount"));
   const dao = D.payments.find((p) => p.direction === "out" && p.confidence === "internal" && !p.labelled);
@@ -188,7 +189,7 @@ ok(calls.some((c) => c[0] === "requestUpdate" && c[1] === "editor@example.org") 
   ok(!dao || !html.includes(`data-act="lbl-open" data-key="${dao.sig}:${dao.owner ?? ""}"`), "transfers between DAO accounts get no Label button");
   const was = { ...need };
   Object.assign(need, { labelled: true, confidence: "internal", reason: "not a payout", pip: null, category: null });
-  await go("#payments");
+  await go("#transactions");
   ok(nodes.view.innerHTML.includes(`data-key="${key}">Relabel</button>`), "a labelled payout shows Relabel");
   await click("lbl-open", { key });
   ok(/<option value="not a payout" selected>/.test(nodes.view.innerHTML), "the relabel form preselects the current label");
@@ -218,7 +219,7 @@ ok(calls.some((c) => c[0] === "requestUpdate" && c[1] === "editor@example.org") 
 
 // ---------- counterparty links show only transfers with the DAO account ----------
 {
-  await go("#payments");
+  await go("#transactions");
   const wallet = D.accounts[need.account].wallet;
   ok(nodes.view.innerHTML.includes(`solscan.io/account/${need.owner}?exclude_amount_zero=true&amp;remove_spam=false&amp;from_address=${wallet}#transfers`), "payout counterparty link filters Solscan to transfers from the DAO account");
 }
@@ -227,7 +228,7 @@ ok(calls.some((c) => c[0] === "requestUpdate" && c[1] === "editor@example.org") 
 D.editing.documents = { owner: "owner@example.org", folder: "Payment documents" };
 ok(calls.some((c) => c[0] === "listDocs"), "documents are read from the sheet after sign-in");
 const dkey = `${need.sig}:${need.owner ?? ""}`;
-await go("#payments");
+await go("#transactions");
 await click("doc-open", { key: dkey });
 ok(nodes.view.innerHTML.includes("Only owner@example.org can upload documents") && /<button class="btn" disabled[^>]*>Upload PDF<\/button>/.test(nodes.view.innerHTML) && !nodes.view.innerHTML.includes('id="doc-files"'), "other editors see a disabled upload button naming the owner");
 ctx.Editor.canUpload = () => true;
@@ -236,7 +237,7 @@ ctx.Editor.uploadDocs = async (a) => {
   docsInSheet = a.files.map((f) => ({ signature: a.signature, recipient: a.recipient, file: f.name, link: "https://drive.example/" + f.name, at: "2026-11-04 10:00:00", by: "owner@example.org" }));
   return { saved: true, files: a.files.map((f) => f.name) };
 };
-await go("#payments");
+await go("#transactions");
 ok(nodes.view.innerHTML.includes('id="doc-files"') && nodes.view.innerHTML.includes("multiple"), "the owner gets a multi-file picker");
 inputs["doc-files"] = [{ name: "a.pdf" }, { name: "b.pdf" }];
 await click("doc-upload", { sig: need.sig, owner: need.owner ?? "" });

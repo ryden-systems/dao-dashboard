@@ -635,14 +635,6 @@
       return fundedRows(p, { click: true, open }) + detail;
     }).join("");
 
-    const list = D.payments.filter((p) =>
-      (ui.payAccount === "all" || p.account === ui.payAccount) &&
-      (ui.payConf === "all" || (ui.payConf === "attention" ? (p.confidence === "unlabelled" || p.confidence === "inferred")
-        : ui.payConf === "pips" ? p.pip != null && PAID.has(p.confidence)
-        : ui.payConf.startsWith("cat:") ? p.category === ui.payConf.slice(4) : p.confidence === ui.payConf)) &&
-      (ui.payDir === "all" || (ui.payDir === "out" ? p.direction === "out" || p.isReturn : p.direction === "in")) &&
-      matchesQuery(p));
-
     return `
     <section class="sec">
       ${head("Payments", `<span class="src">Sheet + Solana mainnet</span>`)}
@@ -660,7 +652,7 @@
         <thead><tr><th>Purpose</th><th class="r">Payouts</th><th class="r">ATLAS</th><th class="r">USDC</th><th>Latest</th></tr></thead>
         <tbody>${byPurpose.map((g) => `<tr><td><button class="link" data-act="pay-filter" data-key="${esc(g.key)}" data-acc="${esc(g.acc)}">${esc(g.name)}</button></td><td class="n">${num(g.n)}</td><td class="n">${g.ATLAS ? num(g.ATLAS, 0) : "—"}</td><td class="n">${g.USDC ? num(g.USDC, 2) : "—"}</td><td class="mono">${day(g.last)}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">No payouts yet.</td></tr>`}</tbody>
       </table></div>
-      <p class="src">Label a payout with a cost category such as <em>Foundation</em> to list it here; further payouts to the same wallet are then suggested for that category.</p>
+      <p class="src">Label a payout with a cost category such as <em>Foundation</em> to list it here; further payouts to the same wallet are then suggested for that category. Click a purpose for its transactions.</p>
     </section>
     <section class="sec">
       ${sub("Funded PIPs", `<span class="src">Click a row for its payouts</span>`)}
@@ -668,8 +660,26 @@
         ${FUNDED_HEAD}
         <tbody>${rows}</tbody>
       </table></div>
-    </section>
+    </section>`;
+  };
+
+  // Every on-chain movement of the DAO accounts, filterable.
+  views.transactions = () => {
+    const catNames = [...new Set(D.payments.filter((p) => p.direction === "out" && p.confidence === "category" && !p.isReturn).map((p) => p.category))].sort();
+    // Dust (an ATLAS or USDC transfer under 1) is not listed.
+    const list = D.payments.filter((p) =>
+      !((p.symbol === "ATLAS" || p.symbol === "USDC") && p.amount < 1) &&
+      (ui.payAccount === "all" || p.account === ui.payAccount) &&
+      (ui.payConf === "all" || (ui.payConf === "attention" ? (p.confidence === "unlabelled" || p.confidence === "inferred")
+        : ui.payConf === "pips" ? p.pip != null && PAID.has(p.confidence)
+        : ui.payConf.startsWith("cat:") ? p.category === ui.payConf.slice(4) : p.confidence === ui.payConf)) &&
+      (ui.payDir === "all" || (ui.payDir === "out" ? p.direction === "out" || p.isReturn : p.direction === "in")) &&
+      matchesQuery(p));
+
+    return `
     <section class="sec" id="ledger">
+      ${head("Transactions", `<span class="src">Solana mainnet</span>`)}
+      <p class="lede">Every token movement of the DAO accounts, read from the chain: payouts, returns, inflows and transfers between DAO accounts, with what each was matched to and why.</p>
       ${sub("On-chain movements", `<div class="controls">
         <input type="search" id="f-q" aria-label="Filter" placeholder="Address, name, PIP, tx..." value="${esc(ui.payQuery)}">
         <select id="f-acc" aria-label="Account"><option value="all">All accounts</option>${Object.entries(D.accounts).map(([k, a]) => `<option value="${k}" ${ui.payAccount === k ? "selected" : ""}>${esc(a.label)}</option>`).join("")}</select>
@@ -680,7 +690,7 @@
         ${MOVE_HEAD}
         <tbody>${list.slice(0, 400).map(movementRow).join("") || `<tr><td colspan="7" class="muted">Nothing matches these filters.</td></tr>`}</tbody>
       </table></div>
-      ${list.length > 400 ? `<p class="src">Showing the latest 400 of ${list.length}.</p>` : ""}
+      <p class="src">${list.length > 400 ? `Showing the latest 400 of ${list.length}. ` : ""}Transfers under 1 ATLAS or 1 USDC are not listed.</p>
     </section>`;
   };
 
@@ -854,7 +864,8 @@
   };
 
   views.balance = () => {
-    const A = D.accounts;
+    // Balance sheet: accounts in use. A retired account (emptied, kept for its history) is left out.
+    const A = Object.fromEntries(Object.entries(D.accounts).filter(([, a]) => !a.retired));
     // Payouts per month. Both charts share every month from the first payout in either currency to
     // the latest one; a month without payouts shows as an empty bar, so the two charts line up.
     const outs = D.payments.filter((p) => p.direction === "out" && p.confidence !== "internal");
@@ -871,8 +882,11 @@
     const ma = monthly("ATLAS"), mu = monthly("USDC");
     const S = D.series;
     const tA = S.treasuryATLAS;
+    // One Treasury line: the initial Treasury (before the multisig) until the current one's history starts.
+    const withOld = (sym, pts = []) => [...(S[`oldTreasury${sym}`]?.points ?? []).filter(([d]) => !pts.length || d < pts[0][0]), ...pts];
+    const tU = withOld("USDC", S.treasuryUSDC?.points), tAP = withOld("ATLAS", tA?.points);
     // Both Treasury charts share one time axis, from whichever history starts first.
-    const axisFrom = [S.treasuryUSDC?.points?.[0]?.[0], tA?.points?.[0]?.[0]].filter(Boolean).sort()[0];
+    const axisFrom = [tU[0]?.[0], tAP[0]?.[0]].filter(Boolean).sort()[0];
     return `
     <section class="sec">
       ${head("DAO balance sheet", `<span class="src">Solana mainnet · as of ${esc(isoDay(D.dataAt))}</span>`)}
@@ -887,11 +901,11 @@
     <div class="grid-2">
       <section class="sec panel">
         ${sub("Treasury USDC", `<span class="src" title="Rebuilt from every transaction of the Treasury's USDC account">daily balance history</span>`)}
-        ${Charts.line({ label: "Treasury USDC", yFmt: compact, xFrom: axisFrom, series: [{ name: "Treasury USDC", color: css("--series-2"), points: S.treasuryUSDC?.points ?? [] }] })}
+        ${Charts.line({ label: "Treasury USDC", yFmt: compact, xFrom: axisFrom, series: [{ name: "Treasury USDC", color: css("--series-2"), points: tU }] })}
       </section>
       <section class="sec panel">
         ${sub("Treasury ATLAS", `<span class="src" title="${tA?.source === "import+snapshots" ? `Imported daily balances until ${tA.snapshotsFrom}, then the dashboard's own daily snapshots` : "The dashboard's own daily snapshots"}">daily balance history</span>`)}
-        ${tA?.points?.length > 1 ? Charts.line({ label: "Treasury ATLAS", yFmt: compact, xFrom: axisFrom, series: [{ name: "Treasury ATLAS", color: css("--series-1"), points: tA.points }] }) : `<p class="muted">The Treasury's ATLAS account receives tens of thousands of fee transfers a day, so its history is recorded as one balance snapshot per build rather than rebuilt from transactions. ${tA?.points?.length ? `First snapshot: ${num(tA.points[0][1])} ATLAS on ${tA.points[0][0]}.` : ""}</p>`}
+        ${tA?.points?.length > 1 ? Charts.line({ label: "Treasury ATLAS", yFmt: compact, xFrom: axisFrom, series: [{ name: "Treasury ATLAS", color: css("--series-1"), points: tAP }] }) : `<p class="muted">The Treasury's ATLAS account receives tens of thousands of fee transfers a day, so its history is recorded as one balance snapshot per build rather than rebuilt from transactions. ${tA?.points?.length ? `First snapshot: ${num(tA.points[0][1])} ATLAS on ${tA.points[0][0]}.` : ""}</p>`}
       </section>
     </div>
     ${D.income?.monthly?.length ? `
@@ -1076,7 +1090,7 @@
     });
     Charts.reset();
     const view = $("#view");
-    view.innerHTML = previewInfo() + (r === "payments" || r === "council" || r === "balance" ? editBanner() : "") + views[r](param);
+    view.innerHTML = previewInfo() + (r === "payments" || r === "transactions" || r === "council" || r === "balance" ? editBanner() : "") + views[r](param);
     Charts.mount(view);
     fitTables();
     $("#tip").hidden = true;
@@ -1102,8 +1116,10 @@
       const row = e.target.closest("tr.click[data-pip]");
       if (row && !e.target.closest("a")) { const n = Number(row.dataset.pip); ui.openPip = ui.openPip === n ? null : n; render(); return; }
       const act = e.target.closest("[data-act]");
-      if (act?.dataset.act === "pay-inflows") { ui.payDir = "in"; ui.payConf = "all"; ui.payAccount = "all"; location.hash = "#payments"; setTimeout(() => $("#ledger")?.scrollIntoView({ behavior: "smooth" }), 50); return; }
-      if (act?.dataset.act === "attention" || act?.dataset.act === "pay-filter") { ui.payConf = act.dataset.key ?? "attention"; ui.payAccount = act.dataset.acc ?? "all"; ui.payDir = "out"; render(); $("#ledger")?.scrollIntoView({ behavior: "smooth" }); }
+      // These open the Transactions page with its filters set.
+      const toTransactions = () => { if (location.hash === "#transactions") render(); else location.hash = "#transactions"; window.scrollTo(0, 0); };
+      if (act?.dataset.act === "pay-inflows") { ui.payDir = "in"; ui.payConf = "all"; ui.payAccount = "all"; toTransactions(); return; }
+      if (act?.dataset.act === "attention" || act?.dataset.act === "pay-filter") { ui.payConf = act.dataset.key ?? "attention"; ui.payAccount = act.dataset.acc ?? "all"; ui.payDir = "out"; toTransactions(); }
     });
     // Typing in the movements filter redraws the page; focus and cursor are put back where they were.
     view.addEventListener("input", (e) => {

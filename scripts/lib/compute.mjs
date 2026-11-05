@@ -192,7 +192,7 @@ export function compute({ config, sources, proposals, ledger, history, now, nowA
       governance: config.governance.api,
       sheetFetchedAt: sources.fetchedAt,
     },
-    accounts: Object.fromEntries(Object.entries(config.accounts).map(([k, a]) => [k, { label: a.label, wallet: a.wallet, now: now[k] }])),
+    accounts: Object.fromEntries(Object.entries(config.accounts).map(([k, a]) => [k, { label: a.label, wallet: a.wallet, now: now[k], retired: a.retired ?? null }])),
     pips,
     knownWallets: known,
     // Names for counterparties: the Council's "Wallets" tab, plus known income sources from config.

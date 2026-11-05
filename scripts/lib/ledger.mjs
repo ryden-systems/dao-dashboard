@@ -91,6 +91,7 @@ export async function updateLedger({ rpc, sigRpc }, config) {
   const { targets, ownTokenAccounts } = await resolveIndex(rpc, config);
 
   const fresh = new Map(); // sig -> blockTime
+  const reparse = new Set(); // already stored sigs whose rows are replaced
   const backfills = [];
   for (const tgt of targets) {
     if (tgt.beforeTs) {
@@ -110,15 +111,23 @@ export async function updateLedger({ rpc, sigRpc }, config) {
       log(`ledger: ${tgt.why.padEnd(22)} ${tgt.address.slice(0, 8)}…  ${sigs.length} signatures before ${tgt.beforeDate}, ${n} unseen (one-time backfill)`);
       continue;
     }
+    // An address scanned for the first time (a newly added DAO account): transactions the ledger
+    // already holds are read again, so they also record this account's side and mark it as a DAO leg.
+    const isNew = !cursors[tgt.address] && !cursors[`known:${tgt.address}`];
     const sigs = await sigRpc.signaturesSince(tgt.address, cursors[tgt.address]);
     if (sigs.length) cursors[tgt.address] = sigs[0].signature;
-    let n = 0;
+    let n = 0, again = 0;
     for (const s of sigs) {
-      if (s.err || seen.has(s.signature) || fresh.has(s.signature)) continue;
+      if (s.err || fresh.has(s.signature)) continue;
+      if (seen.has(s.signature)) {
+        if (!isNew) continue;
+        reparse.add(s.signature);
+        again++;
+      }
       fresh.set(s.signature, s.blockTime);
       n++;
     }
-    log(`ledger: ${tgt.why.padEnd(22)} ${tgt.address.slice(0, 8)}…  ${sigs.length} new signatures, ${n} unseen`);
+    log(`ledger: ${tgt.why.padEnd(22)} ${tgt.address.slice(0, 8)}…  ${sigs.length} new signatures, ${n - again} unseen${again ? `, ${again} read again (new account)` : ""}`);
   }
 
   const order = [...fresh.entries()].sort((a, b) => a[1] - b[1]);
@@ -127,6 +136,7 @@ export async function updateLedger({ rpc, sigRpc }, config) {
     const tx = await rpc.getTransaction(sig);
     if (!tx) { warn(`ledger: transaction ${sig.slice(0, 10)}… not returned, will retry next run`); continue; }
     const rows = parseTransaction(tx, sig, config);
+    if (reparse.has(sig)) ledger.rows = ledger.rows.filter((r) => r.sig !== sig);
     ledger.rows.push(...rows);
     added += rows.length;
     seen.add(sig);
@@ -146,6 +156,8 @@ export async function updateLedger({ rpc, sigRpc }, config) {
   } else {
     // A backfill only counts as done once every one of its transactions was stored.
     for (const b of backfills) { const [k, v] = b.split("="); cursors[k] = v; }
+    // Survives a cursor reset, so a reset never makes an address count as new again.
+    for (const tgt of targets) if (!tgt.beforeTs) cursors[`known:${tgt.address}`] = true;
   }
 
   ledger.rows.sort((a, b) => a.t - b.t || a.sig.localeCompare(b.sig));
