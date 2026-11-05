@@ -42,6 +42,16 @@
     "raw": "",
     "state": "blank"
    },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
    "milestonesDone": {
     "value": 1,
     "raw": "1",
@@ -94,6 +104,16 @@
     "state": "blank"
    },
    "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
     "value": null,
     "raw": "",
     "state": "blank"
@@ -154,6 +174,16 @@
     "raw": "",
     "state": "blank"
    },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
    "milestonesDone": {
     "value": 1,
     "raw": "1",
@@ -206,6 +236,16 @@
     "state": "blank"
    },
    "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
     "value": null,
     "raw": "",
     "state": "blank"
@@ -266,6 +306,16 @@
     "raw": "0",
     "state": "ok"
    },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
    "milestonesDone": {
     "value": 1,
     "raw": "1",
@@ -318,6 +368,16 @@
     "state": "blank"
    },
    "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
     "value": null,
     "raw": "",
     "state": "blank"
@@ -378,6 +438,16 @@
     "raw": "",
     "state": "blank"
    },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
    "milestonesDone": {
     "value": 1,
     "raw": "1",
@@ -434,6 +504,16 @@
     "raw": "0",
     "state": "ok"
    },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
    "milestonesDone": {
     "value": 1,
     "raw": "1",
@@ -486,6 +566,16 @@
     "state": "blank"
    },
    "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
     "value": null,
     "raw": "",
     "state": "blank"
@@ -546,6 +636,16 @@
     "raw": "",
     "state": "blank"
    },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
    "milestonesDone": {
     "value": 1,
     "raw": "1",
@@ -598,6 +698,16 @@
     "state": "blank"
    },
    "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
     "value": null,
     "raw": "",
     "state": "blank"
@@ -658,6 +768,16 @@
     "raw": "0",
     "state": "ok"
    },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
    "milestonesDone": {
     "value": 1,
     "raw": "1",
@@ -710,6 +830,16 @@
     "state": "na"
    },
    "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
     "value": null,
     "raw": "",
     "state": "blank"
@@ -770,6 +900,16 @@
     "raw": "25,125,628.14",
     "state": "ok"
    },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
    "milestonesDone": {
     "value": 1,
     "raw": "1",
@@ -822,6 +962,16 @@
     "state": "na"
    },
    "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
     "value": null,
     "raw": "",
     "state": "blank"
@@ -882,6 +1032,16 @@
     "raw": "0",
     "state": "ok"
    },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
    "milestonesDone": {
     "value": 1,
     "raw": "1",
@@ -934,6 +1094,16 @@
     "state": "ok"
    },
    "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
     "value": null,
     "raw": "",
     "state": "blank"
@@ -994,6 +1164,16 @@
     "raw": "0",
     "state": "ok"
    },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
    "milestonesDone": {
     "value": 2,
     "raw": "2",
@@ -1046,6 +1226,16 @@
     "state": "na"
    },
    "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
     "value": null,
     "raw": "",
     "state": "blank"
@@ -1106,6 +1296,16 @@
     "raw": "5,400,000",
     "state": "ok"
    },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
    "milestonesDone": {
     "value": 0,
     "raw": "0",
@@ -1161,6 +1361,16 @@
     "value": 35225130.9,
     "raw": "35,225,130.90",
     "state": "ok"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
    },
    "milestonesDone": {
     "value": null,
@@ -1218,6 +1428,16 @@
     "raw": "9,000,000",
     "state": "ok"
    },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
    "milestonesDone": {
     "value": 0,
     "raw": "0",
@@ -1270,6 +1490,16 @@
     "state": "na"
    },
    "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
     "value": null,
     "raw": "",
     "state": "blank"
@@ -1330,6 +1560,16 @@
     "raw": "?",
     "state": "unknown"
    },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
    "milestonesDone": {
     "value": 3,
     "raw": "3",
@@ -1382,6 +1622,16 @@
     "state": "na"
    },
    "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
     "value": null,
     "raw": "",
     "state": "blank"
@@ -1442,6 +1692,16 @@
     "raw": "",
     "state": "blank"
    },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
    "milestonesDone": {
     "value": null,
     "raw": "N/A",
@@ -1494,6 +1754,16 @@
     "state": "na"
    },
    "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
     "value": null,
     "raw": "",
     "state": "blank"
@@ -1554,6 +1824,16 @@
     "raw": "",
     "state": "blank"
    },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
    "milestonesDone": {
     "value": 6,
     "raw": "6",
@@ -1609,6 +1889,16 @@
     "value": 0,
     "raw": "0",
     "state": "ok"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
    },
    "milestonesDone": {
     "value": null,
@@ -1666,6 +1956,16 @@
     "raw": "6,710,475",
     "state": "ok"
    },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
    "milestonesDone": {
     "value": null,
     "raw": "",
@@ -1718,6 +2018,16 @@
     "state": "blank"
    },
    "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
     "value": null,
     "raw": "",
     "state": "blank"
@@ -1778,6 +2088,16 @@
     "raw": "",
     "state": "blank"
    },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
    "milestonesDone": {
     "value": null,
     "raw": "",
@@ -1834,6 +2154,16 @@
     "raw": "",
     "state": "blank"
    },
+   "authorizedUsdc": {
+    "value": 352135.15,
+    "raw": "352135.15",
+    "state": "ok"
+   },
+   "authorizedAtlas": {
+    "value": 753707176,
+    "raw": "753707176",
+    "state": "ok"
+   },
    "milestonesDone": {
     "value": null,
     "raw": "",
@@ -1886,6 +2216,16 @@
     "state": "blank"
    },
    "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
     "value": null,
     "raw": "",
     "state": "blank"
@@ -1946,6 +2286,16 @@
     "raw": "",
     "state": "blank"
    },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
    "milestonesDone": {
     "value": null,
     "raw": "",
@@ -1998,6 +2348,16 @@
     "state": "ok"
    },
    "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
     "value": null,
     "raw": "",
     "state": "blank"
@@ -2389,14 +2749,14 @@
   {
    "wallet": "B5hX2Aj8FYmdYjXQFVF1jpz7BkrdpLXgSPs92G6DFGjA",
    "name": "Foundation",
-   "label": "",
+   "label": "Foundation",
    "track": false,
    "note": ""
   },
   {
    "wallet": "9q3ZZnezQyVXvBKYkKwjxpvVVPp7CFY9VYbaW5gBhX7Y",
    "name": "Iris Bounty",
-   "label": "",
+   "label": "PIP-22",
    "track": true,
    "note": ""
   },
@@ -2434,5 +2794,5 @@
    "name": "Wallets"
   }
  },
- "fetchedAt": "2026-11-05T13:10:30.166Z"
+ "fetchedAt": "2026-11-05T13:23:29.487Z"
 }
