@@ -21,6 +21,10 @@ export async function resolveIndex(rpc, config) {
       for (const ta of tas) {
         ownTokenAccounts[ta.address] = { account: key, symbol };
         if ((acc.indexTokens ?? []).includes(symbol)) targets.push({ address: ta.address, why: `${key} ${symbol} account` });
+        // A token account too busy to scan today, but quiet before a date: its history up to that
+        // date is scanned once in full (indexTokensBefore), so early inflows are recorded exactly.
+        const before = acc.indexTokensBefore?.[symbol];
+        if (before && !(acc.indexTokens ?? []).includes(symbol)) targets.push({ address: ta.address, why: `${key} ${symbol} until ${before}`, beforeTs: Date.parse(before + "T00:00:00Z") / 1000, beforeDate: before });
       }
     }
   }
@@ -87,7 +91,25 @@ export async function updateLedger({ rpc, sigRpc }, config) {
   const { targets, ownTokenAccounts } = await resolveIndex(rpc, config);
 
   const fresh = new Map(); // sig -> blockTime
+  const backfills = [];
   for (const tgt of targets) {
+    if (tgt.beforeTs) {
+      // One-time backfill: walk back from the first ledger row after the date to the account's start.
+      const doneKey = `backfill:${tgt.address}`;
+      if (cursors[doneKey] === tgt.beforeDate) continue;
+      const anchor = ledger.rows.filter((r) => r.t >= tgt.beforeTs).sort((a, b) => a.t - b.t)[0];
+      if (!anchor) { warn(`ledger: ${tgt.why}: no later ledger row to start from yet, backfill postponed`); continue; }
+      const sigs = (await sigRpc.signaturesSince(tgt.address, undefined, anchor.sig)).filter((s) => s.blockTime < tgt.beforeTs);
+      let n = 0;
+      for (const s of sigs) {
+        if (s.err || seen.has(s.signature) || fresh.has(s.signature)) continue;
+        fresh.set(s.signature, s.blockTime);
+        n++;
+      }
+      backfills.push(doneKey + "=" + tgt.beforeDate);
+      log(`ledger: ${tgt.why.padEnd(22)} ${tgt.address.slice(0, 8)}…  ${sigs.length} signatures before ${tgt.beforeDate}, ${n} unseen (one-time backfill)`);
+      continue;
+    }
     const sigs = await sigRpc.signaturesSince(tgt.address, cursors[tgt.address]);
     if (sigs.length) cursors[tgt.address] = sigs[0].signature;
     let n = 0;
@@ -121,6 +143,9 @@ export async function updateLedger({ rpc, sigRpc }, config) {
   if (done < order.length) {
     for (const tgt of targets) delete cursors[tgt.address];
     warn("ledger: some transactions were not returned; cursors reset so the next run retries them");
+  } else {
+    // A backfill only counts as done once every one of its transactions was stored.
+    for (const b of backfills) { const [k, v] = b.split("="); cursors[k] = v; }
   }
 
   ledger.rows.sort((a, b) => a.t - b.t || a.sig.localeCompare(b.sig));

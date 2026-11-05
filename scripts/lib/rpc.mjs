@@ -41,9 +41,10 @@ export function makeRpc(url, { minIntervalMs = 120 } = {}) {
     get calls() { return calls; },
 
     // Every signature for an address newer than `until` (exclusive), newest first.
-    async signaturesSince(address, until) {
+    // `startBefore` starts the walk at that signature instead of at the newest one.
+    async signaturesSince(address, until, startBefore) {
       const out = [];
-      let before;
+      let before = startBefore;
       for (;;) {
         const opts = { limit: 1000 };
         if (before) opts.before = before;

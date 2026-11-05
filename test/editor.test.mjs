@@ -183,6 +183,9 @@ ok(walletsBack.length === 1 && walletsBack[0].track === true && walletsBack[0].l
   ok(by.C.confidence !== "category", "inflows from the wallet are not labelled");
   const mixed = reconcile({ pips: [], ledger: { rows: [leg("A"), leg("B"), leg("D")] }, labels: [{ signature: "B", recipient: "", label: "Foundation", confirmed: true }, { signature: "D", recipient: "", label: "Foundation", confirmed: true }], wallets: [{ wallet: FOUND, name: "F", label: "foundation" }], config: { accounts: { treasury: { label: "DAO Treasury" } } } });
   ok(mixed.legs.every((l) => l.category === "Foundation"), "category names are case-insensitive and merge under the most used spelling");
+  // A sender splitting one transfer between the DAO and someone else: only the DAO's share is income.
+  const split = reconcile({ pips: [], ledger: { rows: [{ sig: "S", t: 1, account: "treasury", symbol: "ATLAS", delta: 330, legs: [{ owner: FOUND, amount: 1000 }] }] }, config: { accounts: { treasury: { label: "DAO Treasury" } } } });
+  ok(split.legs[0].amount === 330, "an inflow counts what the DAO received, not the sender's whole transfer: " + split.legs[0].amount);
 }
 
 // ---------- payment documents: several files per payout, one row each ----------

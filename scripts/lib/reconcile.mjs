@@ -41,8 +41,12 @@ export function reconcile({ pips, ledger, labels = [], wallets = [], config }) {
       legs.push({ ...base(r), owner: null, amount: Math.abs(r.delta), direction: r.delta < 0 ? "out" : "in" });
       continue;
     }
+    // An inflow counts what the DAO account received, not what the sender sent: a sender can split
+    // one transfer between several recipients (the marketplace fee wallet sends the DAO 33% and
+    // another wallet 67% in one transaction), and its leg is the whole amount it sent.
     for (const l of r.legs) {
-      legs.push({ ...base(r), owner: l.owner, ownerDao: l.dao, amount: l.amount, direction: r.delta < 0 ? "out" : "in" });
+      const amount = r.delta > 0 ? Math.min(l.amount, r.delta) : l.amount;
+      legs.push({ ...base(r), owner: l.owner, ownerDao: l.dao, amount, direction: r.delta < 0 ? "out" : "in" });
     }
   }
   function base(r) { return { sig: r.sig, t: r.t, account: r.account, symbol: r.symbol }; }

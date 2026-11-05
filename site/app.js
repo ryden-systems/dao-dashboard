@@ -554,28 +554,9 @@
     const catNames = [...new Set(byPurpose.filter((g) => g.key.startsWith("cat:")).map((g) => g.key.slice(4)))];
 
     const rows = funded.map((p) => {
-      const f = p.funding;
-      const paidCell = Object.entries(f.paid).filter(([, v]) => v > 0).map(([s, v]) => `${num(v, s === "USDC" ? 2 : 0)} ${s}${f.returned?.[s] ? `<div class="sub">${num(f.returned[s], 0)} returned</div>` : ""}`).join("<br>") || `<span class="blank">none found</span>`;
-      const inferred = Object.entries(f.inferred).filter(([, v]) => v > 0).map(([s, v]) => `+${num(v, 0)} ${s} inferred`).join("<br>");
-      const sheet = [f.sheet.paidAtlas, f.sheet.paidUsdc].map((c, i) => c.state === "ok" ? `${num(c.value, i ? 2 : 0)} ${i ? "USDC" : "ATLAS"}` : c.state === "unknown" ? `<span class="chip warn">? ${i ? "USDC" : "ATLAS"}</span>` : "").filter(Boolean).join("<br>") || `<span class="blank">blank</span>`;
-      const ms = f.milestones.total != null ? `${f.milestones.done ?? "?"}/${f.milestones.total}` : "—";
-      const pct = f.milestones.total ? Math.min(100, ((f.milestones.done ?? 0) / f.milestones.total) * 100) : 0;
       const open = ui.openPip === p.pip;
       const detail = open ? `<tr class="detail"><td colspan="7">${paymentDetail(p)}</td></tr>` : "";
-      // Two rows per PIP: the title across the full width with the status on the right, the figures below it.
-      return `<tr class="click lead" data-pip="${p.pip}" aria-expanded="${open}">
-        <td class="pipc">${pipLink(p.pip)}</td>
-        <td colspan="5"><a href="#votes/${p.pip}">${esc(p.name)}</a><div class="sub">${esc(p.category ?? "")}${p.sacTerm && p.sacTerm !== "N/A" ? " · " + esc(p.sacTerm) : ""}</div></td>
-        <td class="r">${stateChip(f.state)}</td>
-      </tr><tr class="click" data-pip="${p.pip}">
-        <td></td>
-        <td class="nw">${num(f.authorized, 0)} ${esc(f.currency ?? "")}</td>
-        <td class="n">${paidCell}${inferred ? `<div class="sub">${inferred}</div>` : ""}</td>
-        <td class="n">${f.remaining != null ? num(f.remaining, 0) + " " + esc(f.currency) : `<span class="sub">${esc(f.remainingNote ?? "—")}</span>`}</td>
-        <td class="n">${ms}<div class="bar${pct >= 100 ? " done" : ""}" style="margin-top:5px"><span style="width:${pct}%"></span></div></td>
-        <td class="n">${sheet}</td>
-        <td></td>
-      </tr>${detail}`;
+      return fundedRows(p, { click: true, open }) + detail;
     }).join("");
 
     const list = D.payments.filter((p) =>
@@ -607,7 +588,7 @@
     <section class="sec">
       ${sub("Funded PIPs", `<span class="src">Click a row for its payouts</span>`)}
       <div class="tbl"><table>
-        <thead><tr><th>PIP</th><th>Authorized</th><th class="r">Paid on-chain</th><th class="r">Remaining</th><th class="r">Milestones</th><th class="r">Sheet says paid</th><th class="r">Status</th></tr></thead>
+        ${FUNDED_HEAD}
         <tbody>${rows}</tbody>
       </table></div>
     </section>
@@ -632,11 +613,42 @@
     </section>`;
   };
 
+  // One Funded PIPs entry: the title across the full width with the status on the right, the figures
+  // below it. On the Payments page both rows open the PIP's payouts (click); elsewhere they are plain.
+  function fundedRows(p, { click = false, open = false } = {}) {
+    const f = p.funding;
+    const paidCell = Object.entries(f.paid).filter(([, v]) => v > 0).map(([s, v]) => `${num(v, s === "USDC" ? 2 : 0)} ${s}${f.returned?.[s] ? `<div class="sub">${num(f.returned[s], 0)} returned</div>` : ""}`).join("<br>") || `<span class="blank">none found</span>`;
+    const inferred = Object.entries(f.inferred).filter(([, v]) => v > 0).map(([s, v]) => `+${num(v, 0)} ${s} inferred`).join("<br>");
+    const sheet = [f.sheet.paidAtlas, f.sheet.paidUsdc].map((c, i) => c.state === "ok" ? `${num(c.value, i ? 2 : 0)} ${i ? "USDC" : "ATLAS"}` : c.state === "unknown" ? `<span class="chip warn">? ${i ? "USDC" : "ATLAS"}</span>` : "").filter(Boolean).join("<br>") || `<span class="blank">blank</span>`;
+    const ms = f.milestones.total != null ? `${f.milestones.done ?? "?"}/${f.milestones.total}` : "—";
+    const pct = f.milestones.total ? Math.min(100, ((f.milestones.done ?? 0) / f.milestones.total) * 100) : 0;
+    const tr = (lead) => (click ? `<tr class="click${lead ? " lead" : ""}" data-pip="${p.pip}"${lead ? ` aria-expanded="${open}"` : ""}>` : `<tr${lead ? ` class="lead"` : ""}>`);
+    return `${tr(true)}
+      <td class="pipc">${pipLink(p.pip)}</td>
+      <td colspan="5"><a href="#votes/${p.pip}">${esc(p.name)}</a><div class="sub">${esc(p.category ?? "")}${p.sacTerm && p.sacTerm !== "N/A" ? " · " + esc(p.sacTerm) : ""}</div></td>
+      <td class="r">${stateChip(f.state)}</td>
+      </tr>${tr(false)}
+      <td></td>
+      <td class="nw">${num(f.authorized, 0)} ${esc(f.currency ?? "")}</td>
+      <td class="n">${paidCell}${inferred ? `<div class="sub">${inferred}</div>` : ""}</td>
+      <td class="n">${f.remaining != null ? num(f.remaining, 0) + " " + esc(f.currency) : `<span class="sub">${esc(f.remainingNote ?? "—")}</span>`}</td>
+      <td class="n">${ms}<div class="bar${pct >= 100 ? " done" : ""}" style="margin-top:5px"><span style="width:${pct}%"></span></div></td>
+      <td class="n">${sheet}</td>
+      <td></td>
+      </tr>`;
+  }
+
+  const FUNDED_HEAD = `<thead><tr><th>PIP</th><th>Authorized</th><th class="r">Paid on-chain</th><th class="r">Remaining</th><th class="r">Milestones</th><th class="r">Sheet says paid</th><th class="r">Status</th></tr></thead>`;
+  // Every on-chain movement matched to a PIP (payouts and returns); shared by the Funded PIPs row and the proposal page.
+  function pipLegsTable(pip) {
+    const legs = D.payments.filter((x) => x.pip === pip);
+    return legs.length ? `<table><thead><tr><th>Date</th><th>Account</th><th class="r">Amount</th><th>Recipient</th><th>Confidence</th><th>Tx</th></tr></thead><tbody>${legs.map((x) => `<tr><td class="mono">${dayCell(x.t)}</td><td>${esc(accLabel(x.account))}</td><td class="n">${x.isReturn ? "+" : "−"}${num(x.amount, x.symbol === "USDC" ? 2 : 0)} ${x.symbol}</td><td>${x.owner ? solFlow(x) : "—"}</td><td>${confChip(x.confidence)}${x.isReturn ? ` <span class="chip acc">return</span>` : ""}</td><td>${solTx(x.sig)}</td></tr>`).join("")}</tbody></table>` : "";
+  }
+
   function paymentDetail(p) {
-    const legs = D.payments.filter((x) => x.pip === p.pip);
     const roi = p.roi ? `<p style="margin-bottom:10px"><strong>DAO ROI:</strong> ${esc(p.roi)}</p>` : "";
     const note = p.note ? `<p class="sub" style="margin-bottom:10px">Note: ${esc(p.note)}</p>` : "";
-    const tbl = legs.length ? `<table><thead><tr><th>Date</th><th>Account</th><th class="r">Amount</th><th>Recipient</th><th>Confidence</th><th>Tx</th></tr></thead><tbody>${legs.map((x) => `<tr><td class="mono">${dayCell(x.t)}</td><td>${esc(accLabel(x.account))}</td><td class="n">${x.isReturn ? "+" : "−"}${num(x.amount, x.symbol === "USDC" ? 2 : 0)} ${x.symbol}</td><td>${x.owner ? solFlow(x) : "—"}</td><td>${confChip(x.confidence)}${x.isReturn ? ` <span class="chip acc">return</span>` : ""}</td><td>${solTx(x.sig)}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No on-chain payout has been matched to this PIP yet.</p>`;
+    const tbl = pipLegsTable(p.pip) || `<p class="muted">No on-chain payout has been matched to this PIP yet.</p>`;
     return `${roi}${note}${tbl}${p.url ? `<p class="src" style="margin-top:10px">${extLink(p.url, "Read the proposal →")}</p>` : ""}${pipEditor(p)}`;
   }
 
@@ -677,7 +689,7 @@
     const inTerm = (p, t) => (t === "Pre-Council" ? !p.sacTerm || p.sacTerm === "N/A" : p.sacTerm === t);
     const passedBy = termCats.map((t) => voted.filter((p) => inTerm(p, t) && p.outcome === "passed").length);
     const failedBy = termCats.map((t) => voted.filter((p) => inTerm(p, t) && p.outcome === "failed").length);
-    const part = voted.filter((p) => p.daoPvpM && p.totalPvp).map((p) => ({ pip: p.pip, v: (p.totalPvp / (p.daoPvpM * 1e6)) * 100 }));
+    const part = voted.filter((p) => p.daoPvpM && p.totalPvp).map((p) => ({ pip: p.pip, v: (p.totalPvp / (p.daoPvpM * 1e6)) * 100, wallets: p.totalVotes ?? null }));
     const avgPart = part.length ? part.reduce((s, x) => s + x.v, 0) / part.length : null;
 
     return `
@@ -696,10 +708,33 @@
       </section>
       <section class="sec panel">
         ${sub("Participation per PIP", `<span class="src">PVP voted ÷ DAO PVP</span>`)}
-        ${Charts.bar({ categories: part.map((x) => String(x.pip)), label: "Participation per PIP", yFmt: (v) => v + "%", series: [{ name: "Participation", color: css("--series-1"), values: part.map((x) => Math.round(x.v * 10) / 10) }] })}
+        ${Charts.bar({ categories: part.map((x) => String(x.pip)), label: "Participation per PIP", yFmt: (v) => v + "%", line: { name: "Wallets voted", color: css("--series-3"), values: part.map((x) => x.wallets), yFmt: (v) => num(v) }, series: [{ name: "Participation", color: css("--series-1"), values: part.map((x) => Math.round(x.v * 10) / 10) }] })}
       </section>
-    </div>`;
+    </div>
+    ${votersSection()}`;
   };
+
+  // Largest voters by voting power (PVP) at their most recent vote, with their share of the DAO's PVP.
+  function votersSection() {
+    const V = D.voters;
+    if (!V?.top?.length) return "";
+    const pct = (x) => (x == null ? "—" : num(x * 100, 2) + "%");
+    const sum = V.top.reduce((s, w) => s + (w.share ?? 0), 0);
+    return `<section class="sec">
+      ${sub("Largest voters", `<span class="src">${num(V.count)} wallets have voted · voting power at each wallet's latest vote</span>`)}
+      <div class="tbl"><table>
+        <thead><tr><th>Wallet</th><th class="r">PVP</th><th class="r">Share of DAO PVP</th><th class="r">PIPs voted</th><th>Latest vote</th><th>Locked until</th></tr></thead>
+        <tbody>${V.top.map((w) => `<tr>
+          <td>${ownerLabel(w.wallet) ? `<strong>${esc(ownerLabel(w.wallet))}</strong><div class="sub">${solAcc(w.wallet)}</div>` : solAcc(w.wallet)}</td>
+          <td class="n">${compact(w.pvp)}</td><td class="n">${pct(w.share)}</td><td class="n">${num(w.pips)}</td>
+          <td>${pipLink(w.pip)} <span class="sub">${esc(day(w.t))}</span></td>
+          <td class="mono">${w.lockedUntil ? esc(day(w.lockedUntil)) : "—"}</td>
+        </tr>`).join("")}
+          <tr><td><strong>Top ${V.top.length} together</strong></td><td></td><td class="n"><strong>about ${pct(sum)}</strong></td><td></td><td></td><td></td></tr></tbody>
+      </table></div>
+      <p class="src">PVP depends on how much POLIS is locked and for how long, so it changes over time; each wallet is shown as of its most recent vote, measured against the DAO's total PVP for that proposal. Wallets that never voted are not visible here.</p>
+    </section>`;
+  }
 
   views.limit = () => {
     const L = D.limit;
@@ -731,15 +766,18 @@
 
   views.balance = () => {
     const A = D.accounts;
+    // Payouts per month. Both charts share every month from the first payout in either currency to
+    // the latest one; a month without payouts shows as an empty bar, so the two charts line up.
+    const outs = D.payments.filter((p) => p.direction === "out" && p.confidence !== "internal");
+    const months = [];
+    if (outs.length) {
+      const ks = outs.map((p) => day(p.t).slice(0, 7)).sort();
+      for (let [y, mo] = ks[0].split("-").map(Number); `${y}-${String(mo).padStart(2, "0")}` <= ks[ks.length - 1]; mo === 12 ? (y++, mo = 1) : mo++) months.push(`${y}-${String(mo).padStart(2, "0")}`);
+    }
     const monthly = (sym) => {
       const m = new Map();
-      for (const p of D.payments) {
-        if (p.symbol !== sym || p.direction !== "out" || p.confidence === "internal") continue;
-        const k = day(p.t).slice(0, 7);
-        m.set(k, (m.get(k) ?? 0) + p.amount);
-      }
-      const keys = [...m.keys()].sort();
-      return { categories: keys, values: keys.map((k) => Math.round(m.get(k))) };
+      for (const p of outs) if (p.symbol === sym) m.set(day(p.t).slice(0, 7), (m.get(day(p.t).slice(0, 7)) ?? 0) + p.amount);
+      return { categories: months, values: months.map((k) => Math.round(m.get(k) ?? 0)) };
     };
     const ma = monthly("ATLAS"), mu = monthly("USDC");
     const S = D.series;
@@ -769,16 +807,19 @@
     </div>
     ${D.income?.monthly?.length ? `
     <section class="sec">
-      ${sub("Recurring income", `<span class="src">${esc(D.income.sources.map((s) => s.label ?? short(s.owner)).join(", "))} · summed per month</span>`)}
-      <div class="kpis">${D.income.sources.map((s) => kpi(s.label ?? short(s.owner), compact(s.totals.ATLAS ?? 0), "ATLAS", `${num(s.totals.USDC ?? 0, 0)} USDC · ${num(s.transfers)} transfers since ${esc(D.income.monthly[0].month)}`)).join("")}</div>
+      ${sub("Recurring income", `<span class="src">${esc([...D.income.sources.map((s) => s.label ?? short(s.owner)), ...(D.income.crafting ? ["Crafting fees"] : [])].join(", "))} · summed per month</span>`)}
+      <div class="kpis">${D.income.sources.map((s) => kpi(s.label ?? short(s.owner), compact(s.totals.ATLAS ?? 0), "ATLAS", `${num(s.totals.USDC ?? 0, 0)} USDC · ${num(s.transfers)} transfers since ${esc(D.income.monthly[0].month)}`)).join("")}${D.income.crafting ? kpi("Crafting fees", compact(D.income.crafting.total), "ATLAS", `since ${esc(D.income.crafting.from)} · Treasury balance change minus recorded movements`) : ""}</div>
       <div class="grid-2">
         <section class="sec panel">
           ${sub("USDC income per month")}
-          ${Charts.bar({ categories: D.income.monthly.map((m) => m.month), label: "USDC income per month", yFmt: compact, series: [{ name: "USDC", color: css("--series-2"), values: D.income.monthly.map((m) => Math.round(m.USDC)) }] })}
+          ${Charts.bar({ categories: D.income.monthly.map((m) => m.month), label: "USDC income per month", yFmt: compact, legend: true, series: [{ name: "Marketplace fees", color: css("--series-2"), values: D.income.monthly.map((m) => Math.round(m.USDC)) }] })}
         </section>
         <section class="sec panel">
           ${sub("ATLAS income per month")}
-          ${Charts.bar({ categories: D.income.monthly.map((m) => m.month), label: "ATLAS income per month", yFmt: compact, series: [{ name: "ATLAS", color: css("--series-1"), values: D.income.monthly.map((m) => Math.round(m.ATLAS)) }] })}
+          ${Charts.bar({ categories: D.income.monthly.map((m) => m.month), label: "ATLAS income per month", yFmt: compact, stacked: true, series: [
+            { name: "Marketplace fees", color: css("--series-1"), values: D.income.monthly.map((m) => Math.round(m.ATLAS)) },
+            ...(D.income.crafting ? [{ name: "Crafting fees", color: css("--series-4"), values: D.income.monthly.map((m) => Math.max(0, Math.round(m.crafting ?? 0))) }] : []),
+          ] })}
         </section>
       </div>
     </section>` : ""}
@@ -791,8 +832,38 @@
         ${sub("ATLAS paid out per month", `<span class="src">excludes Treasury → Fund refills</span>`)}
         ${Charts.bar({ categories: ma.categories, label: "ATLAS outflows per month", yFmt: compact, series: [{ name: "ATLAS", color: css("--series-1"), values: ma.values }] })}
       </section>
-    </div>`;
+    </div>
+    ${otherIncomeSection()}`;
   };
+
+  // Every sender that paid into a DAO account outside the recurring fees (e.g. the initial funding),
+  // summed per sender. Named once the Council adds the wallet; until then the shortened address.
+  function otherIncomeSection() {
+    const by = new Map();
+    for (const p of D.payments) {
+      if (p.direction !== "in" || p.confidence !== "income" || !p.owner) continue;
+      const g = by.get(p.owner) ?? { owner: p.owner, ATLAS: 0, USDC: 0, n: 0, first: p.t, last: p.t };
+      if (p.symbol === "ATLAS" || p.symbol === "USDC") g[p.symbol] += p.amount;
+      g.n++; g.first = Math.min(g.first, p.t); g.last = Math.max(g.last, p.t);
+      by.set(p.owner, g);
+    }
+    // Senders of less than 10 ATLAS and 1 USDC in total are dust (spam or test transfers) and left out.
+    const rows = [...by.values()].filter((g) => g.ATLAS >= 10 || g.USDC >= 1).sort((a, b) => a.first - b.first);
+    if (!rows.length) return "";
+    return `<section class="sec">
+      ${sub("Other income", `<span class="src">one-off transfers into the DAO accounts, per sender</span>`)}
+      <div class="tbl"><table>
+        <thead><tr><th>Sender</th><th class="r">ATLAS</th><th class="r">USDC</th><th class="r">Transfers</th><th>First</th><th>Last</th><th></th></tr></thead>
+        <tbody>${rows.map((g) => `<tr>
+          <td>${ownerLabel(g.owner) ? `<strong>${esc(ownerLabel(g.owner))}</strong><div class="sub">${solAcc(g.owner)}</div>` : solAcc(g.owner)}</td>
+          <td class="n">${g.ATLAS ? num(g.ATLAS, 0) : "—"}</td><td class="n">${g.USDC ? num(g.USDC, 2) : "—"}</td><td class="n">${num(g.n)}</td>
+          <td class="mono">${dayCell(g.first)}</td><td class="mono">${dayCell(g.last)}</td>
+          <td><button class="btn sm" data-act="pay-inflows">Transfers</button></td>
+        </tr>`).join("")}</tbody>
+      </table></div>
+      <p class="src">Transfers lists every inflow on the Payments page. To name a sender, add it as a wallet (untracked) above.</p>
+    </section>`;
+  }
 
   views.votes = (param) => {
     if (param) return voteDetail(Number(param));
@@ -858,7 +929,20 @@
       <div class="tbl"><table><thead><tr><th>${p.ranked ? "Candidate (first preference)" : "Option"}</th><th class="r">Ballots</th><th class="r">PVP</th><th class="r">Share</th></tr></thead><tbody>${optRows}</tbody></table></div>
       ${p.ranked ? `<p class="src">Ranked election for ${p.seats} seat${p.seats === 1 ? "" : "s"}, ${num(p.distinctBallots)} distinct ballot orders. Seats are allocated by single transferable vote; the figures above are first preferences only.</p>` : ""}
     </section>
+    ${pipPaymentsSection(p)}
     ${detail}`;
+  }
+
+  // Proposal page: the PIP's funding and every transaction matched to it (Payments page logic).
+  function pipPaymentsSection(p) {
+    const f = p.funding, tbl = pipLegsTable(p.pip);
+    if (!f && !tbl) return "";
+    const summary = f ? `<div class="tbl"><table>${FUNDED_HEAD}<tbody>${fundedRows(p)}</tbody></table></div>` : "";
+    return `<section class="sec">
+      ${sub("Payments", `<a class="src" href="#payments">All payments →</a>`)}
+      ${summary}
+      ${tbl ? `<div class="tbl">${tbl}</div>` : `<p class="muted">No on-chain payout has been matched to this PIP yet. A Council label on the payout links it here.</p>`}
+    </section>`;
   }
 
   views.health = () => {
@@ -925,6 +1009,7 @@
       const row = e.target.closest("tr.click[data-pip]");
       if (row && !e.target.closest("a")) { const n = Number(row.dataset.pip); ui.openPip = ui.openPip === n ? null : n; render(); return; }
       const act = e.target.closest("[data-act]");
+      if (act?.dataset.act === "pay-inflows") { ui.payDir = "in"; ui.payConf = "all"; ui.payAccount = "all"; location.hash = "#payments"; setTimeout(() => $("#ledger")?.scrollIntoView({ behavior: "smooth" }), 50); return; }
       if (act?.dataset.act === "attention" || act?.dataset.act === "pay-filter") { ui.payConf = act.dataset.key ?? "attention"; ui.payAccount = act.dataset.acc ?? "all"; ui.payDir = "out"; render(); $("#ledger")?.scrollIntoView({ behavior: "smooth" }); }
     });
     view.addEventListener("change", (e) => {

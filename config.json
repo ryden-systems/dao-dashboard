@@ -5,6 +5,8 @@
       "label": "DAO Treasury",
       "wallet": "CuwnarNh7FEqZMmffFjRyWj54RecyS7zwFg1CxfzNudi",
       "indexTokens": ["USDC"],
+      "indexTokensBefore": { "ATLAS": "2024-04-03" },
+      "_indexBeforeNote": "Until 2024-04-03 the Treasury ATLAS account had about one transaction a day (about 300 in total), so that part of its history is scanned once in full. From April 2024 SAGE crafting fees arrive thousands of times a day; from then on the dashboard derives them from the daily balance (see Crafting fees in the README).",
       "_indexNote": "The Treasury ATLAS account receives ~20k fee transfers a day, so it is not scanned. Its outflows are still captured through the wallet, which signs every payout."
     },
     "fund": {
@@ -15,12 +17,14 @@
   },
   "multisigs": [],
   "knownWallets": {
-    "feesQYAaH3wjGUUQYD959mmi5pY8HSz3F5C3SVc1fp3": "Marketplace fee sweep"
+    "feesQYAaH3wjGUUQYD959mmi5pY8HSz3F5C3SVc1fp3": "Marketplace fees"
   },
 
   "income": {
     "_note": "Inflows from a counterparty that sends at least this many transfers are summarised per month instead of listed one by one.",
-    "recurringMinTransfers": 20
+    "recurringMinTransfers": 20,
+    "craftingTolerance": 0.25,
+    "_craftingToleranceNote": "Health flag when a month's crafting fees differ from the average of the months on either side by more than this share. 0.25 caught a hidden 10M transfer in a test while flagging none of the 30 real months."
   },
   "mints": {
     "ATLAS": { "mint": "ATLASXmbPQxBUYbxPsV97usA3fPQYEqzQBUHgiFCUsXx", "decimals": 8 },

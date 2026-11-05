@@ -33,8 +33,10 @@ export async function fetchProposals(api) {
   const list = await fetchJSON(`${api}/proposals`);
   const out = [];
   for (const p of list) {
+    // The first proposals spell the options "Yes" / "No" / "Abstain", later ones lowercase; one
+    // spelling everywhere (as the per-voter files already use) keeps colours and the yes share right.
     const raw = Object.entries(p.voteData ?? {}).map(([option, v]) => ({
-      option,
+      option: /^(yes|no|abstain)$/i.test(option) ? option.toLowerCase() : option,
       count: Number(v.count) || 0,
       pvp: Number(v.pvp) || 0,
     }));

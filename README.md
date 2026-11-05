@@ -302,6 +302,24 @@ included; the export only has values). A tab that fails to download keeps its pr
 the last fetched sheet and governance data, and cached votes of closed proposals (`votes/`). Deleting `ledger.json` and
 `cursors.json` triggers a full backfill on the next run (a few minutes).
 
+### Income: marketplace fees and crafting fees
+
+The Treasury earns ATLAS in two ways:
+
+- **Marketplace fees.** The Galactic Marketplace collects its fee share in a fee wallet (`feesQYAa…`), which forwards
+  it every few days, ATLAS and USDC, 33% to the DAO Treasury. These transfers are in the ledger and counted exactly.
+- **Crafting fees.** Every SAGE crafting transaction pays a small ATLAS fee straight into the Treasury's ATLAS account,
+  thousands of times a day since April 2024. That account is too busy to scan, so the build derives the fees per
+  month: the change of the month-end ATLAS balance minus every movement the ledger recorded that month.
+
+Before 2024-04-03 the same account had about one transaction a day, so that part of its history is scanned once in
+full (`indexTokensBefore` in `config.json`). Crafting fees therefore start in April 2024, and every earlier inflow
+(the initial funding and other one-off transfers) is recorded exactly and listed under **Other income** on Balances.
+
+Because crafting fees are a remainder, a transfer the ledger missed lands in them. Data health flags any complete month
+whose crafting fees differ from the average of the months on either side by more than `income.craftingTolerance`
+(25%). If one is flagged, check the Treasury's ATLAS transfers that month on Solscan.
+
 `data/balance_history_import.json` is a one-time import of the Treasury's daily ATLAS balance from 2023-05-16 until
 the dashboard's own snapshots began (2026-10-09); its `_source` field says where it came from. The build never
 changes it.
