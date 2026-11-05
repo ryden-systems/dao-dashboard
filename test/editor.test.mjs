@@ -104,6 +104,11 @@ ok(r.updated && book["Payment labels"].length === 3 && book["Payment labels"][1]
 book["Payment labels"].push(["SIG1", "OWNER1", "not a payout", "TRUE"]); // a duplicate row, e.g. typed into the sheet
 r = await core.addLabel({ signature: "SIG1", recipient: "OWNER1", pip: "PIP-28", confirmed: true });
 ok(r.updated && r.removed === 1 && book["Payment labels"].length === 3 && book["Payment labels"].filter((x) => x[0] === "SIG1").length === 1 && book["Payment labels"][1][2] === "PIP-28", "relabelling removes duplicate rows for the payout: " + JSON.stringify(book["Payment labels"]));
+r = await core.addLabel({ signature: "SIG4", recipient: "OWNER4", pip: "PIP-28", confirmed: true });
+book["Payment labels"].push(["SIG4", "OWNER4", "Foundation", "TRUE"]); // a duplicate row typed into the sheet
+r = await core.removeLabel({ signature: "SIG4", recipient: "OWNER4" });
+ok(r.removed === 2 && !book["Payment labels"].some((x) => x[0] === "SIG4") && book["Payment labels"].length === 3, "removing a label deletes every row for that payout and nothing else: " + JSON.stringify(book["Payment labels"]));
+ok((await core.removeLabel({ signature: "NOPE", recipient: "" })).removed === 0, "removing a label that does not exist changes nothing");
 const labels = parseLabelTab(book["Payment labels"]);
 ok(labels.length === 2 && labels[0].label === "PIP-28" && labels[0].confirmed === true && labels[0].recipient === "OWNER1" && labels[1].confirmed === false, "build reads the labels back: " + JSON.stringify(labels));
 
@@ -170,6 +175,15 @@ r = await core.saveWallet({ wallet: FOUND, name: "Foundation", label: "Foundatio
 ok(r.saved && !r.updated && book.Wallets[0].join() === SM.WALLET_HEADERS.join() && book.Wallets.length === 2, "Wallets tab created with the first wallet");
 r = await core.saveWallet({ wallet: FOUND, name: "Star Atlas Foundation", label: "Foundation", track: true, note: "legal entity" });
 ok(r.updated && book.Wallets.length === 2 && book.Wallets[1][1] === "Star Atlas Foundation" && book.Wallets[1][3] === "TRUE", "saving a listed wallet updates its row: " + JSON.stringify(book.Wallets));
+// A tab made before the rename calls the column "Label": saving still writes the payout label there.
+{
+  const keep = book.Wallets;
+  book.Wallets = [["Wallet", "Name", "Label", "Track balance", "Note"], [FOUND, "Old", "", "FALSE", ""]];
+  r = await core.saveWallet({ wallet: FOUND, name: "Old", label: "Foundation", track: false, note: "" });
+  ok(r.updated && book.Wallets[1][2] === "Foundation", "an old Wallets tab with a Label column still gets the payout label: " + JSON.stringify(book.Wallets));
+  ok(parseWalletsTab(book.Wallets)[0].label === "Foundation", "the build reads the payout label from an old Label column");
+  book.Wallets = keep;
+}
 const walletsBack = parseWalletsTab([...book.Wallets, ["bad", "Ignored", "", "TRUE", ""], [FOUND, "Duplicate", "", "", ""]]);
 ok(walletsBack.length === 1 && walletsBack[0].track === true && walletsBack[0].label === "Foundation" && walletsBack[0].note === "legal entity", "build reads the Wallets tab back; invalid and repeated addresses are skipped");
 
@@ -186,6 +200,32 @@ ok(walletsBack.length === 1 && walletsBack[0].track === true && walletsBack[0].l
   // A sender splitting one transfer between the DAO and someone else: only the DAO's share is income.
   const split = reconcile({ pips: [], ledger: { rows: [{ sig: "S", t: 1, account: "treasury", symbol: "ATLAS", delta: 330, legs: [{ owner: FOUND, amount: 1000 }] }] }, config: { accounts: { treasury: { label: "DAO Treasury" } } } });
   ok(split.legs[0].amount === 330, "an inflow counts what the DAO received, not the sender's whole transfer: " + split.legs[0].amount);
+  // Automatic matches respect dates: a payout before a PIP's vote started is never matched to it.
+  const PAYEE = "So11111111111111111111111111111111111111112";
+  const mkPip = (pip, voteStart) => ({ pip, voteResult: "Passed", phase: "", amount: { value: 1000 }, currency: "ATLAS", paidAtlas: { state: "blank", value: null }, paidUsdc: { state: "blank", value: null }, milestonesDone: { value: null }, milestonesTotal: { value: null }, voteStart });
+  const early = reconcile({ pips: [mkPip(50, "2026-06-26")], ledger: { rows: [
+    { sig: "E1", t: Date.parse("2024-10-11") / 1000, account: "treasury", symbol: "ATLAS", delta: -1000, legs: [{ owner: PAYEE, amount: 1000 }] },
+    { sig: "E2", t: Date.parse("2026-07-20") / 1000, account: "treasury", symbol: "ATLAS", delta: -1000, legs: [{ owner: PAYEE, amount: 1000 }] },
+  ] }, config: { accounts: { treasury: { label: "DAO Treasury" } } } });
+  const eb = Object.fromEntries(early.legs.map((l) => [l.sig, l]));
+  ok(eb.E2.pip === 50 && eb.E1.pip == null, "a payout from before a PIP's vote is not matched to it, by amount or by recipient: " + JSON.stringify([eb.E1.confidence, eb.E1.pip, eb.E2.pip]));
+  const unk = reconcile({ pips: [mkPip(50, "2020-01-01")], ledger: { rows: [{ sig: "U1", t: Date.parse("2026-07-20") / 1000, account: "treasury", symbol: "ATLAS", delta: -1000, legs: [{ owner: PAYEE, amount: 1000 }] }] }, labels: [{ signature: "U1", recipient: PAYEE, label: "unknown", confirmed: true }], config: { accounts: { treasury: { label: "DAO Treasury" } } } });
+  ok(unk.legs[0].pip == null && unk.legs[0].confidence === "unlabelled" && unk.legs[0].labelled, "the label unknown clears an automatic match");
+  // A split PIP (Authorized USDC + Authorized ATLAS) is paid and owed per currency.
+  {
+    const sp = { ...mkPip(60, "2020-01-01"), currency: "USDC", amount: { value: 469514 }, authorizedUsdc: { value: 352135.15 }, authorizedAtlas: { value: 753707176 } };
+    const rows = [
+      { sig: "S1", t: 2, account: "treasury", symbol: "USDC", delta: -176067.57, legs: [{ owner: PAYEE, amount: 176067.57 }] },
+      { sig: "S2", t: 2, account: "treasury", symbol: "ATLAS", delta: -376853588, legs: [{ owner: PAYEE, amount: 376853588 }] },
+    ];
+    const r60 = reconcile({ pips: [sp], ledger: { rows }, labels: [{ signature: "S1", recipient: PAYEE, label: "PIP-60", confirmed: true }, { signature: "S2", recipient: PAYEE, label: "PIP-60", confirmed: true }], config: { accounts: { treasury: { label: "DAO Treasury" } } } }).summary[0];
+    ok(r60.remainingBy.USDC === 176067.58 && r60.remainingBy.ATLAS === 376853588 && r60.state === "partly-paid" && r60.remaining == null && r60.remainingNote == null, "a split PIP's remaining is per currency: " + JSON.stringify(r60.remainingBy));
+  }
+  // Labelled inflows: a category names the source; a PIP marks a return, never money paid.
+  const inl = reconcile({ pips: [], ledger: { rows: [{ sig: "I1", t: 1, account: "treasury", symbol: "USDC", delta: 500, legs: [{ owner: FOUND, amount: 500 }] }, { sig: "I2", t: 2, account: "treasury", symbol: "USDC", delta: 70, legs: [{ owner: FOUND, amount: 70 }] }] }, labels: [{ signature: "I1", recipient: FOUND, label: "Initial funding", confirmed: true }, { signature: "I2", recipient: FOUND, label: "PIP-28", confirmed: true }], config: { accounts: { treasury: { label: "DAO Treasury" } } } });
+  const il = Object.fromEntries(inl.legs.map((l) => [l.sig, l]));
+  ok(il.I1.confidence === "category" && il.I1.category === "Initial funding" && il.I1.labelled, "an inflow labelled with a category keeps it as its source");
+  ok(il.I2.pip === 28 && il.I2.isReturn === true, "an inflow labelled with a PIP is a return for that PIP, not a payout");
 }
 
 // ---------- payment documents: several files per payout, one row each ----------

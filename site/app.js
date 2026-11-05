@@ -29,9 +29,9 @@
   const solFlow = (p, label) => {
     const dao = D.accounts[p.account]?.wallet;
     const filter = dao ? `&amp;${p.direction === "in" ? "to_address" : "from_address"}=${esc(dao)}` : "";
-    return `<a class="mono addr" href="https://solscan.io/account/${esc(p.owner)}?exclude_amount_zero=true&amp;remove_spam=false${filter}#transfers" target="_blank" rel="noopener" title="Transfers between this wallet and the ${esc(D.accounts[p.account]?.label ?? "DAO account")}">${esc(label ?? short(p.owner))}</a>${copyBtn(p.owner)}`;
+    return `<span class="nw"><a class="mono addr" href="https://solscan.io/account/${esc(p.owner)}?exclude_amount_zero=true&amp;remove_spam=false${filter}#transfers" target="_blank" rel="noopener" title="Transfers between this wallet and the ${esc(D.accounts[p.account]?.label ?? "DAO account")}">${esc(label ?? short(p.owner))}</a>${copyBtn(p.owner)}</span>`;
   };
-  const solAcc = (a, label) => `<a class="mono addr" href="https://solscan.io/account/${esc(a)}" target="_blank" rel="noopener">${esc(label ?? short(a))}</a>${copyBtn(a)}`;
+  const solAcc = (a, label) => `<span class="nw"><a class="mono addr" href="https://solscan.io/account/${esc(a)}" target="_blank" rel="noopener">${esc(label ?? short(a))}</a>${copyBtn(a)}</span>`;
   const pipLink = (n) => `<a class="mono" href="#votes/${n}">PIP-${n}</a>`;
   const css = (v) => `var(${v})`;
 
@@ -48,6 +48,14 @@
   const confChip = (c) => { const x = CONF[c] ?? { cls: "", label: c }; return `<span class="chip ${x.cls}">${esc(x.label)}</span>`; };
   // A date in table rows: the year on one line and month-day below it, so the column stays narrow.
   const dayCell = (t) => { const d = day(t); return `<span class="dy">${d.slice(0, 4)}</span><span class="dy">${d.slice(5)}</span>`; };
+  // Text filter for the movements list: every word must appear in the payout's address, the name
+  // the dashboard shows for it, its account, PIP, category, reason or transaction signature.
+  const matchesQuery = (p) => {
+    const words = ui.payQuery.toLowerCase().split(/\s+/).filter(Boolean);
+    if (!words.length) return true;
+    const hay = [p.owner, ownerLabel(p.owner), accLabel(p.account), p.pip != null ? `pip-${p.pip}` : "", p.category, p.reason, p.sig, p.symbol].filter(Boolean).join(" ").toLowerCase();
+    return words.every((w) => hay.includes(w));
+  };
   const PAID = new Set(["confirmed", "matches-sheet", "matches-amount"]);
   // What a payout was for: a PIP or a cost category (e.g. Foundation), with its match state.
   const matchCell = (p) => p.confidence === "category" ? `<span class="chip good">${esc(p.category)}</span>`
@@ -64,7 +72,7 @@
 
   let D = null;
   const voteCache = new Map();
-  const ui = { payAccount: "all", payConf: "all", payDir: "out", openPip: null, healthSev: "all" };
+  const ui = { payAccount: "all", payConf: "all", payDir: "all", payQuery: "", openPip: null, healthSev: "all" };
 
   const accLabel = (k) => D.accounts[k]?.label ?? k;
   const ownerLabel = (owner) => {
@@ -73,6 +81,42 @@
   };
   // Display name of a vote option (election candidates have one in the API).
   const optName = (p, o) => p.candidates?.find((c) => c.value === o)?.display ?? o;
+
+  // Vote detail for a ranked election. Many candidates do not fit one colour each, so only the four
+  // with the most first-choice PVP get a colour (chart lines, names); everyone else is drawn together
+  // as "Other candidates" in grey and listed in plain text. Tables run down by candidate, not across.
+  function rankedDetail(p, v, top, tl) {
+    const totalOf = (o) => tl.length ? tl[tl.length - 1][o] ?? 0 : 0;
+    const cands = [...new Set(v.votes.map((x) => x.first))].sort((a, b) => totalOf(b) - totalOf(a));
+    const lead = cands.slice(0, 4), rest = cands.slice(4);
+    const color = (o) => (lead.includes(o) ? css(`--series-${lead.indexOf(o) + 1}`) : null);
+    const name = (o) => { const c = color(o); return c ? `<span style="color:${c}">${esc(optName(p, o))}</span>` : esc(optName(p, o)); };
+    const series = [
+      ...lead.map((o) => ({ name: optName(p, o), color: color(o), points: tl.map((d) => [d.day, d[o] ?? 0]) })),
+      ...(rest.length ? [{ name: `Other candidates (${rest.length})`, color: css("--abstain"), points: tl.map((d) => [d.day, rest.reduce((s, o) => s + (d[o] ?? 0), 0)]) }] : []),
+    ];
+    const ballot = (x) => {
+      const picks = String(x.choice).split(",").filter(Boolean);
+      return `<strong>${name(picks[0])}</strong>${picks.length > 1 ? `<div class="sub">then ${picks.slice(1).map((o) => esc(optName(p, o))).join(", ")}</div>` : ""}`;
+    };
+    return `
+      <section class="sec panel">
+        ${sub("Voting power over the voting period", `<span class="src">cumulative first-choice PVP · the ${lead.length} leading candidates</span>`)}
+        ${Charts.line({ label: "Cumulative PVP", yFmt: compact, area: false, legend: true, series })}
+      </section>
+      <div class="grid-2">
+        <section class="sec">
+          ${sub("By voter size", `<span class="src">first choice: ballots and PVP</span>`)}
+          <div class="tbl"><table><thead><tr><th>Candidate</th>${v.buckets.map((b) => `<th class="r">${esc(b.label)}</th>`).join("")}</tr></thead>
+          <tbody>${cands.map((o) => `<tr><td>${name(o)}</td>${v.buckets.map((b) => `<td class="n">${num(b.byOption[o]?.count ?? 0)}<div class="sub">${compact(b.byOption[o]?.pvp ?? 0)} PVP</div></td>`).join("")}</tr>`).join("")}</tbody></table></div>
+        </section>
+        <section class="sec">
+          ${sub("Largest voters", `<span class="src">first choice, then the rest of the ballot</span>`)}
+          <div class="tbl"><table><thead><tr><th>Wallet</th><th>Ballot</th><th class="r">PVP</th><th>POLIS locked until</th></tr></thead>
+          <tbody>${top.map((x) => `<tr><td>${solAcc(x.wallet)}</td><td>${ballot(x)}</td><td class="n">${num(x.pvp)}</td><td class="mono sub">${x.lockedUntil ? day(x.lockedUntil) : "—"}</td></tr>`).join("")}</tbody></table></div>
+        </section>
+      </div>`;
+  }
   // Net amount the DAO is out for a PIP (sent minus returned), never negative.
   const netOf = (p, sym) => Math.max(0, p.funding?.net?.[sym] ?? 0);
   const yesShare = (p) => {
@@ -165,13 +209,16 @@
   const maintCls = () => (D.editing && !D.editing.preview ? " ed-only" : "");
   const legKey = (p) => `${p.sig}:${p.owner ?? ""}`;
   // Every payout can be (re)labelled, except transfers between the DAO's own accounts.
-  const canLabel = (p) => p.direction === "out" && !(p.confidence === "internal" && !p.labelled);
+  // Payouts and inflows can both be labelled; transfers between DAO accounts cannot.
+  const canLabel = (p) => !(p.confidence === "internal" && !p.labelled);
   const okMsg = (m) => (m ? `<p class="${m.err ? "ed-err" : "ed-ok"}">${esc(m.err || m.ok)}</p>` : "");
 
   function editBar() {
     if (!ED || !ED.state.available) return "";
     const s = ED.state;
     if (s.preview) return `<button class="btn" data-act="ed-preview" aria-expanded="${ed.previewInfo ? "true" : "false"}">Editor sign-in</button>`;
+    // While a rebuild runs, the buttons are hidden and only the slowly pulsing status stays.
+    if (s.signedIn && ed.updating) return `<span class="ed-zone"><span class="sub">Editing as ${esc(s.email ?? "signed-in editor")}</span><span class="sub pulse">${esc(ed.updateMsg?.ok ?? "Updating...")}</span></span>`;
     if (s.signedIn) return `<span class="ed-zone"><span class="sub">Editing as ${esc(s.email ?? "signed-in editor")}</span><button class="btn ed-btn" data-act="ed-update" title="Rebuild the dashboard from the sheet now">Update now</button><button class="btn ed-btn" data-act="ed-signout">Sign out</button>${ed.updateMsg ? `<span class="${ed.updateMsg.err ? "ed-err" : "sub"}">${esc(ed.updateMsg.err || ed.updateMsg.ok)}</span>` : ""}</span>`;
     return `<button class="btn" data-act="ed-signin">Editor sign-in</button>${s.error ? `<span class="ed-err">${esc(s.error)}</span>` : ""}`;
   }
@@ -218,14 +265,24 @@
 
   function labelForm(p) {
     const funded = D.pips.filter((x) => x.funding).map((x) => [`PIP-${x.pip}`, `PIP-${x.pip}: ${x.name}`]);
-    const cats = [...new Set(["Foundation", ...D.payments.map((x) => x.category).filter(Boolean)])].map((c) => [c, `${c} (cost)`]);
-    const opts = [...funded, ...cats, ["internal", "internal (between DAO accounts)"], ["refund", "refund"], ["not a payout", "not a payout"]];
-    const pick = (v) => (p.pip && v === `PIP-${p.pip}`) || (!p.pip && p.category === v) || (p.labelled && p.confidence === "internal" && p.reason === v);
+    // Inflows: a source category (e.g. Initial funding) or a PIP whose money came back.
+    const inflow = p.direction === "in";
+    const used = (dir) => [...new Set(D.payments.filter((x) => x.direction === dir).map((x) => x.category).filter(Boolean))];
+    const cats = inflow
+      ? [...new Set(["Initial funding", ...used("in")])].map((c) => [c, `${c} (income)`])
+      : [...new Set(["Foundation", ...used("out")])].map((c) => [c, `${c} (cost)`]);
+    const pipOpts = inflow ? funded.map(([v, l]) => [v, `${l} (returned)`]) : funded;
+    // "unknown" clears any automatic match until someone finds out what the money was.
+    const opts = inflow
+      ? [["unknown", "Not known yet (no match)"], ...cats, ...pipOpts, ["refund", "refund"], ["not a payout", "not income"]]
+      : [["unknown", "Not known yet (no match)"], ...funded, ...cats, ["internal", "internal (between DAO accounts)"], ["refund", "refund"], ["not a payout", "not a payout"]];
+    const pick = (v) => (p.pip && v === `PIP-${p.pip}`) || (!p.pip && p.category === v) || (p.labelled && p.confidence === "internal" && p.reason === v) || (p.labelled && v === "unknown" && p.reason === "Council: not known yet");
     return `<div class="edform">
-      <label class="wide">Paid for<select id="lbl-pip">${opts.map(([v, l]) => `<option value="${esc(v)}" ${pick(v) ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>
-      <label class="wide">Or a new cost category<input id="lbl-cat" placeholder="e.g. Legal, Hosting (leave empty to use the choice above)"></label>
-      <label class="chk wide"><input type="checkbox" id="lbl-ok" checked> Confirmed: counts as paid</label>
-      <div class="edact wide"><button class="btn primary" data-act="lbl-save" data-sig="${esc(p.sig)}" data-owner="${esc(p.owner ?? "")}">Save label</button><button class="btn" data-act="lbl-cancel">Cancel</button></div>
+      <label class="wide">${inflow ? "Received as" : "Paid for"}<select id="lbl-pip">${opts.map(([v, l]) => `<option value="${esc(v)}" ${pick(v) ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>
+      <label class="wide">${inflow ? "Or a new income category" : "Or a new cost category"}<input id="lbl-cat" placeholder="${inflow ? "e.g. Initial funding, Grant" : "e.g. Legal, Hosting"} (leave empty to use the choice above)"></label>
+      <label class="chk wide"><input type="checkbox" id="lbl-ok" checked> ${inflow ? "Confirmed" : "Confirmed: counts as paid"}</label>
+      <div class="edact wide"><button class="btn primary" data-act="lbl-save" data-sig="${esc(p.sig)}" data-owner="${esc(p.owner ?? "")}">Save label</button><button class="btn" data-act="lbl-cancel">Cancel</button>${p.labelled ? `<button class="btn danger" data-act="lbl-clear" data-sig="${esc(p.sig)}" data-owner="${esc(p.owner ?? "")}">Remove label</button>` : ""}</div>
+      ${p.labelled && ed.clearFor === `${p.sig}:${p.owner ?? ""}` ? `<div class="edact wide"><span>Remove the Council label from this payout? It goes back to automatic matching after the next update.</span><button class="btn danger" data-act="lbl-clear-yes" data-sig="${esc(p.sig)}" data-owner="${esc(p.owner ?? "")}">Yes, remove</button><button class="btn" data-act="lbl-clear-no">Keep it</button></div>` : ""}
     </div>`;
   }
 
@@ -339,7 +396,7 @@
     const d = ed.walletDraft ?? {};
     const f = (id, label, ph = "", cls = "") => `<label class="${cls}">${label}<input id="wf-${id}" placeholder="${esc(ph)}" value="${esc(d[id] ?? "")}"></label>`;
     const form = `<div class="edform">
-      ${f("wallet", "Wallet address *", "Solana address", "wide")}${f("name", "Name *", "e.g. Star Atlas Foundation")}${f("label", "Label", "e.g. Foundation or PIP-36")}
+      ${f("wallet", "Wallet address *", "Solana address", "wide")}${f("name", "Name *", "e.g. Star Atlas Foundation")}${f("label", "Payout label", "e.g. Foundation or PIP-36")}
       ${f("note", "Note", "optional", "wide")}
       <label class="chk wide"><input type="checkbox" id="wf-track" ${d.track ? "checked" : ""}> Track its balances on this page</label>
       <div class="edact wide"><button class="btn primary" data-act="wal-save">Save wallet</button><button class="btn" data-act="wal-cancel">Cancel</button></div>
@@ -347,12 +404,12 @@
     return `<section class="sec">
       ${sub("Other wallets", `<span class="src">Council's sheet, "Wallets" tab${W.some((w) => w.track) ? " · balances from Solana mainnet" : ""}</span>`)}
       ${W.length ? `<div class="tbl"><table>
-        <thead><tr><th>Name</th><th>Address</th><th>Label</th><th class="r">ATLAS</th><th class="r">USDC</th><th class="r">SOL</th><th class="r">USD</th>${editing() ? "<th></th>" : ""}</tr></thead>
+        <thead><tr><th>Name</th><th>Address</th><th>Payout label</th><th class="r">ATLAS</th><th class="r">USDC</th><th class="r">SOL</th><th class="r">USD</th>${editing() ? "<th></th>" : ""}</tr></thead>
         <tbody>${rows}</tbody>
       </table></div>` : ""}
       ${editing() ? `<div class="ed-zone">${ed.wallet ? form : `<p class="edact"><button class="btn ed-btn" data-act="wal-open">Add a wallet</button></p>`}
       ${okMsg(ed.walletMsg)}
-      <p class="src">Name: shown instead of the address everywhere on the dashboard. Label: every payout to this wallet gets it, unless that payout has its own label. Track: the wallet's balances are shown here after each update; wallets that are not tracked are listed for editors only.</p></div>` : ""}
+      <p class="src">Name: shown instead of the address everywhere on the dashboard. Payout label: every payout to this wallet gets it, unless that payout has its own label; money received from the wallet is not labelled by it (label those inflows on the Payments page). Track: the wallet's balances are shown here after each update; wallets that are not tracked are listed for editors only.</p></div>` : ""}
     </section>`;
   }
 
@@ -392,6 +449,7 @@
         // Local test copy (npm run serve): the local server runs the build itself, then the page reloads.
         if (["localhost", "127.0.0.1"].includes(location.hostname)) {
           ed.updateMsg = { ok: "Rebuilding locally from the sheet, about 30 seconds..." };
+          ed.updating = true;
           render();
           try {
             const res = await fetch("/__rebuild", { method: "POST" });
@@ -399,6 +457,7 @@
             if (r.ok) { location.reload(); return; }
             ed.updateMsg = { err: `Local rebuild failed: ${r.error}` };
           } catch (e) { ed.updateMsg = { err: `Local rebuild failed: ${e.message}` }; }
+          ed.updating = false;
           render();
           return;
         }
@@ -411,7 +470,20 @@
       }
       case "ed-preview": ed.previewInfo = !ed.previewInfo; render(); if (ed.previewInfo) window.scrollTo({ top: 0, behavior: "smooth" }); return;
       case "lbl-open": ed.labelFor = el.dataset.key; ed.msgs[el.dataset.key] = null; render(); return;
-      case "lbl-cancel": ed.labelFor = null; render(); return;
+      case "lbl-cancel": ed.labelFor = null; ed.clearFor = null; render(); return;
+      // Removing a label asks once more in place (no browser dialog), then deletes its row(s) in the sheet.
+      case "lbl-clear": ed.clearFor = `${el.dataset.sig}:${el.dataset.owner}`; render(); return;
+      case "lbl-clear-no": ed.clearFor = null; render(); return;
+      case "lbl-clear-yes": {
+        const key = `${el.dataset.sig}:${el.dataset.owner}`;
+        el.disabled = true;
+        try {
+          const r = await ED.core.removeLabel({ signature: el.dataset.sig, recipient: el.dataset.owner });
+          ed.msgs[key] = r.removed ? { ok: "Label removed. The payout goes back to automatic matching after the next update." } : { err: "No label row for this payout was found in the sheet." };
+          ed.labelFor = null; ed.clearFor = null;
+        } catch (e) { ed.msgs[key] = { err: e.message }; }
+        render(); return;
+      }
       case "lbl-save": {
         const key = `${el.dataset.sig}:${el.dataset.owner}`;
         const pip = val("lbl-cat").trim() || val("lbl-pip"), confirmed = Boolean($("#lbl-ok")?.checked);
@@ -519,14 +591,14 @@
         ${sub("Latest proposals", `<a href="#votes" class="src">All proposals →</a>`)}
         <div class="tbl"><table>
           <thead><tr><th>PIP</th><th>Title</th><th>Result</th><th class="r">Yes</th></tr></thead>
-          <tbody>${latest.map((p) => `<tr><td class="pipc">${pipLink(p.pip)}</td><td><div class="t2">${esc(p.title)}</div></td><td>${outcomeChip(p.outcome)}</td><td class="n">${p.ranked ? "ranked" : yesShare(p) == null ? "—" : num(yesShare(p) * 100, 1) + "%"}</td></tr>`).join("")}</tbody>
+          <tbody>${latest.map((p) => `<tr><td class="pipc">${pipLink(p.pip)}</td><td><div class="t2"><a href="#votes/${p.pip}">${esc(p.title)}</a></div></td><td>${outcomeChip(p.outcome)}</td><td class="n">${p.ranked ? "ranked" : yesShare(p) == null ? "—" : num(yesShare(p) * 100, 1) + "%"}</td></tr>`).join("")}</tbody>
         </table></div>
       </section>
       <section class="sec">
         ${sub("Recent payouts", `<a href="#payments" class="src">All payments →</a>`)}
         <div class="tbl"><table>
           <thead><tr><th>Date</th><th>From</th><th class="r">Amount</th><th>Matched to</th></tr></thead>
-          <tbody>${recent.map((p) => `<tr><td class="mono">${dayCell(p.t)}</td><td>${esc(accLabel(p.account))}</td><td class="n">${num(p.amount, p.symbol === "USDC" ? 2 : 0)} ${p.symbol}</td><td>${matchCell(p)}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">No payouts yet.</td></tr>`}</tbody>
+          <tbody>${recent.map((p) => `<tr><td class="mono">${dayCell(p.t)}</td><td>${esc(accLabel(p.account))}</td><td class="n">${num(p.amount, p.symbol === "USDC" ? 2 : 0)} ${p.symbol}</td><td class="mcell"><span class="mline">${matchCell(p)}</span>${editButtons(p)}</td></tr>${editPanels(p, 4)}`).join("") || `<tr><td colspan="4" class="muted">No payouts yet.</td></tr>`}</tbody>
         </table></div>
       </section>
     </div>`;
@@ -564,7 +636,8 @@
       (ui.payConf === "all" || (ui.payConf === "attention" ? (p.confidence === "unlabelled" || p.confidence === "inferred")
         : ui.payConf === "pips" ? p.pip != null && PAID.has(p.confidence)
         : ui.payConf.startsWith("cat:") ? p.category === ui.payConf.slice(4) : p.confidence === ui.payConf)) &&
-      (ui.payDir === "all" || (ui.payDir === "out" ? p.direction === "out" || p.isReturn : p.direction === "in")));
+      (ui.payDir === "all" || (ui.payDir === "out" ? p.direction === "out" || p.isReturn : p.direction === "in")) &&
+      matchesQuery(p));
 
     return `
     <section class="sec">
@@ -594,24 +667,36 @@
     </section>
     <section class="sec" id="ledger">
       ${sub("On-chain movements", `<div class="controls">
+        <input type="search" id="f-q" aria-label="Filter" placeholder="Address, name, PIP, tx..." value="${esc(ui.payQuery)}">
         <select id="f-acc" aria-label="Account"><option value="all">All accounts</option>${Object.entries(D.accounts).map(([k, a]) => `<option value="${k}" ${ui.payAccount === k ? "selected" : ""}>${esc(a.label)}</option>`).join("")}</select>
         <select id="f-conf" aria-label="Confidence">${[["all", "Any match"], ["attention", "Needs a label"], ["pips", "PIP payments"], ...catNames.map((c) => [`cat:${c}`, c]), ...Object.entries(CONF).map(([k, v]) => [k, v.label])].map(([k, l]) => `<option value="${k}" ${ui.payConf === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
         <select id="f-dir" aria-label="Direction">${[["out", "Payouts + returns"], ["in", "Inflows"], ["all", "Everything"]].map(([k, l]) => `<option value="${k}" ${ui.payDir === k ? "selected" : ""}>${l}</option>`).join("")}</select>
       </div>`)}
       <div class="tbl"><table>
-        <thead><tr><th>Date</th><th>Account</th><th class="r">Amount</th><th>Counterparty</th><th>Matched to</th><th>Why</th><th>Tx</th></tr></thead>
-        <tbody>${list.slice(0, 400).map((p) => `<tr>
-          <td class="mono">${dayCell(p.t)}</td>
-          <td>${esc(accLabel(p.account))}</td>
-          <td class="n">${p.direction === "in" ? "+" : "−"}${num(p.amount, p.symbol === "USDC" ? 2 : 0)} ${p.symbol}</td>
-          <td>${p.owner ? solFlow(p, ownerLabel(p.owner) ?? undefined) : "—"}</td>
-          <td class="mcell"><span class="mline">${matchCell(p)}${p.isReturn ? ` <span class="chip acc">return</span>` : ""}</span>${editing() && canLabel(p) && ed.labelFor !== legKey(p) ? ` <button class="btn sm ed-btn" data-act="lbl-open" data-key="${esc(legKey(p))}">${ed.msgs[legKey(p)]?.ok ? "Relabel" : p.labelled ? "Relabel" : "Label"}</button>` : ""}${okMsg(ed.msgs[legKey(p)])}${editing() && p.direction === "out" && ed.docFor !== legKey(p) ? ` <button class="btn sm ed-btn" data-act="doc-open" data-key="${esc(legKey(p))}">${docsOf(p).length ? `Documents (${docsOf(p).length})` : "Documents"}</button>` : ""}</td>
-          <td class="sub">${esc(p.reason ?? "")}</td>
-          <td>${solTx(p.sig)}</td></tr>${editing() && ed.labelFor === legKey(p) ? `<tr class="detail ed-only"><td colspan="7">${labelForm(p)}</td></tr>` : ""}${editing() && ed.docFor === legKey(p) ? `<tr class="detail ed-only"><td colspan="7">${docPanel(p)}</td></tr>` : ""}`).join("") || `<tr><td colspan="7" class="muted">Nothing matches these filters.</td></tr>`}</tbody>
+        ${MOVE_HEAD}
+        <tbody>${list.slice(0, 400).map(movementRow).join("") || `<tr><td colspan="7" class="muted">Nothing matches these filters.</td></tr>`}</tbody>
       </table></div>
       ${list.length > 400 ? `<p class="src">Showing the latest 400 of ${list.length}.</p>` : ""}
     </section>`;
   };
+
+  // One on-chain movement with its editor controls (Label / Relabel, Documents) and their panels.
+  // Used wherever movements are listed, so a payout or inflow can be edited wherever it shows up.
+  const MOVE_HEAD = `<thead><tr><th>Date</th><th>Account</th><th class="r">Amount</th><th>Counterparty</th><th>Matched to</th><th>Why</th><th>Tx</th></tr></thead>`;
+  // Editor controls for a movement: Label / Relabel and Documents buttons, then their open panels
+  // as full-width rows (cols = the table's column count).
+  const editButtons = (p) => `${editing() && canLabel(p) && ed.labelFor !== legKey(p) ? ` <button class="btn sm ed-btn" data-act="lbl-open" data-key="${esc(legKey(p))}">${ed.msgs[legKey(p)]?.ok ? "Relabel" : p.labelled ? "Relabel" : "Label"}</button>` : ""}${okMsg(ed.msgs[legKey(p)])}${editing() && p.direction === "out" && ed.docFor !== legKey(p) ? ` <button class="btn sm ed-btn" data-act="doc-open" data-key="${esc(legKey(p))}">${docsOf(p).length ? `Documents (${docsOf(p).length})` : "Documents"}</button>` : ""}`;
+  const editPanels = (p, cols) => `${editing() && ed.labelFor === legKey(p) ? `<tr class="detail ed-only"><td colspan="${cols}">${labelForm(p)}</td></tr>` : ""}${editing() && ed.docFor === legKey(p) ? `<tr class="detail ed-only"><td colspan="${cols}">${docPanel(p)}</td></tr>` : ""}`;
+  function movementRow(p) {
+    return `<tr>
+        <td class="mono">${dayCell(p.t)}</td>
+        <td>${esc(accLabel(p.account))}</td>
+        <td class="n">${p.direction === "in" ? "+" : "−"}${num(p.amount, p.symbol === "USDC" ? 2 : 0)} ${p.symbol}</td>
+        <td>${p.owner ? solFlow(p, ownerLabel(p.owner) ?? undefined) : "—"}</td>
+        <td class="mcell"><span class="mline">${matchCell(p)}${p.isReturn ? ` <span class="chip acc">return</span>` : ""}</span>${editButtons(p)}</td>
+        <td class="sub">${esc(p.reason ?? "")}</td>
+        <td>${solTx(p.sig)}</td></tr>${editPanels(p, 7)}`;
+  }
 
   // One Funded PIPs entry: the title across the full width with the status on the right, the figures
   // below it. On the Payments page both rows open the PIP's payouts (click); elsewhere they are plain.
@@ -629,9 +714,9 @@
       <td class="r">${stateChip(f.state)}</td>
       </tr>${tr(false)}
       <td></td>
-      <td class="nw">${num(f.authorized, 0)} ${esc(f.currency ?? "")}</td>
+      <td class="nw">${f.authorizedBy ? Object.entries(f.authorizedBy).map(([s, v]) => `${num(v, s === "USDC" ? 2 : 0)} ${s}`).join("<br>") : `${num(f.authorized, 0)} ${esc(f.currency ?? "")}`}</td>
       <td class="n">${paidCell}${inferred ? `<div class="sub">${inferred}</div>` : ""}</td>
-      <td class="n">${f.remaining != null ? num(f.remaining, 0) + " " + esc(f.currency) : `<span class="sub">${esc(f.remainingNote ?? "—")}</span>`}</td>
+      <td class="n">${f.remainingBy ? Object.entries(f.remainingBy).map(([s, v]) => `${num(v, s === "USDC" ? 2 : 0)} ${s}`).join("<br>") : f.remaining != null ? num(f.remaining, 0) + " " + esc(f.currency) : `<span class="sub">${esc(f.remainingNote ?? "—")}</span>`}</td>
       <td class="n">${ms}<div class="bar${pct >= 100 ? " done" : ""}" style="margin-top:5px"><span style="width:${pct}%"></span></div></td>
       <td class="n">${sheet}</td>
       <td></td>
@@ -642,7 +727,7 @@
   // Every on-chain movement matched to a PIP (payouts and returns); shared by the Funded PIPs row and the proposal page.
   function pipLegsTable(pip) {
     const legs = D.payments.filter((x) => x.pip === pip);
-    return legs.length ? `<table><thead><tr><th>Date</th><th>Account</th><th class="r">Amount</th><th>Recipient</th><th>Confidence</th><th>Tx</th></tr></thead><tbody>${legs.map((x) => `<tr><td class="mono">${dayCell(x.t)}</td><td>${esc(accLabel(x.account))}</td><td class="n">${x.isReturn ? "+" : "−"}${num(x.amount, x.symbol === "USDC" ? 2 : 0)} ${x.symbol}</td><td>${x.owner ? solFlow(x) : "—"}</td><td>${confChip(x.confidence)}${x.isReturn ? ` <span class="chip acc">return</span>` : ""}</td><td>${solTx(x.sig)}</td></tr>`).join("")}</tbody></table>` : "";
+    return legs.length ? `<table>${MOVE_HEAD}<tbody>${legs.map(movementRow).join("")}</tbody></table>` : "";
   }
 
   function paymentDetail(p) {
@@ -675,7 +760,7 @@
       ${sub("Elections")}
       <div class="tbl"><table>
         <thead><tr><th>PIP</th><th>Election</th><th>Voting ended</th><th class="r">Seats</th><th class="r">Ballots</th><th>Most first preferences (PVP)</th></tr></thead>
-        <tbody>${elections.map((p) => `<tr><td class="pipc">${pipLink(p.pip)}</td><td><div class="t2">${esc(p.title)}</div></td><td class="mono">${isoDay(p.votingEndsAt)}</td><td class="n">${p.seats ?? "—"}</td><td class="n">${num(p.totalVotes)}</td><td class="sub">${esc([...p.options].sort((a, b) => b.pvp - a.pvp).filter((o) => o.pvp > 0).slice(0, p.seats ?? 5).map((o) => optName(p, o.option)).join(", "))}</td></tr>`).join("")}</tbody>
+        <tbody>${elections.map((p) => `<tr><td class="pipc">${pipLink(p.pip)}</td><td><div class="t2"><a href="#votes/${p.pip}">${esc(p.title)}</a></div></td><td class="mono">${isoDay(p.votingEndsAt)}</td><td class="n">${p.seats ?? "—"}</td><td class="n">${num(p.totalVotes)}</td><td class="sub">${esc([...p.options].sort((a, b) => b.pvp - a.pvp).filter((o) => o.pvp > 0).slice(0, p.seats ?? 5).map((o) => optName(p, o.option)).join(", "))}</td></tr>`).join("")}</tbody>
       </table></div>
       <p class="src">Ranked elections allocate seats by single transferable vote. This table shows first preferences only; it does not recount the election.</p>
     </section>
@@ -836,16 +921,18 @@
     ${otherIncomeSection()}`;
   };
 
-  // Every sender that paid into a DAO account outside the recurring fees (e.g. the initial funding),
-  // summed per sender. Named once the Council adds the wallet; until then the shortened address.
+  // Every inflow outside the recurring fees, summed per income category the Council labelled it
+  // with (e.g. Initial funding), otherwise per sender. Returns and internal transfers are left out.
   function otherIncomeSection() {
     const by = new Map();
     for (const p of D.payments) {
-      if (p.direction !== "in" || p.confidence !== "income" || !p.owner) continue;
-      const g = by.get(p.owner) ?? { owner: p.owner, ATLAS: 0, USDC: 0, n: 0, first: p.t, last: p.t };
+      if (p.direction !== "in" || p.isReturn || !p.owner || !(p.confidence === "income" || p.confidence === "category" || (p.confidence === "inferred" && p.category))) continue;
+      const key = p.category ? `cat:${p.category}` : p.owner;
+      const g = by.get(key) ?? { key, category: p.category ?? null, owner: p.owner, owners: new Set(), ATLAS: 0, USDC: 0, n: 0, first: p.t, last: p.t };
+      g.owners.add(p.owner);
       if (p.symbol === "ATLAS" || p.symbol === "USDC") g[p.symbol] += p.amount;
       g.n++; g.first = Math.min(g.first, p.t); g.last = Math.max(g.last, p.t);
-      by.set(p.owner, g);
+      by.set(key, g);
     }
     // Senders of less than 10 ATLAS and 1 USDC in total are dust (spam or test transfers) and left out.
     const rows = [...by.values()].filter((g) => g.ATLAS >= 10 || g.USDC >= 1).sort((a, b) => a.first - b.first);
@@ -853,15 +940,17 @@
     return `<section class="sec">
       ${sub("Other income", `<span class="src">one-off transfers into the DAO accounts, per sender</span>`)}
       <div class="tbl"><table>
-        <thead><tr><th>Sender</th><th class="r">ATLAS</th><th class="r">USDC</th><th class="r">Transfers</th><th>First</th><th>Last</th><th></th></tr></thead>
+        <thead><tr><th>Source</th><th class="r">ATLAS</th><th class="r">USDC</th><th class="r">Transfers</th><th>First</th><th>Last</th><th></th></tr></thead>
         <tbody>${rows.map((g) => `<tr>
-          <td>${ownerLabel(g.owner) ? `<strong>${esc(ownerLabel(g.owner))}</strong><div class="sub">${solAcc(g.owner)}</div>` : solAcc(g.owner)}</td>
+          <td>${g.category
+            ? `<strong>${esc(g.category)}</strong><div class="sub">${[...g.owners].map((o) => ownerLabel(o) ? `${esc(ownerLabel(o))} ${solAcc(o)}` : solAcc(o)).join("<br>")}</div>`
+            : ownerLabel(g.owner) ? `<strong>${esc(ownerLabel(g.owner))}</strong><div class="sub">${solAcc(g.owner)}</div>` : solAcc(g.owner)}</td>
           <td class="n">${g.ATLAS ? num(g.ATLAS, 0) : "—"}</td><td class="n">${g.USDC ? num(g.USDC, 2) : "—"}</td><td class="n">${num(g.n)}</td>
           <td class="mono">${dayCell(g.first)}</td><td class="mono">${dayCell(g.last)}</td>
           <td><button class="btn sm" data-act="pay-inflows">Transfers</button></td>
         </tr>`).join("")}</tbody>
       </table></div>
-      <p class="src">Transfers lists every inflow on the Payments page. To name a sender, add it as a wallet (untracked) above.</p>
+      <p class="src">Transfers lists every inflow on the Payments page. Label an inflow there (e.g. Initial funding) to group it here by what it was; name a sender by adding it as a wallet above.</p>
     </section>`;
   }
 
@@ -873,7 +962,7 @@
       ${head("Proposals", `<span class="src">Governance API</span>`)}
       <div class="tbl"><table>
         <thead><tr><th>PIP</th><th>Title</th><th>Voting ended</th><th>Result</th><th class="r">Votes</th><th class="r">PVP voted</th><th>Split (PVP)</th><th class="r">Yes</th></tr></thead>
-        <tbody>${rows.map((p) => `<tr class="click" data-go="#votes/${p.pip}"><td class="pipc">PIP-${p.pip}</td><td><div class="t2">${esc(p.title)}</div></td><td class="mono">${isoDay(p.votingEndsAt)}</td><td>${outcomeChip(p.outcome)}</td><td class="n">${num(p.totalVotes)}</td><td class="n">${compact(p.totalPvp)}</td><td>${splitBar(p)}</td><td class="n">${p.ranked ? "ranked" : yesShare(p) == null ? "—" : num(yesShare(p) * 100, 1) + "%"}</td></tr>`).join("")}</tbody>
+        <tbody>${rows.map((p) => `<tr class="click" data-go="#votes/${p.pip}"><td class="pipc">${pipLink(p.pip)}</td><td><div class="t2"><a href="#votes/${p.pip}">${esc(p.title)}</a></div></td><td class="mono">${isoDay(p.votingEndsAt)}</td><td>${outcomeChip(p.outcome)}</td><td class="n">${num(p.totalVotes)}</td><td class="n">${compact(p.totalPvp)}</td><td>${splitBar(p)}</td><td class="n">${p.ranked ? "ranked" : yesShare(p) == null ? "—" : num(yesShare(p) * 100, 1) + "%"}</td></tr>`).join("")}</tbody>
       </table></div>
     </section>`;
   };
@@ -896,7 +985,7 @@
       const top = [...v.votes].sort((a, b) => b.pvp - a.pvp).slice(0, 15);
       const firstOpts = [...new Set(v.votes.map((x) => x.first))];
       const acc = {}; const tl = v.timeline.map((d) => { for (const [o, x] of Object.entries(d.byOption)) acc[o] = (acc[o] ?? 0) + x.pvp; return { day: d.day, ...acc }; });
-      detail = `
+      detail = v.ranked ? rankedDetail(p, v, top, tl) : `
       <section class="sec panel">
         ${sub("Voting power over the voting period", `<span class="src">cumulative PVP by ${v.ranked ? "first choice" : "option"}</span>`)}
         ${Charts.line({ label: "Cumulative PVP", yFmt: compact, area: false, legend: true, series: firstOpts.map((o, i) => ({ name: optName(p, o), color: colorOf(o, i), points: tl.map((d) => [d.day, d[o] ?? 0]) })) })}
@@ -904,13 +993,13 @@
       <div class="grid-2">
         <section class="sec">
           ${sub("By voter size", `<span class="src">${v.ranked ? "first choice" : "option"}</span>`)}
-          <div class="tbl"><table><thead><tr><th>Voter size</th>${firstOpts.map((o) => `<th class="r">${esc(optName(p, o))}</th>`).join("")}</tr></thead>
-          <tbody>${v.buckets.map((b) => `<tr><td>${esc(b.label)}</td>${firstOpts.map((o) => `<td class="n">${num(b.byOption[o]?.count ?? 0)}<div class="sub">${compact(b.byOption[o]?.pvp ?? 0)} PVP</div></td>`).join("")}</tr>`).join("")}</tbody></table></div>
+          <div class="tbl"><table><thead><tr><th>Voter size</th>${firstOpts.map((o, i) => `<th class="r" style="color:${colorOf(o, i)}">${esc(optName(p, o))}</th>`).join("")}</tr></thead>
+          <tbody>${v.buckets.map((b) => `<tr><td>${esc(b.label)}</td>${firstOpts.map((o, i) => `<td class="n"><span style="color:${colorOf(o, i)}">${num(b.byOption[o]?.count ?? 0)}</span><div class="sub">${compact(b.byOption[o]?.pvp ?? 0)} PVP</div></td>`).join("")}</tr>`).join("")}</tbody></table></div>
         </section>
         <section class="sec">
           ${sub("Largest voters")}
           <div class="tbl"><table><thead><tr><th>Wallet</th><th>Vote</th><th class="r">PVP</th><th>POLIS locked until</th></tr></thead>
-          <tbody>${top.map((x) => `<tr><td>${solAcc(x.wallet)}</td><td>${esc(x.choice)}</td><td class="n">${num(x.pvp)}</td><td class="mono sub">${x.lockedUntil ? day(x.lockedUntil) : "—"}</td></tr>`).join("")}</tbody></table></div>
+          <tbody>${top.map((x) => `<tr><td>${solAcc(x.wallet)}</td><td style="color:${colorOf(x.first, firstOpts.indexOf(x.first))}">${esc(x.choice)}</td><td class="n">${num(x.pvp)}</td><td class="mono sub">${x.lockedUntil ? day(x.lockedUntil) : "—"}</td></tr>`).join("")}</tbody></table></div>
         </section>
       </div>`;
     }
@@ -991,7 +1080,7 @@
     if (bar) bar.innerHTML = editBar();
   }
 
-  const EDIT_ACTIONS = new Set(["ed-signin", "ed-signout", "ed-update", "doc-open", "doc-close", "doc-upload", "wal-open", "wal-cancel", "wal-save", "ed-preview", "lbl-open", "lbl-cancel", "lbl-save", "pip-edit", "pip-reload", "pip-cancel", "pip-save", "pip-overwrite", "mem-seed", "mem-open", "mem-cancel", "mem-save"]);
+  const EDIT_ACTIONS = new Set(["ed-signin", "ed-signout", "ed-update", "doc-open", "doc-close", "doc-upload", "wal-open", "wal-cancel", "wal-save", "ed-preview", "lbl-open", "lbl-cancel", "lbl-save", "lbl-clear", "lbl-clear-yes", "lbl-clear-no", "pip-edit", "pip-reload", "pip-cancel", "pip-save", "pip-overwrite", "mem-seed", "mem-open", "mem-cancel", "mem-save"]);
   function editClick(e) {
     const el = e.target.closest("[data-act]");
     if (!el || !EDIT_ACTIONS.has(el.dataset.act)) return false;
@@ -1011,6 +1100,15 @@
       const act = e.target.closest("[data-act]");
       if (act?.dataset.act === "pay-inflows") { ui.payDir = "in"; ui.payConf = "all"; ui.payAccount = "all"; location.hash = "#payments"; setTimeout(() => $("#ledger")?.scrollIntoView({ behavior: "smooth" }), 50); return; }
       if (act?.dataset.act === "attention" || act?.dataset.act === "pay-filter") { ui.payConf = act.dataset.key ?? "attention"; ui.payAccount = act.dataset.acc ?? "all"; ui.payDir = "out"; render(); $("#ledger")?.scrollIntoView({ behavior: "smooth" }); }
+    });
+    // Typing in the movements filter redraws the page; focus and cursor are put back where they were.
+    view.addEventListener("input", (e) => {
+      if (e.target.id !== "f-q") return;
+      ui.payQuery = e.target.value;
+      const at = e.target.selectionStart;
+      render();
+      const q = $("#f-q");
+      if (q) { q.focus(); q.setSelectionRange(at, at); }
     });
     view.addEventListener("change", (e) => {
       const id = e.target.id;

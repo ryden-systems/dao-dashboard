@@ -143,6 +143,20 @@
         return { saved: true };
       },
 
+      // Remove every label row for one payout, so it goes back to automatic matching.
+      async removeLabel({ signature, recipient }) {
+        const rows = await core.readTab(tabs.paymentLabels);
+        const hi = SM.findHeaderRow(rows, ["Signature"]);
+        if (hi < 0) return { removed: 0 };
+        const h = rows[hi], cSig = SM.colIndex(h, "Signature"), cRec = SM.colIndex(h, "Recipient");
+        const hits = [];
+        for (let i = hi + 1; i < rows.length; i++) {
+          if (same(rows[i][cSig], signature) && (cRec < 0 || same(rows[i][cRec], recipient))) hits.push(i);
+        }
+        if (hits.length) await core.deleteRows(tabs.paymentLabels, hits);
+        return { removed: hits.length };
+      },
+
       async addMember(m) {
         for (const [k, kind] of [["name", "required"], ["start", "date"], ["end", "date"], ["image", "url"]]) {
           const msg = SM.validate(kind, m[k]);
@@ -184,17 +198,19 @@
           const msg = SM.validate(kind, v);
           if (msg) return { error: `${what}: ${msg}` };
         }
-        if (label) { const msg = SM.validate("pipLabel", label); if (msg) return { error: `Label: ${msg}` }; }
+        if (label) { const msg = SM.validate("pipLabel", label); if (msg) return { error: `Payout label: ${msg}` }; }
         const tab = tabs.wallets || "Wallets";
         await core.ensureTab(tab, SM.WALLET_HEADERS);
-        const values = { Name: name, Label: label || "", "Track balance": track ? "TRUE" : "FALSE", Note: note || "" };
+        const values = { Name: name, "Payout label": label || "", "Track balance": track ? "TRUE" : "FALSE", Note: note || "" };
         const rows = await core.readTab(tab);
         const hi = SM.findHeaderRow(rows, ["Wallet"]);
         if (hi >= 0) {
           const h = rows[hi], cW = SM.colIndex(h, "Wallet");
+          // Tabs made before the rename still call the column "Label".
+          const col = (k) => { const c = SM.colIndex(h, k); return c >= 0 || k !== "Payout label" ? c : SM.colIndex(h, "Label"); };
           for (let i = hi + 1; i < rows.length; i++) {
             if (!same(rows[i][cW], wallet)) continue;
-            for (const [k, v] of Object.entries(values)) { const c = SM.colIndex(h, k); if (c >= 0) await core.writeCell(tab, i, c, v); }
+            for (const [k, v] of Object.entries(values)) { const c = col(k); if (c >= 0) await core.writeCell(tab, i, c, v); }
             return { saved: true, updated: true };
           }
         }

@@ -52,12 +52,28 @@ export function reconcile({ pips, ledger, labels = [], wallets = [], config }) {
   function base(r) { return { sig: r.sig, t: r.t, account: r.account, symbol: r.symbol }; }
 
   const set = (leg, confidence, pip, reason) => { leg.confidence = confidence; leg.pip = pip ?? null; leg.reason = reason; };
+  // Automatic matches only: money cannot be for a PIP whose vote had not started yet. A Council label
+  // is never second-guessed. A PIP without a vote start date in the sheet is not restricted.
+  const voteStart = new Map(pips.filter((p) => p.voteStart).map((p) => [p.pip, Date.parse(p.voteStart + "T00:00:00Z") / 1000]));
+  const canBeFor = (t, pip) => !(voteStart.get(pip) > t);
+  // Authorized amount per currency: the sheet's "Authorized USDC" / "Authorized ATLAS" for a PIP paid in
+  // both, otherwise the one Amount in its currency.
+  const authBy = (p) => {
+    const s = {};
+    if (p.authorizedUsdc?.value != null) s.USDC = p.authorizedUsdc.value;
+    if (p.authorizedAtlas?.value != null) s.ATLAS = p.authorizedAtlas.value;
+    return Object.keys(s).length ? s : null;
+  };
   const pipLabel = (s) => { const m = String(s).match(/PIP-?(\d+)/i); return m ? Number(m[1]) : null; };
 
-  // A label is a PIP, "internal" / "refund" / "not a payout", or a cost category such as Foundation.
+  // A label is a PIP, "internal" / "refund" / "not a payout", "unknown" (no match until someone
+  // finds out), or a category such as Foundation.
+  // On an inflow a category says where the money came from (e.g. Initial funding), and a PIP marks
+  // money returned for that PIP, so it is never counted as paid.
   const applyLabel = (leg, text, confirmed, reason) => {
     const pip = pipLabel(text);
-    if (pip != null) set(leg, confirmed ? "confirmed" : "inferred", pip, reason);
+    if (pip != null) { set(leg, confirmed ? "confirmed" : "inferred", pip, reason); if (leg.direction === "in") leg.isReturn = true; }
+    else if (/^unknown$/i.test(text)) set(leg, leg.direction === "in" ? "income" : "unlabelled", null, "Council: not known yet");
     else if (NOT_SPENDING.test(text)) set(leg, "internal", null, text);
     else { set(leg, confirmed ? "category" : "inferred", null, reason); leg.category = text; }
   };
@@ -80,7 +96,7 @@ export function reconcile({ pips, ledger, labels = [], wallets = [], config }) {
   // Pass 2: single payouts equal to a PIP's sheet "paid" figure.
   for (const leg of legs) {
     if (leg.confidence || leg.direction !== "out") continue;
-    const hits = funded.filter((p) => !sheetUsed.has(`${p.pip}:${leg.symbol}`) && eq(sheetPaid(p, leg.symbol), leg.amount));
+    const hits = funded.filter((p) => canBeFor(leg.t, p.pip) && !sheetUsed.has(`${p.pip}:${leg.symbol}`) && eq(sheetPaid(p, leg.symbol), leg.amount));
     if (hits.length === 1) {
       sheetUsed.add(`${hits[0].pip}:${leg.symbol}`);
       set(leg, "matches-sheet", hits[0].pip, `equals the sheet's paid ${leg.symbol} for PIP-${hits[0].pip}`);
@@ -93,7 +109,8 @@ export function reconcile({ pips, ledger, labels = [], wallets = [], config }) {
     if (group.length < 2) continue;
     const sym = group[0].symbol;
     const sum = group.reduce((s, l) => s + l.amount, 0);
-    const hits = funded.filter((p) => !sheetUsed.has(`${p.pip}:${sym}`) && eq(sheetPaid(p, sym), sum));
+    const first = Math.min(...group.map((l) => l.t));
+    const hits = funded.filter((p) => canBeFor(first, p.pip) && !sheetUsed.has(`${p.pip}:${sym}`) && eq(sheetPaid(p, sym), sum));
     if (hits.length !== 1) continue;
     sheetUsed.add(`${hits[0].pip}:${sym}`);
     for (const leg of group) set(leg, "matches-sheet", hits[0].pip, `${group.length} payouts to this recipient sum to the sheet's paid ${sym} for PIP-${hits[0].pip}`);
@@ -105,7 +122,7 @@ export function reconcile({ pips, ledger, labels = [], wallets = [], config }) {
   const taken = new Set(legs.filter((l) => l.pip != null && COUNTS_AS_PAID.has(l.confidence)).map((l) => l.pip));
   for (const group of bySig.values()) {
     for (const leg of group) {
-      const cands = funded.filter((p) => p.currency === leg.symbol && eq(p.amount.value, leg.amount) && !taken.has(p.pip));
+      const cands = funded.filter((p) => canBeFor(leg.t, p.pip) && !taken.has(p.pip) && (authBy(p) ? eq(authBy(p)[leg.symbol], leg.amount) : p.currency === leg.symbol && eq(p.amount.value, leg.amount)));
       if (!cands.length) continue;
       const pick = cands[0];
       taken.add(pick.pip);
@@ -133,7 +150,8 @@ export function reconcile({ pips, ledger, labels = [], wallets = [], config }) {
   // Pass 5: returns (inflows from a known PIP recipient) and inferred outflows.
   for (const leg of legs) {
     if (leg.confidence) continue;
-    const known = leg.owner ? recipientPips.get(leg.owner) : null;
+    const all = leg.owner ? recipientPips.get(leg.owner) : null;
+    const known = all ? new Set([...all].filter((pip) => canBeFor(leg.t, pip))) : null;
     if (leg.direction === "in") {
       if (known?.size === 1) { const pip = [...known][0]; set(leg, "matches-sheet", pip, `returned by PIP-${pip}'s recipient`); leg.isReturn = true; }
       else set(leg, "income", null, "inflow");
@@ -171,20 +189,24 @@ export function reconcile({ pips, ledger, labels = [], wallets = [], config }) {
     }
     const net = Object.fromEntries([...new Set([...Object.keys(paid), ...Object.keys(returned)])].map((s) => [s, (paid[s] ?? 0) - (returned[s] ?? 0)]));
     const authorized = p.amount.value;
+    // A split PIP is measured per currency; any other PIP in its one currency, as before.
+    const split = authBy(p);
+    const remainingBy = split ? Object.fromEntries(Object.entries(split).map(([s, a]) => [s, Math.max(0, round(a - (paid[s] ?? 0)))])) : null;
     const sameCurrency = paid[p.currency] != null;
-    const crossCurrency = Object.keys(paid).some((s) => s !== p.currency && paid[s] > EPS);
+    const crossCurrency = !split && Object.keys(paid).some((s) => s !== p.currency && paid[s] > EPS);
     let remaining = null, state;
-    if (sameCurrency) remaining = Math.max(0, round(authorized - paid[p.currency]));
+    if (!split && sameCurrency) remaining = Math.max(0, round(authorized - paid[p.currency]));
     const anyPaid = Object.values(paid).some((v) => v > EPS);
     const allReturned = anyPaid && Object.values(net).every((v) => Math.abs(v) < 0.5);
     const msDone = p.milestonesDone.value, msTotal = p.milestonesTotal.value;
+    const settled = split ? Object.values(remainingBy).every((v) => v === 0) : remaining === 0;
     if (allReturned) state = "returned";
     else if (!anyPaid) state = "unpaid";
-    else if (remaining === 0 || (msTotal && msDone === msTotal)) state = "paid";
+    else if (settled || (msTotal && msDone === msTotal)) state = "paid";
     else state = "partly-paid";
     return {
       pip: p.pip, name: p.name, category: p.category, ecosystemFund: p.ecosystemFund, sacTerm: p.sacTerm,
-      authorized, currency: p.currency, paid: roundAll(paid), returned: roundAll(returned), net: roundAll(net), inferred: roundAll(inferred), remaining,
+      authorized, currency: p.currency, authorizedBy: split, remainingBy, paid: roundAll(paid), returned: roundAll(returned), net: roundAll(net), inferred: roundAll(inferred), remaining,
       remainingNote: !sameCurrency && crossCurrency ? `authorized in ${p.currency}, paid in ${Object.keys(paid).join(" + ")}` : null,
       sheet: { paidAtlas: p.paidAtlas, paidUsdc: p.paidUsdc, leftAtlas: p.leftAtlas, leftUsdc: p.leftUsdc },
       milestones: { done: msDone, total: msTotal },

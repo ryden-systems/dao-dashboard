@@ -47,11 +47,12 @@ window.Charts = (() => {
 
     let g = `<g class="grid">${yt.map((v) => `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}"/>`).join("")}</g>`;
     g += `<g class="axis">${yt.map((v) => `<text x="${m.l - 8}" y="${Y(v) + 4}" text-anchor="end">${esc(fy(v))}</text>`).join("")}`;
-    // x labels: ~5 evenly spaced dates
+    // x labels: ~5 evenly spaced dates; months for long ranges, days when the range is under ~4 months
     const n = Math.min(5, Math.max(2, Math.floor((W - m.l - m.r) / 120)));
+    const short = x1 - x0 < 120 * 86400e3;
     for (let i = 0; i <= n; i++) {
       const t = x0 + ((x1 - x0) * i) / n;
-      const d = new Date(t).toISOString().slice(0, 7);
+      const d = new Date(t).toISOString().slice(0, short ? 10 : 7);
       g += `<text x="${X(t)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === n ? "end" : "middle"}">${d}</text>`;
     }
     g += `</g><line class="base" x1="${m.l}" x2="${W - m.r}" y1="${Y(y0)}" y2="${Y(y0)}"/>`;

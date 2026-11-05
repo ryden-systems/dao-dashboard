@@ -114,7 +114,7 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 h1, h2, h3 { text-wrap: balance; line-height: 1.15; margin: 0; color: var(--ink-head); font-weight: 400; }
 p { margin: 0; }
 .mono { font-variant-numeric: tabular-nums; }  /* govern sets addresses and dates in the body face */
-.addr, a.addr { color: var(--address); }
+.addr, a.addr { color: var(--address); white-space: nowrap; }
 .copy { display: inline-flex; vertical-align: -2px; margin-left: 4px; padding: 1px; border: 0; background: none; color: var(--muted); cursor: pointer; }
 .copy:hover { color: var(--ink); }
 .copy.done { color: var(--good); }
@@ -351,6 +351,9 @@ select, input[type="search"] {
   border-radius: 4px; padding: 7px 26px 8px 12px;
 }
 select:hover { --cut-line: var(--action-secondary); }
+/* A text field sits 2px lower than a select with the same padding; this evens out a row of controls. */
+input[type="search"] { padding-block: 8px 9px; }
+input[type="search"]::placeholder { color: var(--muted); }
 button.link { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
 button.link:hover { text-decoration: underline; text-underline-offset: 2px; }
 
@@ -386,4 +389,7 @@ button.link:hover { text-decoration: underline; text-underline-offset: 2px; }
   th, td { padding: 8px 9px; }
   .kpi .v { font-size: 32px; }
 }
+/* A status that is still running pulses slowly. */
+.pulse { animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

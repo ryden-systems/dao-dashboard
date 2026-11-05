@@ -76,8 +76,11 @@ export function parsePipTab(rows) {
     paidAtlas: col("Total Amount Paid (ATLAS)"), leftAtlas: col("Total Amount Left (ATLAS)"),
     msDone: col("Completed Milestones"), msTotal: col("Total Payment Milestones"),
     votes: col("# of Votes"), pvpVoted: col("PVP Voted"), totalPvp: col("Total PVP"),
+    // Optional: a PIP paid in both currencies gets its USDC and ATLAS amounts here (token amounts).
+    authUsdc: col("Authorized USDC"), authAtlas: col("Authorized ATLAS"),
   };
-  const missing = Object.entries(C).filter(([, i]) => i < 0).map(([k]) => k);
+  const OPTIONAL = new Set(["authUsdc", "authAtlas"]);
+  const missing = Object.entries(C).filter(([k, i]) => i < 0 && !OPTIONAL.has(k)).map(([k]) => k);
 
   const pips = [];
   for (const r of rows.slice(hi + 1)) {
@@ -108,6 +111,8 @@ export function parsePipTab(rows) {
       leftUsdc: parseNum(get("leftUsdc")),
       paidAtlas: parseNum(get("paidAtlas")),
       leftAtlas: parseNum(get("leftAtlas")),
+      authorizedUsdc: parseNum(get("authUsdc")),
+      authorizedAtlas: parseNum(get("authAtlas")),
       milestonesDone: parseNum(get("msDone")),
       milestonesTotal: parseNum(get("msTotal")),
       sheetVotes: parseNum(get("votes")).value,
@@ -180,7 +185,8 @@ export function parseWalletsTab(rows) {
   if (hi < 0) return [];
   const h = rows[hi].map((c) => clean(c).toLowerCase());
   const at = (n) => h.findIndex((x) => x === n || x.startsWith(n));
-  const C = { wallet: at("wallet"), name: at("name"), label: at("label"), track: at("track"), note: at("note") };
+  // "Payout label" since 2026-11; tabs made earlier call it "Label".
+  const C = { wallet: at("wallet"), name: at("name"), label: at("payout label") >= 0 ? at("payout label") : at("label"), track: at("track"), note: at("note") };
   const get = (r, k) => (C[k] >= 0 ? clean(r[C[k]]) : "");
   const seen = new Set();
   return rows.slice(hi + 1)

@@ -9,7 +9,8 @@
   // Headers of the tabs the dashboard writes to.
   const LABEL_HEADERS = ["Signature", "Recipient", "PIP", "Confirmed"];
   const DOC_HEADERS = ["Signature", "Recipient", "File", "Link", "Uploaded (UTC)", "By"];
-  const WALLET_HEADERS = ["Wallet", "Name", "Label", "Track balance", "Note"];
+  // "Payout label" (formerly "Label"): applied to payouts to the wallet only, never to inflows.
+  const WALLET_HEADERS = ["Wallet", "Name", "Payout label", "Track balance", "Note"];
   const MEMBER_HEADERS = ["Name", "Role", "Term", "Start", "End", "Elected (PIP)", "Wallet", "Discord", "X", "Image", "Show"];
 
   // Editable PIP fields -> header text in the Tracker tab (matched by prefix, like the importer).

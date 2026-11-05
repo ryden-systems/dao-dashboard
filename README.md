@@ -37,6 +37,11 @@ the entry disappears on the next build once the sheet is corrected.
 
 **The sheet must stay viewable by anyone with the link.** The dashboard reads it through Google's public CSV export.
 
+**PIPs paid in both USDC and ATLAS** (e.g. PIP-33: 75% USDC, 25% ATLAS) get two optional columns in the PIP tab,
+**Authorized USDC** and **Authorized ATLAS**, as token amounts. When either is filled, that PIP's paid and remaining
+amounts are worked out per currency instead of from the single Amount. Where the ATLAS part is fixed in dollars and
+converted on payment day, enter the ATLAS actually paid per tranche once it is known, and add each later tranche.
+
 ### Council members (optional, recommended)
 
 The Council page shows the current Council, any incoming Council, and every past Council.
@@ -88,11 +93,13 @@ suggested for the same category and only need confirming.
 
 Other wallets the DAO deals with, such as the Foundation's, can be listed in a "Wallets" tab:
 
-| Wallet | Name | Label | Track balance | Note |
+| Wallet | Name | Payout label | Track balance | Note |
 |---|---|---|---|---|
-| the Solana address | shown instead of the address everywhere | optional: every payout to this wallet gets this label, e.g. `Foundation` or `PIP-36` | `TRUE` to show its ATLAS, USDC and SOL balances on the Balances page | optional |
+| the Solana address | who owns the wallet, shown instead of the address everywhere; several wallets of one owner can share a name | optional: every payout to this wallet gets this label, e.g. `Foundation` or `PIP-36`; inflows from the wallet are not labelled by it | `TRUE` to show its ATLAS, USDC and SOL balances on the Balances page | optional |
 
-A label on a single payout (see *Payment labels*) overrides the wallet's label. Signed-in editors can add and change
+Tabs created before November 2026 call the Payout label column "Label"; both are read. A label on a single
+payout or inflow (see *Payment labels*) overrides the wallet's label. An inflow is labelled on its own, e.g.
+`Initial funding`; it then appears under that name in Other income on Balances. Signed-in editors can add and change
 wallets on the Balances page (**Add a wallet**, **Edit**); the tab is created on the first save.
 
 ### Payment documents (optional)

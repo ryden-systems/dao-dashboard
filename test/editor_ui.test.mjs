@@ -29,7 +29,13 @@ const ctx = {
   addEventListener: (t, fn) => { (winListeners[t] ??= []).push(fn); },
   dispatchEvent: (ev) => { for (const fn of winListeners[ev.type] ?? []) fn(ev); },
   CustomEvent: class { constructor(type, init) { this.type = type; this.detail = init?.detail; } },
-  fetch: async (u) => ({ ok: true, status: 200, json: async () => (String(u).includes("dashboard.json") ? D : {}) }),
+  // Serves the built site's files (vote detail etc.) like the browser would; dashboard.json is the test's copy.
+  fetch: async (u) => {
+    if (String(u).includes("dashboard.json")) return { ok: true, status: 200, json: async () => D };
+    const file = path.join(dist, String(u).split("?")[0]);
+    const ok = fs.existsSync(file);
+    return { ok, status: ok ? 200 : 404, json: async () => (ok ? JSON.parse(fs.readFileSync(file, "utf8")) : {}) };
+  },
 };
 ctx.window = ctx;
 vm.createContext(ctx);
@@ -90,6 +96,41 @@ await click("lbl-save", { sig: need.sig, owner: need.owner ?? "" });
 const lc = calls.find((c) => c[0] === "addLabel");
 ok(lc && lc[1].signature === need.sig && lc[1].recipient === (need.owner ?? "") && lc[1].pip === "PIP-28" && lc[1].confirmed === true, "label saved with signature, recipient, PIP and confirmed: " + JSON.stringify(lc?.[1]));
 ok(text().includes("Labelled PIP-28"), "saved message shown on the payout");
+
+// Remove a label: only on labelled payouts, and only after confirming in place.
+{
+  const lab = D.payments.find((p) => p.labelled && p.direction === "out");
+  if (lab) {
+    ctx.Editor.core.removeLabel = async (a) => { calls.push(["removeLabel", a]); return { removed: 1 }; };
+    const lkey = `${lab.sig}:${lab.owner ?? ""}`;
+    await click("lbl-open", { key: lkey });
+    ok(nodes.view.innerHTML.includes('data-act="lbl-clear"'), "a labelled payout's form offers Remove label");
+    await click("lbl-clear", { sig: lab.sig, owner: lab.owner ?? "" });
+    ok(!calls.some((c) => c[0] === "removeLabel") && nodes.view.innerHTML.includes('data-act="lbl-clear-yes"'), "Remove label asks to confirm before touching the sheet");
+    await click("lbl-clear-yes", { sig: lab.sig, owner: lab.owner ?? "" });
+    const rc = calls.find((c) => c[0] === "removeLabel");
+    ok(rc && rc[1].signature === lab.sig && rc[1].recipient === (lab.owner ?? "") && text().includes("Label removed"), "confirming removes the label for that payout");
+  }
+  const unl = D.payments.find((p) => !p.labelled && p.direction === "out" && (p.confidence === "unlabelled" || p.confidence === "inferred"));
+  await click("lbl-open", { key: `${unl.sig}:${unl.owner ?? ""}` });
+  ok(!nodes.view.innerHTML.includes('data-act="lbl-clear"'), "a payout without a Council label has no Remove label button");
+  await click("lbl-cancel");
+}
+
+// A movement can be edited wherever it shows up: proposal page, Overview, Payments.
+{
+  const leg = D.payments.find((p) => p.pip != null && !(p.confidence === "internal" && !p.labelled));
+  const k = `data-act="lbl-open" data-key="${leg.sig}:${leg.owner ?? ""}"`;
+  await go(`#votes/${leg.pip}`);
+  ok(nodes.view.innerHTML.includes(k), `a PIP's payout can be labelled on its proposal page (PIP-${leg.pip})`);
+  await click("lbl-open", { key: `${leg.sig}:${leg.owner ?? ""}` });
+  ok(nodes.view.innerHTML.includes('id="lbl-pip"'), "the label form opens on the proposal page");
+  await click("lbl-cancel");
+  await go("#overview");
+  const recent = D.payments.find((p) => p.direction === "out" && p.confidence !== "internal");
+  ok(nodes.view.innerHTML.includes(`data-act="lbl-open" data-key="${recent.sig}:${recent.owner ?? ""}"`), "recent payouts on Overview can be labelled");
+  await go("#payments");
+}
 
 // ---------- edit a PIP: conflict, then overwrite ----------
 ctx.location.hash = "#payments";
@@ -164,7 +205,7 @@ ok(calls.some((c) => c[0] === "requestUpdate" && c[1] === "editor@example.org") 
   ];
   ctx.Editor.core.saveWallet = async (w) => { calls.push(["saveWallet", w]); return { saved: true, updated: true }; };
   await go("#balance");
-  ok(nodes.view.innerHTML.includes("Star Atlas Foundation") && nodes.view.innerHTML.includes("1,234.5") && nodes.view.innerHTML.includes(">Foundation</span>") && nodes.view.innerHTML.includes("<th>Label</th>"), "tracked wallet listed with name, label and balances");
+  ok(nodes.view.innerHTML.includes("Star Atlas Foundation") && nodes.view.innerHTML.includes("1,234.5") && nodes.view.innerHTML.includes(">Foundation</span>") && nodes.view.innerHTML.includes("<th>Payout label</th>"), "tracked wallet listed with name, payout label and balances");
   ok(/<tr class="ed-only">\s*<td><strong>Untracked Wallet/.test(nodes.view.innerHTML), "editors also see untracked wallets, tinted");
   await click("wal-open", { wallet: W });
   ok(nodes.view.innerHTML.includes(`id="wf-wallet" placeholder="Solana address" value="${W}"`), "Edit opens the form filled with the wallet");
