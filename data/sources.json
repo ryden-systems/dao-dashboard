@@ -2785,7 +2785,7 @@
    "name": "Dao Treasury",
    "label": "",
    "track": false,
-   "note": "Wallet switch"
+   "note": "Old wallet"
   },
   {
    "wallet": "NPCxfjPxh6pvRJbGbWZjxfkqWfGBvKkqPbtiJar3mom",
@@ -2849,5 +2849,5 @@
    "name": "Wallets"
   }
  },
- "fetchedAt": "2026-11-05T19:05:28.479Z"
+ "fetchedAt": "2026-11-05T19:10:28.637Z"
 }
