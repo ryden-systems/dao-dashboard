@@ -20,17 +20,17 @@
    "officialWinners": null,
    "options": [
     {
-     "option": "Abstain",
+     "option": "abstain",
      "count": 11,
      "pvp": 6267862.718595724
     },
     {
-     "option": "No",
+     "option": "no",
      "count": 101,
      "pvp": 50624407.96816818
     },
     {
-     "option": "Yes",
+     "option": "yes",
      "count": 782,
      "pvp": 118466246.6076961
     }
@@ -58,17 +58,17 @@
    "officialWinners": null,
    "options": [
     {
-     "option": "Abstain",
+     "option": "abstain",
      "count": 27,
      "pvp": 7292070.457697856
     },
     {
-     "option": "No",
+     "option": "no",
      "count": 151,
      "pvp": 69015468.83813375
     },
     {
-     "option": "Yes",
+     "option": "yes",
      "count": 674,
      "pvp": 99759835.19288997
     }
@@ -96,17 +96,17 @@
    "officialWinners": null,
    "options": [
     {
-     "option": "Abstain",
+     "option": "abstain",
      "count": 5,
      "pvp": 164557.69369207002
     },
     {
-     "option": "No",
+     "option": "no",
      "count": 13,
      "pvp": 12482711.012724074
     },
     {
-     "option": "Yes",
+     "option": "yes",
      "count": 461,
      "pvp": 84678191.70252548
     }
@@ -134,17 +134,17 @@
    "officialWinners": null,
    "options": [
     {
-     "option": "Abstain",
+     "option": "abstain",
      "count": 6,
      "pvp": 203935.9438189092
     },
     {
-     "option": "No",
+     "option": "no",
      "count": 33,
      "pvp": 14242581.31620797
     },
     {
-     "option": "Yes",
+     "option": "yes",
      "count": 421,
      "pvp": 81843902.5128978
     }
@@ -172,17 +172,17 @@
    "officialWinners": null,
    "options": [
     {
-     "option": "Abstain",
+     "option": "abstain",
      "count": 9,
      "pvp": 740849.6005100228
     },
     {
-     "option": "No",
+     "option": "no",
      "count": 69,
      "pvp": 19930351.43958933
     },
     {
-     "option": "Yes",
+     "option": "yes",
      "count": 333,
      "pvp": 80521366.4547641
     }
@@ -1936,5 +1936,5 @@
    "totalPvp": 73605906.40931177
   }
  ],
- "fetchedAt": "2026-11-05T11:45:36.497Z"
+ "fetchedAt": "2026-11-05T12:01:32.275Z"
 }
