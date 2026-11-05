@@ -482,8 +482,8 @@
    "ecosystemFund": true,
    "voteResult": "Passed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-1",
-   "note": "First PIP that had SAC-1 involvement",
+   "sacTerm": "Term 1",
+   "note": "First PIP that had Term 1 involvement",
    "paidUsdc": {
     "value": null,
     "raw": "",
@@ -548,7 +548,7 @@
    "ecosystemFund": false,
    "voteResult": "Passed",
    "category": "Governance",
-   "sacTerm": "SAC-1",
+   "sacTerm": "Term 1",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -614,7 +614,7 @@
    "ecosystemFund": false,
    "voteResult": "Passed",
    "category": "Governance",
-   "sacTerm": "SAC-1",
+   "sacTerm": "Term 1",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -676,11 +676,11 @@
     "state": "ok"
    },
    "currency": null,
-   "roi": "5 SAC-3 council members volunteered ~675+ hours over 9 months, completing 147 accomplishments positively affecting the SA DAO ecosystem, paying out 61.5M ATLAS for PIP authors, facilitating voting process for 14 PIPs with 2.2K votes cast, achieving average voter participation rate of 19%, publishing 48 DAO transparency reports",
+   "roi": "5 Term 3 council members volunteered ~675+ hours over 9 months, completing 147 accomplishments positively affecting the SA DAO ecosystem, paying out 61.5M ATLAS for PIP authors, facilitating voting process for 14 PIPs with 2.2K votes cast, achieving average voter participation rate of 19%, publishing 48 DAO transparency reports",
    "ecosystemFund": false,
    "voteResult": "Passed",
    "category": "Governance",
-   "sacTerm": "SAC-1",
+   "sacTerm": "Term 1",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -746,7 +746,7 @@
    "ecosystemFund": true,
    "voteResult": "Passed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-2",
+   "sacTerm": "Term 2",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -812,7 +812,7 @@
    "ecosystemFund": false,
    "voteResult": "Failed",
    "category": "Governance",
-   "sacTerm": "SAC-2",
+   "sacTerm": "Term 2",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -878,7 +878,7 @@
    "ecosystemFund": true,
    "voteResult": "Passed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-2",
+   "sacTerm": "Term 2",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -944,7 +944,7 @@
    "ecosystemFund": true,
    "voteResult": "Failed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-2",
+   "sacTerm": "Term 2",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -1010,7 +1010,7 @@
    "ecosystemFund": true,
    "voteResult": "Passed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-2",
+   "sacTerm": "Term 2",
    "note": "Transitioning from Eveeye Star Atlas [EDIT TEST]",
    "paidUsdc": {
     "value": 8464.79,
@@ -1076,7 +1076,7 @@
    "ecosystemFund": true,
    "voteResult": "Passed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-2",
+   "sacTerm": "Term 2",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -1142,7 +1142,7 @@
    "ecosystemFund": true,
    "voteResult": "Passed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-2",
+   "sacTerm": "Term 2",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -1208,7 +1208,7 @@
    "ecosystemFund": true,
    "voteResult": "Failed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-2",
+   "sacTerm": "Term 2",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -1274,7 +1274,7 @@
    "ecosystemFund": true,
    "voteResult": "Passed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-2",
+   "sacTerm": "Term 2",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -1340,7 +1340,7 @@
    "ecosystemFund": true,
    "voteResult": "Passed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-2",
+   "sacTerm": "Term 2",
    "note": "",
    "paidUsdc": {
     "value": 2083,
@@ -1406,7 +1406,7 @@
    "ecosystemFund": true,
    "voteResult": "Passed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-2",
+   "sacTerm": "Term 2",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -1472,7 +1472,7 @@
    "ecosystemFund": false,
    "voteResult": "Passed",
    "category": "Governance",
-   "sacTerm": "SAC-2",
+   "sacTerm": "Term 2",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -1538,7 +1538,7 @@
    "ecosystemFund": true,
    "voteResult": "Passed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-2",
+   "sacTerm": "Term 2",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -1600,11 +1600,11 @@
     "state": "ok"
    },
    "currency": "USDC",
-   "roi": "Five SAC-3 council members volunteered ~8+ hours per month, completing 20 accomplishments positively affecting the SA DAO ecosystem, paying out 1.2M+ ATLAS for PIP authors, facilitating voting process for 6 PIPs with 871 votes cast, achieving average voter participation rate of 23%, publishing 21 DAO transparency reports",
+   "roi": "Five Term 3 council members volunteered ~8+ hours per month, completing 20 accomplishments positively affecting the SA DAO ecosystem, paying out 1.2M+ ATLAS for PIP authors, facilitating voting process for 6 PIPs with 871 votes cast, achieving average voter participation rate of 23%, publishing 21 DAO transparency reports",
    "ecosystemFund": false,
    "voteResult": "Passed",
    "category": "Governance",
-   "sacTerm": "SAC-2",
+   "sacTerm": "Term 2",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -1670,8 +1670,8 @@
    "ecosystemFund": true,
    "voteResult": "Failed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-3",
-   "note": "First PIP that had SAC-3 involvement",
+   "sacTerm": "Term 3",
+   "note": "First PIP that had Term 3 involvement",
    "paidUsdc": {
     "value": null,
     "raw": "",
@@ -1736,7 +1736,7 @@
    "ecosystemFund": true,
    "voteResult": "Passed",
    "category": "Governance",
-   "sacTerm": "SAC-3",
+   "sacTerm": "Term 3",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -1802,7 +1802,7 @@
    "ecosystemFund": false,
    "voteResult": "Passed",
    "category": "DAO Treasury",
-   "sacTerm": "SAC-3",
+   "sacTerm": "Term 3",
    "note": "",
    "paidUsdc": {
     "value": 30000,
@@ -1868,7 +1868,7 @@
    "ecosystemFund": true,
    "voteResult": "Passed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-3",
+   "sacTerm": "Term 3",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -1934,7 +1934,7 @@
    "ecosystemFund": true,
    "voteResult": "Passed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-3",
+   "sacTerm": "Term 3",
    "note": "",
    "paidUsdc": {
     "value": 1650,
@@ -2000,7 +2000,7 @@
    "ecosystemFund": true,
    "voteResult": "Passed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-3",
+   "sacTerm": "Term 3",
    "note": "PIP passed, but withdrawn by PIP Author, will not be implemented",
    "paidUsdc": {
     "value": null,
@@ -2066,7 +2066,7 @@
    "ecosystemFund": true,
    "voteResult": "Passed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-3",
+   "sacTerm": "Term 3",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -2132,7 +2132,7 @@
    "ecosystemFund": false,
    "voteResult": "Passed",
    "category": "DAO Treasury",
-   "sacTerm": "SAC-3",
+   "sacTerm": "Term 3",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -2198,7 +2198,7 @@
    "ecosystemFund": true,
    "voteResult": "Failed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-3",
+   "sacTerm": "Term 3",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -2260,11 +2260,11 @@
     "state": "ok"
    },
    "currency": "ATLAS",
-   "roi": "Three SAC-3 council members volunteered",
+   "roi": "Three Term 3 council members volunteered",
    "ecosystemFund": false,
    "voteResult": "Passed",
    "category": "Governance",
-   "sacTerm": "SAC-3",
+   "sacTerm": "Term 3",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -2330,7 +2330,7 @@
    "ecosystemFund": true,
    "voteResult": "Passed",
    "category": "Ecosystem Fund",
-   "sacTerm": "SAC-3",
+   "sacTerm": "Term 3",
    "note": "",
    "paidUsdc": {
     "value": null,
@@ -2381,126 +2381,126 @@
  "council": {
   "title": "Goes into Dashboard in Powerpoint Slide",
   "terms": [
-   "SAC-2",
-   "SAC-3"
+   "Term 2",
+   "Term 3"
   ],
   "totals": {
-   "SAC-2": 141,
-   "SAC-3": 58
+   "Term 2": 141,
+   "Term 3": 58
   },
   "months": [
    {
     "month": "2025-04",
     "counts": {
-     "SAC-2": 23
+     "Term 2": 23
     }
    },
    {
     "month": "2025-05",
     "counts": {
-     "SAC-2": 12
+     "Term 2": 12
     }
    },
    {
     "month": "2025-06",
     "counts": {
-     "SAC-2": 12
+     "Term 2": 12
     }
    },
    {
     "month": "2025-07",
     "counts": {
-     "SAC-2": 8
+     "Term 2": 8
     }
    },
    {
     "month": "2025-08",
     "counts": {
-     "SAC-2": 13
+     "Term 2": 13
     }
    },
    {
     "month": "2025-09",
     "counts": {
-     "SAC-2": 30
+     "Term 2": 30
     }
    },
    {
     "month": "2025-10",
     "counts": {
-     "SAC-2": 15
+     "Term 2": 15
     }
    },
    {
     "month": "2025-11",
     "counts": {
-     "SAC-2": 15
+     "Term 2": 15
     }
    },
    {
     "month": "2025-12",
     "counts": {
-     "SAC-2": 13
+     "Term 2": 13
     }
    },
    {
     "month": "2026-01",
     "counts": {
-     "SAC-3": 12
+     "Term 3": 12
     }
    },
    {
     "month": "2026-02",
     "counts": {
-     "SAC-3": 8
+     "Term 3": 8
     }
    },
    {
     "month": "2026-03",
     "counts": {
-     "SAC-3": 5
+     "Term 3": 5
     }
    },
    {
     "month": "2026-04",
     "counts": {
-     "SAC-3": 8
+     "Term 3": 8
     }
    },
    {
     "month": "2026-05",
     "counts": {
-     "SAC-3": 6
+     "Term 3": 6
     }
    },
    {
     "month": "2026-06",
     "counts": {
-     "SAC-3": 5
+     "Term 3": 5
     }
    },
    {
     "month": "2026-07",
     "counts": {
-     "SAC-3": 8
+     "Term 3": 8
     }
    },
    {
     "month": "2026-08",
     "counts": {
-     "SAC-3": 2
+     "Term 3": 2
     }
    },
    {
     "month": "2026-09",
     "counts": {
-     "SAC-3": 2
+     "Term 3": 2
     }
    },
    {
     "month": "2026-10",
     "counts": {
-     "SAC-3": 2
+     "Term 3": 2
     }
    }
   ]
@@ -2849,5 +2849,5 @@
    "name": "Wallets"
   }
  },
- "fetchedAt": "2026-11-05T19:42:30.192Z"
+ "fetchedAt": "2026-11-05T22:32:39.346Z"
 }
