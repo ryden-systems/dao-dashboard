@@ -17,6 +17,8 @@ import { loadGovernance } from "./lib/governance.mjs";
 import { updateLedger } from "./lib/ledger.mjs";
 import { readBalances, readTracked, recordSnapshot } from "./lib/balances.mjs";
 import { compute } from "./lib/compute.mjs";
+import { updateMultisigActivity } from "./lib/multisig.mjs";
+import { updateYoutube } from "./lib/youtube.mjs";
 
 // config.local.json (git-ignored, optional) is layered over config.json for local testing,
 // e.g. a copy of the sheet and test Google IDs, so they never end up in the shared config.
@@ -82,6 +84,8 @@ async function fetchPhase() {
   writeJSON("data/governance.json", { proposals: gov.proposals, fetchedAt: new Date().toISOString() });
 
   await updateLedger({ rpc, sigRpc }, config);
+  await updateMultisigActivity({ rpc, sigRpc }, config);
+  await updateYoutube(config);
   const now = await readBalances(rpc, config);
   const tracked = await readTracked(rpc, config, wallets.filter((w) => w.track).map((w) => w.wallet));
   recordSnapshot({ ...now, tracked });
@@ -99,8 +103,10 @@ function computePhase() {
   const seedLabels = readJSON("data/labels.seed.json", { labels: [] }).labels;
   const councilHistory = readJSON("data/council_history.json", { terms: [] });
   const imported = readJSON("data/balance_history_import.json", {});
+  const multisigActivity = readJSON("data/multisig_activity.json", { accounts: {} });
+  const youtube = readJSON("data/youtube.json", { videos: {} });
   const { out, recon, flags } = compute({
-    config, sources, proposals, ledger, history, now, nowAt, tracked, seedLabels, councilHistory, imported,
+    config, sources, proposals, ledger, history, now, nowAt, tracked, seedLabels, councilHistory, imported, multisigActivity, youtube,
     votesOf: (pip) => readJSON(`data/votes/${pip}.json`, null), editingPreview: Boolean(process.env.EDITING_PREVIEW),
   });
   const dist = path.join(ROOT, "dist");
@@ -123,7 +129,9 @@ function computePhase() {
   writeJSON("dist/data/live.json", {
     builtAt: out.generatedAt, sheetId: config.sheet.id, tabs: sources.tabs ?? {},
     // Ledger rows carry only what the calculation reads (no token accounts or slots), to keep the file small.
-    inputs: { config: pageConfig, proposals, ledger: { rows: ledger.rows.map((r) => ({ sig: r.sig, t: r.t, account: r.account, symbol: r.symbol, delta: r.delta, legs: r.legs.map((l) => ({ owner: l.owner, amount: l.amount, dao: l.dao })) })) }, history, now, nowAt, tracked, seedLabels, councilHistory, imported },
+    inputs: { config: pageConfig, proposals, ledger: { rows: ledger.rows.map((r) => ({ sig: r.sig, t: r.t, account: r.account, symbol: r.symbol, delta: r.delta, legs: r.legs.map((l) => ({ owner: l.owner, amount: l.amount, dao: l.dao })) })) }, history, now, nowAt, tracked, seedLabels, councilHistory, imported, youtube,
+      // The page only needs each multisig's transactions per day, not the transaction records.
+      multisigActivity: { accounts: Object.fromEntries(Object.entries(multisigActivity.accounts ?? {}).map(([k, v]) => [k, { days: v.days }])) } },
   }, false);
 
   const paidCount = recon.summary.filter((s) => s.state === "paid").length;
@@ -132,7 +140,7 @@ function computePhase() {
 }
 
 // The calculation and the sheet parsers, served to the page as ES modules (no other files: these import only each other).
-const LIVE_MODULES = ["compute.mjs", "reconcile.mjs", "limit.mjs", "health.mjs", "members.mjs", "series.mjs", "pure.mjs", "sheetparse.mjs"];
+const LIVE_MODULES = ["compute.mjs", "reconcile.mjs", "limit.mjs", "health.mjs", "members.mjs", "series.mjs", "pure.mjs", "sheetparse.mjs", "videos.mjs"];
 
 function copyDir(from, to) {
   if (!fs.existsSync(from)) return;

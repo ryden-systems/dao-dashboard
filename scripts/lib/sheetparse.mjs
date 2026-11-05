@@ -90,12 +90,12 @@ export function parsePipTab(rows) {
       markdownSent: yes(get("md")),
       amount: parseNum(get("amount")),
       currency: CURRENCY[typeRaw] ?? (typeRaw ? typeRaw.toUpperCase() : null),
-      roi: clean(get("roi")),
+      roi: termName(clean(get("roi"))),
       ecosystemFund: yes(get("eco")),
       voteResult: clean(get("result")),
       category: clean(get("category")),
-      sacTerm: clean(get("sac")),
-      note: clean(get("note")),
+      sacTerm: termName(clean(get("sac"))),
+      note: termName(clean(get("note"))),
       paidUsdc: parseNum(get("paidUsdc")),
       leftUsdc: parseNum(get("leftUsdc")),
       paidAtlas: parseNum(get("paidAtlas")),
@@ -112,13 +112,16 @@ export function parsePipTab(rows) {
   return { pips, missingColumns: missing };
 }
 
+// The sheet names Council terms "SAC-2"; the dashboard says "Term 2", as on the Council page.
+export const termName = (s) => s.replace(/\bSAC-(\d+)\b/gi, "Term $1");
+
 // The Council tab is a small grid: a row of term labels (SAC-2, SAC-3 ...),
 // a totals row, then one row per month ("April 2025", counts...).
 export function parseCouncilTab(rows) {
   const ti = rows.findIndex((r) => r.some((c) => /^SAC-\d+$/i.test(clean(c))));
   if (ti < 0) return { title: "", terms: [], totals: {}, months: [] };
   const title = clean(rows.slice(0, ti).flat().find((c) => clean(c)) ?? "");
-  const termCols = rows[ti].map((c, i) => [clean(c), i]).filter(([c]) => /^SAC-\d+$/i.test(c));
+  const termCols = rows[ti].map((c, i) => [clean(c), i]).filter(([c]) => /^SAC-\d+$/i.test(c)).map(([c, i]) => [termName(c), i]);
   const totals = {};
   const totalRow = rows[ti + 1] ?? [];
   for (const [t, i] of termCols) { const n = parseNum(totalRow[i]); if (n.state === "ok") totals[t] = n.value; }

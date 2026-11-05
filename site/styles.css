@@ -356,6 +356,10 @@ input[type="search"] { padding-block: 8px 9px; }
 input[type="search"]::placeholder { color: var(--muted); }
 button.link { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
 button.link:hover { text-decoration: underline; text-underline-offset: 2px; }
+button.link.muted { color: var(--muted); }
+/* An Overview card that opens its page. */
+.kpi[data-go] { cursor: pointer; }
+.kpi[data-go]:hover { border-color: var(--line-strong); }
 
 /* Charts */
 .chart { width: 100%; }
@@ -363,6 +367,8 @@ button.link:hover { text-decoration: underline; text-underline-offset: 2px; }
 .chart .axis text, .chart .lbl { font: 11px var(--f-body); fill: var(--muted); }
 .chart .grid line { stroke: var(--line); stroke-width: 1; }
 .chart .base { stroke: var(--line-strong); }
+.chart .marker line { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart .marker text { font: 11px var(--f-body); fill: var(--ink-2); }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--ink-2); margin-top: 6px; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 .tip { --cut-line: var(--line-strong); position: fixed; z-index: 50; pointer-events: none; background-color: var(--canvas-primary); color: var(--ink); border: 1px solid var(--line-strong); font: 12px/1.45 var(--f-body); padding: 8px 10px; max-width: 280px; }
@@ -389,6 +395,19 @@ button.link:hover { text-decoration: underline; text-underline-offset: 2px; }
   th, td { padding: 8px 9px; }
   .kpi .v { font-size: 32px; }
 }
+/* A section reached by its anchor or the section navigation stops below the sticky header. */
+.sec, .sec-head { scroll-margin-top: calc(var(--top-h, 0px) + 12px); }
+/* Section navigation beside the page, only where the screen leaves room right of the content. */
+.toc { display: none; }
+@media (min-width: 1560px) {
+  .toc:not([hidden]) { display: flex; flex-direction: column; gap: 2px; position: fixed; z-index: 5; top: calc(var(--top-h, 0px) + 24px); left: calc(50% + 606px); width: min(220px, calc(50% - 622px)); max-height: calc(100vh - var(--top-h, 0px) - 48px); overflow-y: auto; border-left: 1px solid var(--line); }
+}
+.toc-link { font: 400 13px/1.35 var(--f-body); color: var(--ink-2); background: none; border: 0; border-left: 2px solid transparent; margin-left: -1px; padding: 4px 0 4px 12px; text-align: left; cursor: pointer; }
+.toc-link.top { color: var(--ink); font-weight: 500; }
+.toc-link:hover { color: var(--accent); }
+.toc-link.on { color: var(--accent); border-left-color: var(--accent); }
+/* A video player opened in a table's detail row. */
+.video-frame { display: block; width: 100%; max-width: 960px; aspect-ratio: 16 / 9; border: 0; margin-inline: auto; }
 /* A status that is still running pulses slowly. */
 .pulse { animation: pulse 2s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .35; } }

@@ -17,6 +17,8 @@ go straight into the same sheet.
 | Completed and total milestones, DAO ROI, notes | The PIP tracker sheet | You | Yes |
 | PIP names, amounts, currency, category, SAC term, phase | The PIP tracker sheet | You | No, sheet only |
 | Council activity per month | The sheet's "Goes into Dashboard" tab | You | No, sheet only |
+| Council activity on chain per month | Transactions on the Council's Squads multisigs (`councilMultisigs` in config.json) | Nobody | Yes, every build |
+| Council meetings, their agenda and the PIPs they name | The Council's YouTube channel (public feed, `youtube` in config.json); agenda = the "Agenda Items:" list in a video's description, PIPs = numbers written as PIP-36 | You (by posting the recording) | Yes, every build |
 | Current and incoming Council members | A "Council members" tab in the sheet | You | Create the tab and add members; changing or hiding a member is sheet only |
 | Other wallets: names, automatic payout labels, tracked balances (optional tab) | A "Wallets" tab in the sheet | You | Yes, see *Wallets* |
 | Labels for payouts the dashboard could not match (optional tab) | A "Payment labels" tab in the sheet | You | Yes, see *Payment labels* |

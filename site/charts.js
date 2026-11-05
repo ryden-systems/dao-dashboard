@@ -96,9 +96,12 @@ window.Charts = (() => {
 
   // spec.line (optional): { name, color, values, yFmt, width } drawn as a plain line (no point
   // markers) over the bars, on its own scale with the axis on the right. width defaults to 1.
+  // An array of such lines shares that right axis (its format comes from the first one).
+  // spec.markers (optional): [{ at, label }] dashed vertical lines, at = category index (fractions
+  // place it within that category, e.g. a term that began mid-month), labelled above the plot.
   function drawBar(el, s) {
     const W = Math.max(280, el.clientWidth), H = s.height ?? 220;
-    const m = { t: 10, r: s.line ? 52 : 10, b: 30, l: s.yWidth ?? 56 };
+    const m = { t: s.markers?.length ? 22 : 10, r: s.line ? 52 : 10, b: 30, l: s.yWidth ?? 56 };
     const cats = s.categories;
     if (!cats.length) { el.innerHTML = `<p class="muted">No data yet.</p>`; return; }
     const totals = cats.map((_, i) => s.stacked ? s.series.reduce((a, ser) => a + (ser.values[i] || 0), 0) : Math.max(...s.series.map((ser) => ser.values[i] || 0)));
@@ -114,8 +117,9 @@ window.Charts = (() => {
     g += `<g class="axis">${yt.map((v) => `<text x="${m.l - 8}" y="${Y(v) + 4}" text-anchor="end">${esc(fy(v))}</text>`).join("")}`;
     const every = Math.ceil(cats.length / Math.max(1, Math.floor((W - m.l - m.r) / 54)));
     cats.forEach((c, i) => { if (i % every === 0) g += `<text x="${m.l + band * i + band / 2}" y="${H - 10}" text-anchor="middle">${esc(c)}</text>`; });
-    // Right axis for the line: its own ticks, labels at the same heights as the left grid.
-    const L = s.line, lt = L ? ticks(0, Math.max(1, ...L.values.map((v) => v || 0)), yt.length - 1) : null;
+    // Right axis for the line(s): its own ticks, labels at the same heights as the left grid.
+    const Ls = [].concat(s.line ?? []).filter(Boolean), L = Ls[0];
+    const lt = L ? ticks(0, Math.max(1, ...Ls.flatMap((x) => x.values.map((v) => v || 0))), yt.length - 1) : null;
     const ly1 = lt ? lt[lt.length - 1] : 1;
     const YL = (v) => H - m.b - (v / ly1) * (H - m.t - m.b);
     const fl = L?.yFmt ?? ((v) => v.toLocaleString("en-US"));
@@ -135,23 +139,27 @@ window.Charts = (() => {
         acc += v;
       });
     });
-    if (L) {
-      const pts = cats.map((_, i) => (L.values[i] == null ? null : [m.l + band * i + band / 2, YL(L.values[i])])).filter(Boolean);
+    for (const ln of Ls) {
+      const pts = cats.map((_, i) => (ln.values[i] == null ? null : [m.l + band * i + band / 2, YL(ln.values[i])])).filter(Boolean);
       if (pts.length) {
-        g += `<path d="${pts.map((p, j) => `${j ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join("")}" style="fill:none;stroke:${L.color};stroke-width:${L.width ?? 1};stroke-linejoin:round"/>`;
+        g += `<path d="${pts.map((p, j) => `${j ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join("")}" style="fill:none;stroke:${ln.color};stroke-width:${ln.width ?? 1};stroke-linejoin:round"/>`;
       }
+    }
+    for (const mk of s.markers ?? []) {
+      const x = (m.l + band * mk.at).toFixed(1);
+      g += `<g class="marker"><line x1="${x}" x2="${x}" y1="${m.t - 4}" y2="${Y(0)}"/><text x="${x}" y="${m.t - 8}" text-anchor="middle">${esc(mk.label)}</text></g>`;
     }
     // Hover areas last, so they sit above the line and every column stays hoverable.
     cats.forEach((c, i) => { g += `<rect class="hitb" data-i="${i}" x="${m.l + band * i}" y="${m.t}" width="${band}" height="${H - m.t - m.b}" style="fill:transparent"/>`; });
 
-    const keys = L ? [...s.series, L] : s.series;
+    const keys = [...s.series, ...Ls];
     el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(s.label ?? "chart")}">${g}</svg>${keys.length > 1 || s.legend ? legend(keys) : ""}`;
     const tip = document.getElementById("tip");
     el.querySelectorAll(".hitb").forEach((r) => {
       r.addEventListener("mousemove", (ev) => {
         const i = Number(r.dataset.i);
         const rows = s.series.map((ser) => (ser.values[i] ? `<div><span style="color:${ser.color}">■</span> ${esc(ser.name)}: ${esc(fy(ser.values[i]))}</div>` : "")).join("")
-          + (L && L.values[i] != null ? `<div><span style="color:${L.color}">●</span> ${esc(L.name)}: ${esc(fl(L.values[i]))}</div>` : "");
+          + Ls.map((ln) => (ln.values[i] != null ? `<div><span style="color:${ln.color}">●</span> ${esc(ln.name)}: ${esc(fl(ln.values[i]))}</div>` : "")).join("");
         tip.innerHTML = `<div>${esc(cats[i])}</div>${rows || "<div>—</div>"}`;
         tip.hidden = false;
         tip.style.left = Math.min(window.innerWidth - 290, ev.clientX + 14) + "px";

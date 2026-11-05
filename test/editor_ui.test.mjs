@@ -53,7 +53,7 @@ const click = async (act, dataset = {}) => {
 
 // ---------- signed out ----------
 ok(nodes.editbar.innerHTML.includes("Editor sign-in"), "sign-in button shown when editing is enabled");
-ok(!nodes.view.innerHTML.includes('href="#health"'), "overview hides the Data health tile while signed out");
+ok(!nodes.view.innerHTML.includes('data-go="#health"'), "overview hides the Data health tile while signed out");
 await go("#health");
 ok(!nodes.view.innerHTML.includes('id="f-sev"'), "Data health page is not shown while signed out");
 await go("#payments");
@@ -172,7 +172,7 @@ ok(text().includes("Added New Member"), "member added message shown");
 await go("#health");
 ok(nodes.view.innerHTML.includes('id="f-sev"'), "Data health page shown to signed-in editors");
 await go("#overview");
-ok(nodes.view.innerHTML.includes('href="#health"'), "overview shows the Data health tile to signed-in editors");
+ok(nodes.view.innerHTML.includes('data-go="#health"'), "overview shows the Data health tile to signed-in editors");
 
 // ---------- update now ----------
 ok(nodes.editbar.innerHTML.includes('data-act="ed-update"'), "Update now button shown to signed-in editors");

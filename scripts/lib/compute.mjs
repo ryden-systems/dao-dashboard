@@ -6,12 +6,13 @@ import { fundLimits } from "./limit.mjs";
 import { healthChecks } from "./health.mjs";
 import { councilTerms } from "./members.mjs";
 import { rebuildSeries, fullyIndexed } from "./series.mjs";
+import { councilVideos } from "./videos.mjs";
 
 const round2 = (n) => Math.round(n * 100) / 100;
 
 // votesOf(pip) returns a proposal's per-voter file or null (the browser passes null: it keeps the
 // built largest-voters table, which does not depend on the sheet's editable tabs).
-export function compute({ config, sources, proposals, ledger, history, now, nowAt, tracked = {}, seedLabels = [], councilHistory = { terms: [] }, imported = {}, votesOf = () => null, editingPreview = false, generatedAt = new Date().toISOString() }) {
+export function compute({ config, sources, proposals, ledger, history, now, nowAt, tracked = {}, seedLabels = [], councilHistory = { terms: [] }, imported = {}, multisigActivity = { accounts: {} }, youtube = { videos: {} }, votesOf = () => null, editingPreview = false, generatedAt = new Date().toISOString() }) {
   const nowTs = Date.parse(nowAt) / 1000;
 
   // Sheet labels override seed labels for the same payout.
@@ -27,6 +28,38 @@ export function compute({ config, sources, proposals, ledger, history, now, nowA
   }
   const council = councilTerms({ sheetMembers: sources.members ?? [], proposals, history: councilHistory });
   for (const w of council.warnings) flags.push({ severity: "warning", area: "council", message: w });
+  // Council activity on chain: decisions executed on the Council's Squads multisigs per month, by
+  // kind (payouts, member changes, other), and proposals created. Counted from the first Council
+  // term on; each term's start is returned so the chart can mark it.
+  const termStarts = council.terms.filter((t) => t.start).map((t) => ({ label: t.label, start: t.start })).sort((a, b) => a.start.localeCompare(b.start));
+  const firstTerm = termStarts[0]?.start ?? null;
+  const today = String(nowAt).slice(0, 10);
+  const chainMonths = new Map();
+  for (const ms of config.councilMultisigs ?? []) {
+    for (const [d, c] of Object.entries(multisigActivity.accounts?.[ms.address]?.days ?? {})) {
+      if (!firstTerm || d < firstTerm || typeof c !== "object") continue;
+      const row = chainMonths.get(d.slice(0, 7)) ?? { transfer: 0, members: 0, other: 0, proposals: 0 };
+      for (const k of Object.keys(row)) row[k] += c[k] ?? 0;
+      chainMonths.set(d.slice(0, 7), row);
+    }
+  }
+  const chainList = [];
+  if (firstTerm && chainMonths.size) {
+    const last = [today.slice(0, 7), ...chainMonths.keys()].sort().at(-1);
+    for (let [y, m] = firstTerm.slice(0, 7).split("-").map(Number); `${y}-${String(m).padStart(2, "0")}` <= last; m === 12 ? (y++, m = 1) : m++) {
+      const k = `${y}-${String(m).padStart(2, "0")}`;
+      chainList.push({ month: k, ...(chainMonths.get(k) ?? { transfer: 0, members: 0, other: 0, proposals: 0 }) });
+    }
+  }
+  // Multisigs in use each month: a multisig counts from the day of its first transaction (its creation).
+  const firstDays = (config.councilMultisigs ?? []).map((ms) => Object.keys(multisigActivity.accounts?.[ms.address]?.days ?? {}).sort()[0]).filter(Boolean);
+  for (const row of chainList) row.multisigs = firstDays.filter((d) => d.slice(0, 7) <= row.month).length;
+  const councilChain = {
+    months: chainList,
+    terms: termStarts.filter((t) => t.start <= today),
+    multisigs: (config.councilMultisigs ?? []).length,
+  };
+
   const sevOrder = { critical: 0, warning: 1, info: 2 };
   flags.sort((a, b) => sevOrder[a.severity] - sevOrder[b.severity] || (a.pip ?? 0) - (b.pip ?? 0));
 
@@ -207,6 +240,8 @@ export function compute({ config, sources, proposals, ledger, history, now, nowA
     limit,
     series,
     council: sources.council,
+    councilChain,
+    videos: councilVideos({ store: youtube, terms: council.terms, channelUrl: config.youtube?.url ?? null }),
     councilTerms: { source: council.source, note: council.note, terms: council.terms },
     testNotice: config.sheet.testNotice || null,
     // Two-way editing: public identifiers only. Off unless enabled and a client ID is set.

@@ -72,7 +72,7 @@
 
   let D = null;
   const voteCache = new Map();
-  const ui = { payAccount: "all", payConf: "all", payDir: "all", payQuery: "", openPip: null, healthSev: "all" };
+  const ui = { payAccount: "all", payConf: "all", payDir: "all", payQuery: "", openPip: null, openVideo: null, openAgenda: null, healthSev: "all" };
 
   const accLabel = (k) => D.accounts[k]?.label ?? k;
   const ownerLabel = (owner) => {
@@ -367,6 +367,8 @@
   // A card whose headline is the USD value at live prices, with the token amounts below it. Until
   // prices arrive (or if they never do) the headline is the ATLAS amount, as before.
   // Below it: one line per currency when only amounts are shown, otherwise one line joined by " · ".
+  // A card that opens a page when clicked (links inside it still work on their own).
+  const goKpi = (hash, html) => html.replace('<div class="kpi', `<div data-go="${hash}" class="kpi`);
   const usdKpi = (label, b, extra = "") => {
     const v = usdOf(b);
     const amounts = [b.ATLAS ? `${compact(b.ATLAS)} ATLAS` : "", b.USDC ? `${num(b.USDC, 0)} USDC` : ""].filter(Boolean);
@@ -568,9 +570,6 @@
 
   views.overview = () => {
     const t = D.accounts.treasury.now, f = D.accounts.fund.now;
-    const funded = D.pips.filter((p) => p.funding);
-    const paidAtlas = funded.reduce((s, p) => s + netOf(p, "ATLAS"), 0);
-    const paidUsdc = funded.reduce((s, p) => s + netOf(p, "USDC"), 0);
     const voted = D.pips.filter((p) => p.outcome === "passed" || p.outcome === "failed");
     const passed = voted.filter((p) => p.outcome === "passed").length;
     const open = D.pips.filter((p) => p.outcome === "open").length;
@@ -582,12 +581,12 @@
     return `
     <section class="sec">
       <div class="kpis">
-        ${usdKpi("DAO Treasury", t)}
-        ${usdKpi("Ecosystem Fund", f, L?.lastRefill ? `last refilled ${day(L.lastRefill.t)}` : "")}
-        ${usdKpi("PIP limit this quarter", { ATLAS: L?.current?.limit ?? 0 }, L?.current ? `${esc(L.current.quarter)} · live 5%: ${compact(L.live.limit)}` : "")}
-        ${usdKpi("Paid to PIPs", { ATLAS: paidAtlas, USDC: paidUsdc })}
-        ${kpi("PIPs voted", String(voted.length), "", `${passed} passed${open ? ` · ${open} open` : ""}`)}
-        ${maintOpen() ? kpi("Data health", String(crit + warn), "flags", `<a href="#health">${crit} critical · ${warn} warnings</a>`, maintCls()) : ""}
+        ${goKpi("#balance", usdKpi("DAO Treasury", t))}
+        ${goKpi("#limit", usdKpi("Ecosystem Fund", f, L?.lastRefill ? `last refilled ${day(L.lastRefill.t)}` : ""))}
+        ${goKpi("#limit", usdKpi("PIP limit this quarter", { ATLAS: L?.current?.limit ?? 0 }, L?.current ? `${esc(L.current.quarter)} · live 5%: ${compact(L.live.limit)}` : ""))}
+        ${goKpi("#votes", kpi("PIPs voted", String(voted.length), "", `${passed} passed${open ? ` · ${open} open` : ""}`))}
+        ${V().meetings.length ? (() => { const m = V().meetings[0]; return goKpi("#council/meetings", kpi("Latest Council meeting", esc(m.day), "", `${m.agenda.length ? `${m.agenda.length} agenda item${m.agenda.length === 1 ? "" : "s"} · ` : ""}${extLink(m.url, "watch ↗")}`)); })() : ""}
+        ${maintOpen() ? goKpi("#health", kpi("Data health", String(crit + warn), "flags", `${crit} critical · ${warn} warnings`, maintCls())) : ""}
       </div>
     </section>
     <div class="grid-2">
@@ -752,12 +751,54 @@
   }
 
   const councilTerms = () => [...new Set(D.pips.map((p) => p.sacTerm).filter((t) => t && t !== "N/A"))].sort();
+  // One colour per Council term number, the same in every chart.
+  const termColor = (label) => css(`--series-${(((Number((String(label).match(/\d+/) || [])[0]) || 1) - 1) % 4) + 1}`);
+  // Council meetings (YouTube). The player loads only when Watch is clicked, so YouTube is not
+  // contacted before. Shared by the Council page and the proposal page.
+  const V = () => D.videos ?? { meetings: [], other: [] };
+  const viewsNote = () => (V().meetings.find((m) => m.viewsAt)?.viewsAt ? `views as of ${isoDay(V().meetings.find((m) => m.viewsAt).viewsAt)}` : "");
+  const watchBtn = (v) => `<button class="btn sm${ui.openVideo === v.id ? " on" : ""}" data-act="yt-play" data-id="${esc(v.id)}">${ui.openVideo === v.id ? "Close" : "Watch"}</button>`;
+  // rel=0: suggestions at the end come from the Council's own channel only. clipboard-write lets the
+  // player's copy-link button work; the player's own YouTube logo links to the video.
+  const playerRow = (v, cols) => (ui.openVideo === v.id ? `<tr class="detail"><td colspan="${cols}"><iframe class="video-frame" src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(v.id)}?autoplay=1&amp;rel=0" title="${esc(v.title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write; web-share"></iframe></td></tr>` : "");
+  const MEET_HEAD = `<thead><tr><th>Date</th><th>Meeting</th><th>Term</th><th class="r">Views</th><th></th></tr></thead>`;
+  const meetingRows = (list) => list.map((m) => `<tr>
+      <td class="mono">${esc(m.day)}</td>
+      <td>${m.agenda.length ? `<div>${extLink(m.url, esc(m.title))}</div><button class="link muted" data-act="agenda" data-id="${esc(m.id)}">${ui.openAgenda === m.id ? "Hide agenda" : "See agenda"}</button>` : `<div class="t2">${extLink(m.url, esc(m.title))}</div>`}${m.pips.length ? `<div class="sub">${m.pips.map(pipLink).join(" ")}</div>` : ""}</td>
+      <td>${esc(m.term ?? "—")}</td>
+      <td class="n">${m.views == null ? "—" : num(m.views)}</td>
+      <td class="r">${watchBtn(m)}</td>
+    </tr>${ui.openAgenda === m.id ? `<tr class="detail"><td></td><td colspan="4"><strong>Agenda</strong><div class="sub">${m.agenda.map((a) => "• " + esc(a)).join("<br>")}</div></td></tr>` : ""}${playerRow(m, 5)}`).join("");
+  function meetingsSection() {
+    const M = V().meetings;
+    if (!M.length) return "";
+    return `
+    <section class="sec" id="meetings">
+      ${sub("Council meetings", `<span class="src">${extLink(V().channelUrl, "YouTube channel ↗")} · ${viewsNote()}</span>`)}
+      <div class="tbl"><table>${MEET_HEAD}<tbody>${meetingRows(M)}</tbody></table></div>
+      <p class="src">Recordings from the Council's YouTube channel, read on every build. The agenda is taken from each video's description ("Agenda Items:"); a PIP number in the agenda (e.g. PIP-36) lists the meeting on that proposal's page.</p>
+    </section>`;
+  }
+  // Hidden for now (owner 2026-11-05): the meetings chart until earlier meetings are known, and the
+  // Council sheet's activity chart. Set to true to show them again.
+  const SHOW_MEETINGS_CHART = false, SHOW_SHEET_ACTIVITY = false;
+  function meetingsChart() {
+    const A = V().perMonth;
+    return A?.months?.length ? `
+      <section class="sec panel">
+        ${sub("Council meetings per month", `<span class="src">Recordings on YouTube</span>`)}
+        ${termBars(A, "Council meetings per month")}
+      </section>` : "";
+  }
+  const termBars = (A, label) => Charts.bar({ categories: A.months.map((m) => m.month), stacked: true, legend: true, label, series: A.terms.map((t) => ({ name: t, color: termColor(t), values: A.months.map((m) => m.counts[t] ?? 0) })) });
 
   // Council: who sits on it, what it records, and how it was elected.
   views.council = () => {
-    const C = D.council;
+    const C = D.council, CC = D.councilChain;
+    const showSheetActivity = SHOW_SHEET_ACTIVITY && C?.months?.length;
     // Council elections only: the title says so and members are elected (ranked vote), not a yes/no/abstain vote.
-    const elections = D.pips.filter((p) => /council election/i.test(p.title) && p.ranked);
+    // Latest election first.
+    const elections = D.pips.filter((p) => /council election/i.test(p.title) && p.ranked).sort((x, y) => String(y.votingEndsAt ?? "").localeCompare(String(x.votingEndsAt ?? "")));
 
     return `
     <section class="sec">
@@ -765,11 +806,41 @@
       ${membersBlocks()}
     </section>
     ${membersEditor()}
-    ${C && C.months?.length ? `
-    <section class="sec panel">
-      ${sub("Council activity per month", `<span class="src">Council sheet</span>`)}
-      ${Charts.bar({ categories: C.months.map((m) => m.month), stacked: true, label: "Council activity", series: C.terms.map((t, i) => ({ name: t, color: css(`--series-${(i % 4) + 1}`), values: C.months.map((m) => m.counts[t] ?? 0) })) })}
-    </section>` : ""}
+    ${meetingsSection()}
+    ${SHOW_MEETINGS_CHART ? meetingsChart() : ""}
+    <div class="${showSheetActivity ? "grid-2" : ""}">
+      ${showSheetActivity ? `
+      <section class="sec panel">
+        ${sub("Council activity per month", `<span class="src">Council sheet</span>`)}
+        ${termBars(C, "Council activity")}
+      </section>` : ""}
+      ${CC?.months?.length ? `
+      <section class="sec panel">
+        ${sub("Council activity per month", `<span class="src">Squads multisigs · Solana mainnet · Governance API</span>`)}
+        ${Charts.bar({
+          categories: CC.months.map((m) => m.month), stacked: true, legend: true, label: "Council decisions on chain per month",
+          series: [
+            { name: "Payouts", color: css("--series-1"), values: CC.months.map((m) => m.transfer) },
+            { name: "Other decisions", color: css("--series-2"), values: CC.months.map((m) => m.other) },
+          ].filter((x) => x.values.some(Boolean)),
+          // PIPs whose vote ended that month (passed or failed), on the right axis.
+          // Both lines share the right axis: PIPs whose vote ended that month (passed or failed), and
+          // the multisigs in use that month.
+          line: [
+            { name: "PIPs voted", color: css("--series-3"), width: 2.5, values: CC.months.map((m) => D.pips.filter((p) => String(p.votingEndsAt ?? "").slice(0, 7) === m.month && (p.outcome === "passed" || p.outcome === "failed")).length) },
+            { name: "Multisigs", color: css("--series-4"), values: CC.months.map((m) => m.multisigs ?? null) },
+          ],
+          // A term's marker sits at its start day within the month.
+          markers: CC.terms.map((t) => {
+            const i = CC.months.findIndex((m) => m.month === t.start.slice(0, 7));
+            const [y, mo, d] = t.start.split("-").map(Number);
+            return i < 0 ? null : { at: i + (d - 1) / new Date(Date.UTC(y, mo, 0)).getUTCDate(), label: t.label };
+          }).filter(Boolean),
+        })}
+        <p class="src">Decisions the Council executed on the DAO's ${CC.multisigs} Squads multisigs (Treasury, Ecosystem Fund and the PIP multisigs): payouts and other decisions per month. Member changes are left out: every handover repeats them on each multisig, so they measure the number of multisigs rather than activity. The lines (right axis) count the PIPs whose vote ended that month and the multisigs in use, each counted from its creation. Dashed lines mark where each Council term began. Read from the chain on every build; nobody types these in.</p>
+      </section>` : ""}
+    </div>
+    ${pastCouncilsSection()}
     <section class="sec">
       ${sub("Elections")}
       <div class="tbl"><table>
@@ -777,8 +848,7 @@
         <tbody>${elections.map((p) => `<tr><td class="pipc">${pipLink(p.pip)}</td><td><div class="t2"><a href="#votes/${p.pip}">${esc(p.title)}</a></div></td><td class="mono">${isoDay(p.votingEndsAt)}</td><td class="n">${p.seats ?? "—"}</td><td class="n">${num(p.totalVotes)}</td><td class="sub">${esc([...p.options].sort((a, b) => b.pvp - a.pvp).filter((o) => o.pvp > 0).slice(0, p.seats ?? 5).map((o) => optName(p, o.option)).join(", "))}</td></tr>`).join("")}</tbody>
       </table></div>
       <p class="src">Ranked elections allocate seats by single transferable vote. This table shows first preferences only; it does not recount the election.</p>
-    </section>
-    ${pastCouncilsSection()}`;
+    </section>`;
   };
 
   // Governance: how PIP votes went, per Council term and per PIP.
@@ -810,8 +880,22 @@
         ${Charts.bar({ categories: part.map((x) => String(x.pip)), label: "Participation per PIP", yFmt: (v) => v + "%", line: { name: "Wallets voted", color: css("--series-3"), values: part.map((x) => x.wallets), yFmt: (v) => num(v) }, series: [{ name: "Participation", color: css("--series-1"), values: part.map((x) => Math.round(x.v * 10) / 10) }] })}
       </section>
     </div>
-    ${votersSection()}`;
+    ${votersSection()}
+    ${videosSection()}`;
   };
+
+  // Council videos other than meeting recordings (explainers and the like).
+  function videosSection() {
+    const list = V().other;
+    if (!list.length) return "";
+    return `<section class="sec">
+      ${sub("Videos", `<span class="src">${extLink(V().channelUrl, "Council's YouTube channel ↗")}</span>`)}
+      <div class="tbl"><table>
+        <thead><tr><th>Date</th><th>Video</th><th class="r">Views</th><th></th></tr></thead>
+        <tbody>${list.map((v) => `<tr><td class="mono">${esc(isoDay(v.published))}</td><td><div class="t2">${extLink(v.url, esc(v.title))}</div>${v.summary ? `<div class="sub">${esc(v.summary)}</div>` : ""}</td><td class="n">${v.views == null ? "—" : num(v.views)}</td><td class="r">${watchBtn(v)}</td></tr>${playerRow(v, 4)}`).join("")}</tbody>
+      </table></div>
+    </section>`;
+  }
 
   // Largest voters by voting power (PVP) at their most recent vote, with their share of the DAO's PVP.
   function votersSection() {
@@ -1037,7 +1121,18 @@
       ${p.ranked ? `<p class="src">Ranked election for ${p.seats} seat${p.seats === 1 ? "" : "s"}, ${num(p.distinctBallots)} distinct ballot orders. Seats are allocated by single transferable vote; the figures above are first preferences only.</p>` : ""}
     </section>
     ${pipPaymentsSection(p)}
+    ${pipMeetingsSection(p)}
     ${detail}`;
+  }
+
+  // Proposal page: Council meetings whose agenda names this PIP.
+  function pipMeetingsSection(p) {
+    const list = V().meetings.filter((m) => m.pips.includes(p.pip));
+    if (!list.length) return "";
+    return `<section class="sec">
+      ${sub("Discussed in Council meetings", `<a class="src" href="#council">All meetings →</a>`)}
+      <div class="tbl"><table>${MEET_HEAD}<tbody>${meetingRows(list)}</tbody></table></div>
+    </section>`;
   }
 
   // Proposal page: the PIP's funding and every transaction matched to it (Payments page logic).
@@ -1081,6 +1176,40 @@
     }
   }
 
+  // Section navigation beside the page (wide screens only, see .toc in styles.css): the page's
+  // headlines, when it has more than two. A click scrolls to that section; the one in view is marked.
+  let tocTargets = [];
+  function buildToc() {
+    const nav = $("#toc");
+    if (!nav) return;
+    if (!nav.dataset.bound) {
+      nav.dataset.bound = "1";
+      nav.addEventListener("click", (e) => { const b = e.target.closest("[data-toc]"); if (b) tocTargets[Number(b.dataset.toc)]?.scrollIntoView({ behavior: "smooth" }); });
+    }
+    const heads = [...$("#view").querySelectorAll(".sec-head h2, .sec-head h3")].filter((h) => !h.closest("tr.detail") && h.textContent.trim());
+    tocTargets = heads.map((h) => h.closest(".sec") ?? h.parentElement);
+    nav.hidden = heads.length <= 2;
+    nav.innerHTML = nav.hidden ? "" : heads.map((h, i) => `<button class="toc-link${h.tagName === "H2" ? " top" : ""}" data-toc="${i}">${esc(h.textContent.trim())}</button>`).join("");
+    markToc();
+  }
+  function markToc() {
+    const nav = $("#toc");
+    if (!nav || nav.hidden || typeof getComputedStyle !== "function") return;
+    const line = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--top-h")) || 0) + 40;
+    let on = 0;
+    tocTargets.forEach((el, i) => { if (el.getBoundingClientRect().top <= line) on = i; });
+    // At the very bottom the last section is the one in view, even if its top never reaches the line.
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) on = tocTargets.length - 1;
+    nav.querySelectorAll(".toc-link").forEach((b, i) => b.classList.toggle("on", i === on));
+  }
+
+  // "#council/meetings" opens the Council page at its #meetings section; any other page opens at the top.
+  function scrollToAnchor() {
+    const param = (location.hash.slice(1).split("/")[1] ?? "");
+    const el = /^[a-z][a-z-]*$/.test(param) ? document.getElementById(param) : null;
+    if (el) el.scrollIntoView(); else window.scrollTo({ top: 0 });
+  }
+
   function render() {
     const [route, param] = (location.hash.slice(1) || "overview").split("/");
     const r = views[route] && (route !== "health" || maintOpen()) ? route : "overview";
@@ -1093,6 +1222,7 @@
     view.innerHTML = previewInfo() + (r === "payments" || r === "transactions" || r === "council" || r === "balance" ? editBanner() : "") + views[r](param);
     Charts.mount(view);
     fitTables();
+    buildToc();
     $("#tip").hidden = true;
     const bar = $("#editbar");
     if (bar) bar.innerHTML = editBar();
@@ -1118,6 +1248,8 @@
       const act = e.target.closest("[data-act]");
       // These open the Transactions page with its filters set.
       const toTransactions = () => { if (location.hash === "#transactions") render(); else location.hash = "#transactions"; window.scrollTo(0, 0); };
+      if (act?.dataset.act === "agenda") { ui.openAgenda = ui.openAgenda === act.dataset.id ? null : act.dataset.id; render(); return; }
+      if (act?.dataset.act === "yt-play") { ui.openVideo = ui.openVideo === act.dataset.id ? null : act.dataset.id; render(); return; }
       if (act?.dataset.act === "pay-inflows") { ui.payDir = "in"; ui.payConf = "all"; ui.payAccount = "all"; toTransactions(); return; }
       if (act?.dataset.act === "attention" || act?.dataset.act === "pay-filter") { ui.payConf = act.dataset.key ?? "attention"; ui.payAccount = act.dataset.acc ?? "all"; ui.payDir = "out"; toTransactions(); }
     });
@@ -1139,7 +1271,9 @@
       else return;
       render();
     });
-    window.addEventListener("hashchange", () => { render(); window.scrollTo({ top: 0 }); });
+    window.addEventListener("hashchange", () => { ui.openVideo = null; render(); scrollToAnchor(); });
+    let tocFrame = 0;
+    window.addEventListener("scroll", () => { if (!tocFrame) tocFrame = requestAnimationFrame(() => { tocFrame = 0; markToc(); }); }, { passive: true });
     window.addEventListener("resize", fitTables);
     // Pinned table headers sit right under the page header, whose height changes with wrapping.
     const top = document.querySelector(".top");
@@ -1177,6 +1311,7 @@
     ED?.init(D.editing);
     bind();
     render();
+    scrollToAnchor();
     loadPrices();
     if (typeof setInterval === "function") setInterval(loadPrices, 5 * 60 * 1000);
     // Live sheet (live.mjs): start it with the built data; it answers with the data recomputed from the sheet.
@@ -1185,7 +1320,7 @@
       D = e.detail.D; liveAt = e.detail.at;
       setStamp();
       // Never redraw under an open form (it would lose what is being typed); the next redraw shows it.
-      if (!anyFormOpen()) render();
+      if (!anyFormOpen() && !ui.openVideo) render();
     });
     window.dispatchEvent(new CustomEvent("dash:ready"));
   }

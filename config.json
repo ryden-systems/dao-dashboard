@@ -23,6 +23,17 @@
     }
   },
   "multisigs": [],
+  "councilMultisigs": [
+    { "label": "DAO Treasury", "address": "D2pEzvQE3Jo6k3H5Cv3uskaUjyQHoFu3hMzpDjHuQ8jj" },
+    { "label": "Ecosystem Fund", "address": "8Z8QrJEfiGTj9X4HejbsXyAMQToA7SPNE1scGXnC1Vcy" },
+    { "label": "Iris Bounty Feast", "address": "5hr6YecyRMFb3eb4SLL863TYb6nQUYYzGpCNsTwSoVZm" },
+    { "label": "DAO Casters", "address": "HnSg4jNnHzYzPV84DkQyCWLded3yR6rLjX8AjHv8v8oV" },
+    { "label": "Iris Bounty Arena", "address": "5Vgo8QXQ6tZtn6RH8Kb6Byz52HaWyxiGecikjTbemXrJ" },
+    { "label": "ATOM / Arty's Hosting Svc", "address": "CmAkKooS4MB9n5yQvSei2pXoq4Enwz6XdzUPDgGMgQPi" },
+    { "label": "Relay", "address": "9KEdTMaXYhuRUrL2ffsUCXuNwiZGmZCg8HB7ayjNbdfT" },
+    { "label": "Triad Tournament", "address": "DRaidtfogtt9W4ZZmDcB3hiB3Ti58FmQVW1hhd55yMWE" }
+  ],
+  "_councilMultisigsNote": "The Council's Squads multisig accounts (not their vaults). Their transactions per month form the on-chain Council activity chart. Treasury and Fund: read from their own transfers; the PIP multisigs: SAC-3 meeting minutes #38 (6 Oct 2026).",
   "knownWallets": {
     "feesQYAaH3wjGUUQYD959mmi5pY8HSz3F5C3SVc1fp3": "Marketplace fees"
   },
@@ -61,6 +72,11 @@
       "owner": "staratlasdaocouncil@gmail.com",
       "folder": "Payment documents"
     }
+  },
+  "youtube": {
+    "channelId": "UC3xiwDT3rpyafBroH4LBZ-g",
+    "url": "https://www.youtube.com/@StarAtlasDAOCouncil",
+    "_note": "The Council's channel. Its public feed is read on every build (no key). A video is a meeting when its title says Meeting or its description has an 'Agenda Items:' list; PIPs named in the agenda (PIP-36) link the meeting to that proposal."
   },
   "governance": {
     "api": "https://galaxy.staratlas.com",
