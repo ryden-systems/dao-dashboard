@@ -2399,6 +2399,13 @@
    "label": "PIP-22",
    "track": true,
    "note": ""
+  },
+  {
+   "wallet": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
+   "name": "ATMTA",
+   "label": "ATMTA",
+   "track": false,
+   "note": ""
   }
  ],
  "tabs": {
@@ -2427,5 +2434,5 @@
    "name": "Wallets"
   }
  },
- "fetchedAt": "2026-11-05T12:01:29.967Z"
+ "fetchedAt": "2026-11-05T12:25:32.761Z"
 }
