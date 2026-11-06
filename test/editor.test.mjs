@@ -6,7 +6,8 @@ import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 import { ROOT, parseCSV } from "../scripts/lib/util.mjs";
-import { parsePipTab, parseLabelTab, parseMembersTab, parseWalletsTab } from "../scripts/lib/sheet.mjs";
+import { parsePipTab, parseLabelTab, parseMembersTab, parseWalletsTab, parseMinutesTab } from "../scripts/lib/sheet.mjs";
+import { councilVideos } from "../scripts/lib/videos.mjs";
 import { reconcile } from "../scripts/lib/reconcile.mjs";
 import { councilTerms } from "../scripts/lib/members.mjs";
 
@@ -234,6 +235,35 @@ await core.addDoc({ signature: "SIGD", recipient: "", file: "2025-12-18 a.pdf", 
 await core.addDoc({ signature: "SIGD", recipient: "", file: "2025-12-18 b.pdf", link: "https://drive/2", by: "owner@example.org" });
 const docList = await core.listDocs();
 ok(docList.length === 2 && docList[1].link === "https://drive/2" && docList[0].by === "owner@example.org" && docList[0].file === "2025-12-18 a.pdf", "two documents on one payout: " + JSON.stringify(book["Payment documents"]));
+
+// ---------- meeting minutes ----------
+{
+  const text = "# Minutes\n- PIP-36 approved\n= result 4:0\n\n> quote";
+  ok((await core.saveMinutes({ day: "3.11.2026", text })).error, "a date that is not YYYY-MM-DD is refused");
+  ok((await core.saveMinutes({ day: "2026-11-03", text: "  " })).error, "empty minutes refused");
+  ok((await core.saveMinutes({ day: "2026-11-03", text: "x".repeat(50001) })).error?.includes("50,000"), "minutes over one sheet cell refused");
+  let m = await core.saveMinutes({ day: "2026-11-03", title: "", text });
+  ok(m.saved && !m.updated && book["Meeting minutes"] && m.gid === String(Object.keys(book).indexOf("Meeting minutes")), "first minutes create the tab and return its gid: " + JSON.stringify(m));
+  ok(book["Meeting minutes"][1][2] === text, "minutes keep their line breaks, and lines like '- ' or '= ' stay text");
+  const back = parseMinutesTab(book["Meeting minutes"]);
+  ok(back.length === 1 && back[0].day === "2026-11-03" && back[0].text === text, "the build reads the minutes back as written");
+  m = await core.saveMinutes({ day: "2026-11-03", text: "other" });
+  ok(m.conflict?.sheet === text && book["Meeting minutes"][1][2] === text, "new minutes for a day that already has some: conflict, nothing written");
+  book["Meeting minutes"][1][2] = text + "\nedited in the sheet";
+  m = await core.saveMinutes({ day: "2026-11-03", text: text + "\nmine", from: text });
+  ok(m.conflict && book["Meeting minutes"][1][2].endsWith("in the sheet"), "a change in the sheet since opening is a conflict");
+  m = await core.saveMinutes({ day: "2026-11-03", text: text + "\nmine", from: text }, { force: true });
+  ok(m.saved && m.updated && book["Meeting minutes"][1][2].endsWith("mine") && book["Meeting minutes"].length === 2, "overwrite updates the same row");
+  m = await core.saveMinutes({ day: "2026-10-28", title: "Council meeting (recording failed)", text: "notes" });
+  ok(m.saved && parseMinutesTab(book["Meeting minutes"]).length === 2, "a second day appends a row");
+  ok(parseMinutesTab([["Date", "Title", "Minutes", "Show"], ["11/3/2026", "", "a", "TRUE"], ["2026-11-03", "", "dupe", ""], ["2026-11-04", "", "hidden", "FALSE"], ["", "", "no date", ""]]).map((x) => x.text).join() === "a", "US dates read, one entry per day, hidden and dateless rows skipped");
+
+  // Minutes attach to the recording of the same day; without one they are a meeting of their own.
+  const store = { videos: { V1: { id: "V1", title: "Star Atlas DAO Council (Term #4) Meeting - November 3, 2026", published: "2026-11-04T10:00:00Z", description: "", views: 5 } } };
+  const V = councilVideos({ store, terms: [{ label: "Term 4", start: "2026-10-11" }], minutes: [{ day: "2026-11-03", title: "", text: "PIP-36 approved" }, { day: "2026-10-28", title: "Recording failed", text: "notes on PIP-40" }] });
+  ok(V.meetings.length === 2 && V.meetings[0].id === "V1" && V.meetings[0].minutes === "PIP-36 approved" && V.meetings[0].pips.includes(36), "minutes attach to the same day's recording, and their PIPs count");
+  ok(V.meetings[1].noRecording && V.meetings[1].url === null && V.meetings[1].title === "Recording failed" && V.meetings[1].term === "Term 4" && V.meetings[1].pips.includes(40), "minutes without a recording are a meeting of their own");
+}
 
 // ---------- Google Drive upload against a fake Drive API ----------
 const dreq = [];

@@ -6,7 +6,7 @@ const CURRENCY = { usdc: "USDC", usd: "USDC", atlas: "ATLAS", pounds: "GBP", gbp
 
 // The sheet as the calculation reads it, from the tabs' rows. rowsOf(key) returns a tab's rows, or
 // null for a tab that does not exist (yet); key is "pips", "council", "paymentLabels",
-// "councilMembers" or "wallets". Shared by the build and the page's live read, so both parse alike.
+// "councilMembers", "wallets" or "meetingMinutes". Shared by the build and the page's live read, so both parse alike.
 export function sheetSources({ rowsOf, tabs = {}, fetchedAt = new Date().toISOString() }) {
   const pipRows = rowsOf("pips");
   if (!pipRows) throw new Error("sheet: the PIP tab could not be read");
@@ -17,6 +17,7 @@ export function sheetSources({ rowsOf, tabs = {}, fetchedAt = new Date().toISOSt
     labels: opt("paymentLabels", parseLabelTab, []),
     members: opt("councilMembers", parseMembersTab, []),
     wallets: opt("wallets", parseWalletsTab, []),
+    minutes: opt("meetingMinutes", parseMinutesTab, []),
     tabs,
     fetchedAt,
   };
@@ -184,6 +185,23 @@ export function parseWalletsTab(rows) {
   return rows.slice(hi + 1)
     .map((r) => ({ wallet: get(r, "wallet"), name: get(r, "name"), label: get(r, "label"), track: yes(get(r, "track")), note: get(r, "note") }))
     .filter((w) => WALLET_RE.test(w.wallet) && !seen.has(w.wallet) && seen.add(w.wallet));
+}
+
+// Optional "Meeting minutes" tab: one row per meeting. Headers: "Date" (the meeting's day), "Title"
+// (only needed for a meeting without a recording), "Minutes" (Discord markdown, line breaks kept)
+// and "Show" (FALSE hides a row). One entry per day; the first row for a day wins.
+export function parseMinutesTab(rows) {
+  const hi = rows.findIndex((r) => r.some((c) => /^date$/i.test(clean(c))) && r.some((c) => /^minutes$/i.test(clean(c))));
+  if (hi < 0) return [];
+  const h = rows[hi].map((c) => clean(c).toLowerCase());
+  const at = (n) => h.findIndex((x) => x === n || x.startsWith(n));
+  const C = { date: at("date"), title: at("title"), text: at("minutes"), show: at("show") };
+  const raw = (r, k) => (C[k] >= 0 ? String(r[C[k]] ?? "") : "");
+  const seen = new Set();
+  return rows.slice(hi + 1)
+    .filter((r) => !(C.show >= 0 && /^(false|no)$/i.test(clean(raw(r, "show")))))
+    .map((r) => ({ day: dateCell(raw(r, "date")), title: clean(raw(r, "title")), text: raw(r, "text").replace(/\r\n?/g, "\n").trim() }))
+    .filter((m) => m.day && m.text && !seen.has(m.day) && seen.add(m.day));
 }
 
 // Optional tab maintained by the Council: one row per on-chain payout they have labelled.

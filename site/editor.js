@@ -218,6 +218,40 @@
         return { saved: true };
       },
 
+      // Meeting minutes: one row per meeting day. `from` is the text the editor started from (null for
+      // new minutes). If the sheet's row for that day now holds something else, nothing is written and
+      // the sheet's text is returned, unless `force` is set. Text is written with a leading apostrophe
+      // so a line such as "- point" or "= result" is never read as a formula. Returns the tab's gid, so
+      // the page can read a tab it has only just created.
+      async saveMinutes({ day, title, text, from = null }, { force = false } = {}) {
+        const msg = SM.validate("required", day) || SM.validate("date", day);
+        if (msg) return { error: `Date: ${msg}` };
+        const body = SM.minutesText(text);
+        if (!body) return { error: "Minutes: This field is required." };
+        if (body.length > SM.MINUTES_MAX) return { error: `Minutes: at most ${SM.MINUTES_MAX.toLocaleString("en-US")} characters fit in one sheet cell (these are ${body.length.toLocaleString("en-US")}).` };
+        const tab = tabs.meetingMinutes || "Meeting minutes";
+        await core.ensureTab(tab, SM.MINUTES_HEADERS);
+        const rows = await core.readTab(tab);
+        const hi = SM.findHeaderRow(rows, ["Date", "Minutes"]);
+        if (hi < 0) return { error: `The "${tab}" tab has no header row with "Date" and "Minutes".` };
+        const h = rows[hi], cD = SM.colIndex(h, "Date"), cT = SM.colIndex(h, "Title"), cM = SM.colIndex(h, "Minutes");
+        const asText = (s) => (s ? "'" + s : "");
+        let updated = false;
+        const at = rows.findIndex((r, i) => i > hi && SM.isoDate(r[cD]) === day);
+        if (at >= 0) {
+          const now = SM.minutesText(rows[at][cM]);
+          if (!force && now && now !== SM.minutesText(from)) return { conflict: { sheet: now } };
+          if (cT >= 0) await core.writeCell(tab, at, cT, asText(SM.clean(title)));
+          await core.writeCell(tab, at, cM, asText(body));
+          updated = true;
+        } else {
+          await core.appendRow(tab, [SM.textDate(day), asText(SM.clean(title)), asText(body), "TRUE"]);
+        }
+        const j = await call("?fields=sheets.properties(title,sheetId)");
+        const gid = (j.sheets || []).find((s) => s.properties.title === tab)?.properties.sheetId;
+        return { saved: true, updated, tab, gid: gid == null ? null : String(gid) };
+      },
+
       // "Update now": writes the request time into the sheet's Dashboard tab. The sheet's sync script
       // sees the sheet change and starts a rebuild; the page itself never holds a GitHub token.
       async requestUpdate(by) {

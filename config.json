@@ -59,7 +59,8 @@
       "paymentLabels": "Payment labels",
       "councilMembers": "Council members",
       "paymentDocuments": "Payment documents",
-      "wallets": "Wallets"
+      "wallets": "Wallets",
+      "meetingMinutes": "Meeting minutes"
     },
     "_tabsNote": "Each tab is a gid (digits) or a tab name. Named tabs are found automatically once they exist, including tabs created from the dashboard's editor."
   },
@@ -76,7 +77,7 @@
   "youtube": {
     "channelId": "UC3xiwDT3rpyafBroH4LBZ-g",
     "url": "https://www.youtube.com/@StarAtlasDAOCouncil",
-    "_note": "The Council's channel. Its public feed is read on every build (no key). A video is a meeting when its title says Meeting or its description has an 'Agenda Items:' list; PIPs named in the agenda (PIP-36) link the meeting to that proposal."
+    "_note": "The Council's channel. Its public feed is read on every build (no key). A video is a meeting when its title says Meeting (or names a term, CT-4 / Term #4). What was discussed comes from the minutes in the sheet's Meeting minutes tab; PIPs named there (PIP-36) link the meeting to that proposal."
   },
   "governance": {
     "api": "https://galaxy.staratlas.com",

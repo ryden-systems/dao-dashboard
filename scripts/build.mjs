@@ -127,7 +127,9 @@ function computePhase() {
   }
   const { rpc: _rpc, ...pageConfig } = config;
   writeJSON("dist/data/live.json", {
-    builtAt: out.generatedAt, sheetId: config.sheet.id, tabs: sources.tabs ?? {},
+    // Named tabs that did not exist at build time are listed without a gid; the page looks them up.
+    builtAt: out.generatedAt, sheetId: config.sheet.id,
+    tabs: { ...Object.fromEntries(Object.entries(config.sheet.tabs).filter(([, ref]) => !/^\d+$/.test(String(ref))).map(([k, ref]) => [k, { name: ref, gid: null }])), ...(sources.tabs ?? {}) },
     // Ledger rows carry only what the calculation reads (no token accounts or slots), to keep the file small.
     inputs: { config: pageConfig, proposals, ledger: { rows: ledger.rows.map((r) => ({ sig: r.sig, t: r.t, account: r.account, symbol: r.symbol, delta: r.delta, legs: r.legs.map((l) => ({ owner: l.owner, amount: l.amount, dao: l.dao })) })) }, history, now, nowAt, tracked, seedLabels, councilHistory, imported, youtube,
       // The page only needs each multisig's transactions per day, not the transaction records.

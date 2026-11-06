@@ -218,6 +218,10 @@ main:focus { outline: none; }
 .btn.danger { --cut-line: color-mix(in srgb, var(--crit) 45%, transparent); color: var(--crit); }
 .btn.danger:hover { --cut-line: var(--crit); }
 .btn.sm { font-size: 11.5px; padding: 3px 10px 4px; margin-left: 6px; }
+/* Buttons that belong together (e.g. a formatting toolbar group) sit close; groups keep the row's gap. */
+.btn-group { display: inline-flex; gap: 2px; }
+.btn-group .btn.sm { margin-left: 0; }
+.btn svg { width: 13px; height: 13px; vertical-align: -2px; }
 .btn:disabled { opacity: .5; cursor: progress; }
 
 /* Editor forms */
@@ -361,6 +365,21 @@ select:hover { --cut-line: var(--action-secondary); }
 input[type="search"] { padding-block: 8px 9px; }
 input[type="search"]::placeholder { color: var(--muted); }
 button.link { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
+/* Meeting minutes (Discord markdown) */
+.md { font-size: 13px; line-height: 1.55; color: var(--ink); max-width: 80ch; margin-top: 6px; }
+.md p, .md ul, .md ol, .md blockquote, .md pre { margin: 0 0 8px; }
+.md h4, .md h5, .md h6 { font-family: var(--f-body); font-weight: 500; color: var(--ink-head); margin: 14px 0 4px; }
+.md h4 { font-size: 17px; }
+.md h5 { font-size: 15px; }
+.md h6 { font-size: 13px; }
+.md ul, .md ol { padding-left: 20px; }
+.md li > ul, .md li > ol { margin: 0; }
+.md blockquote { padding-left: 10px; border-left: 3px solid var(--line-strong); color: var(--ink-2); }
+.md code { font-family: ui-monospace, Consolas, monospace; font-size: 12px; background-color: var(--surface); padding: 1px 4px; border-radius: 3px; }
+.md pre { background-color: var(--surface); padding: 8px 10px; overflow-x: auto; }
+.md pre code { padding: 0; background: none; }
+.md .spoiler { background-color: var(--line-strong); color: transparent; border-radius: 3px; cursor: pointer; }
+.md .spoiler:hover, .md .spoiler:focus { background-color: var(--surface); color: inherit; }
 button.link:hover { text-decoration: underline; text-underline-offset: 2px; }
 button.link.muted { color: var(--muted); }
 /* An Overview card that opens its page. */
@@ -403,6 +422,11 @@ button.link.muted { color: var(--muted); }
 }
 /* A section reached by its anchor or the section navigation stops below the sticky header. */
 .sec, .sec-head { scroll-margin-top: calc(var(--top-h, 0px) + 12px); }
+/* A linked table row lands below the page header and the table's pinned column headers. */
+tr[id] { scroll-margin-top: calc(var(--top-h, 0px) + 48px); }
+/* A link that reads as plain text until hovered (e.g. a meeting's date, its direct link). */
+a.plain { color: inherit; }
+a.plain:hover { color: var(--accent-ink); }
 /* Section navigation beside the page, only where the screen leaves room right of the content. */
 .toc { display: none; }
 @media (min-width: 1560px) {

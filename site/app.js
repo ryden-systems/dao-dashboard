@@ -72,7 +72,7 @@
 
   let D = null;
   const voteCache = new Map();
-  const ui = { payAccount: "all", payConf: "all", payDir: "all", payQuery: "", openPip: null, openVideo: null, openAgenda: null, healthSev: "all" };
+  const ui = { payAccount: "all", payConf: "all", payDir: "all", payQuery: "", openPip: null, openVideo: null, openMinutes: null, healthSev: "all" };
 
   const accLabel = (k) => D.accounts[k]?.label ?? k;
   const ownerLabel = (owner) => {
@@ -200,7 +200,7 @@
   // ---------- two-way editing (only when enabled and an editor is signed in) ----------
   const ED = window.Editor;
   const SMap = window.SheetMap;
-  const ed = { labelFor: null, msgs: {}, pip: null, member: false, memberMsg: null, seeded: false, docs: null, docFor: null, docMsg: {} };
+  const ed = { labelFor: null, msgs: {}, pip: null, member: false, memberMsg: null, seeded: false, docs: null, docFor: null, docMsg: {}, minutes: null, minutesMsg: null };
   const editing = () => Boolean(ED && ED.state.signedIn);
   // Maintenance elements (Data health, "Payouts to label"): shown to signed-in editors. Without
   // editing (or in a preview, where no one can sign in) they stay public. Not secret: their data is
@@ -547,6 +547,74 @@
         } catch (e) { ed.walletMsg = { err: e.message }; }
         render(); return;
       }
+      // Meeting minutes: the form keeps what was typed in ed.minutes (see the input listener), so a
+      // live refresh while someone is writing does not lose it.
+      // Opening other minutes or cancelling would drop unsaved text: the form asks first, in place.
+      case "min-open": {
+        const day = el.dataset.day ?? null;
+        if (ed.minutes && ed.minutes.fixed && day === ed.minutes.day) { $("#mn-text")?.scrollIntoView({ block: "center", behavior: "smooth" }); return; }
+        if (minutesDirty()) { ed.minutes.pending = { day }; render(); $("#mn-warn")?.scrollIntoView({ block: "center", behavior: "smooth" }); return; }
+        openMinutes(day); return;
+      }
+      case "min-cancel":
+        if (minutesDirty()) { ed.minutes.pending = { cancel: true }; render(); return; }
+        ed.minutes = null; render(); return;
+      case "min-keep": ed.minutes.pending = null; render(); return;
+      case "min-discard": {
+        const p = ed.minutes?.pending;
+        ed.minutes = null;
+        if (p && !p.cancel) { openMinutes(p.day); return; }
+        render(); return;
+      }
+      // Toolbar: wraps the selection (or a placeholder) in Discord markdown, or prefixes the selected
+      // lines. Edits the text box in place, without a redraw, so the cursor stays where it is.
+      case "min-fmt": {
+        const ta = $("#mn-text");
+        if (!ta || !ed.minutes) return;
+        const f = el.dataset.fmt, a = ta.selectionStart, b = ta.selectionEnd, v = ta.value, sel = v.slice(a, b);
+        const WRAP = { b: "**", i: "*", u: "__", s: "~~", code: "`", spoiler: "||" };
+        if (WRAP[f] || f === "link") {
+          const inner = sel || (f === "link" ? "link text" : "text");
+          const [l, r] = f === "link" ? ["[", "](https://)"] : [WRAP[f], WRAP[f]];
+          ta.setRangeText(l + inner + r, a, b, "end");
+          ta.setSelectionRange(a + l.length, a + l.length + inner.length);
+        } else {
+          const from = v.lastIndexOf("\n", a - 1) + 1;
+          const PRE = { h: "## ", ul: "- ", q: "> " };
+          const block = v.slice(from, b).split("\n").map((line, i) => (f === "ol" ? `${i + 1}. ` : PRE[f]) + line).join("\n");
+          ta.setRangeText(block, from, b, "select");
+        }
+        ta.focus();
+        ed.minutes.text = ta.value;
+        minutesCount();
+        return;
+      }
+      case "min-copy": {
+        const ta = $("#mn-text"), note = $("#mn-count");
+        if (!ta) return;
+        try { await navigator.clipboard.writeText(ta.value); if (note) note.textContent = `Copied ${countText(ta.value)}. Paste it into Discord.`; }
+        catch { ta.focus(); ta.select(); if (note) note.textContent = "Copying is blocked here; the text is selected, press Ctrl+C."; }
+        return;
+      }
+      case "min-preview": ed.minutes.preview = !ed.minutes.preview; render(); return;
+      case "min-take": ed.minutes.text = ed.minutes.from = ed.minutes.conflict; ed.minutes.conflict = null; render(); return;
+      case "min-save": case "min-overwrite": {
+        const st = ed.minutes;
+        el.disabled = true;
+        try {
+          const r = await ED.core.saveMinutes({ day: st.day.trim(), title: st.title.trim(), text: st.text, from: st.from }, { force: act === "min-overwrite" });
+          if (r.conflict) { st.conflict = r.conflict.sheet; st.error = null; }
+          else if (r.error) st.error = r.error;
+          else {
+            ed.minutesMsg = { ok: `${r.updated ? "Updated" : "Saved"} the minutes of ${st.day.trim()}.` };
+            ui.openMinutes = st.day.trim();
+            ed.minutes = null;
+            window.DashLive?.addTab?.("meetingMinutes", r.tab, r.gid);
+            liveRefresh();
+          }
+        } catch (e) { st.error = e.message; }
+        render(); return;
+      }
       case "mem-open": ed.member = true; ed.memberMsg = null; render(); return;
       case "mem-cancel": ed.member = false; render(); return;
       case "mem-save": {
@@ -585,7 +653,7 @@
         ${goKpi("#limit", usdKpi("Ecosystem Fund", f, L?.lastRefill ? `last refilled ${day(L.lastRefill.t)}` : ""))}
         ${goKpi("#limit", usdKpi("PIP limit this quarter", { ATLAS: L?.current?.limit ?? 0 }, L?.current ? `${esc(L.current.quarter)} · live 5%: ${compact(L.live.limit)}` : ""))}
         ${goKpi("#votes", kpi("PIPs voted", String(voted.length), "", `${passed} passed${open ? ` · ${open} open` : ""}`))}
-        ${V().meetings.length ? (() => { const m = V().meetings[0]; return goKpi("#council/meetings", kpi("Latest Council meeting", esc(m.day), "", `${m.agenda.length ? `${m.agenda.length} agenda item${m.agenda.length === 1 ? "" : "s"} · ` : ""}${extLink(m.url, "watch ↗")}`)); })() : ""}
+        ${V().meetings.length ? (() => { const m = V().meetings[0]; return goKpi("#council/meetings", kpi("Latest Council meeting", esc(m.day), "", m.url ? `${m.minutes ? "minutes · " : ""}${extLink(m.url, "watch ↗")}` : "minutes, no recording")); })() : ""}
         ${maintOpen() ? goKpi("#health", kpi("Data health", String(crit + warn), "flags", `${crit} critical · ${warn} warnings`, maintCls())) : ""}
       </div>
     </section>
@@ -760,23 +828,170 @@
   const watchBtn = (v) => `<button class="btn sm${ui.openVideo === v.id ? " on" : ""}" data-act="yt-play" data-id="${esc(v.id)}">${ui.openVideo === v.id ? "Close" : "Watch"}</button>`;
   // rel=0: suggestions at the end come from the Council's own channel only. clipboard-write lets the
   // player's copy-link button work; the player's own YouTube logo links to the video.
-  const playerRow = (v, cols) => (ui.openVideo === v.id ? `<tr class="detail"><td colspan="${cols}"><iframe class="video-frame" src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(v.id)}?autoplay=1&amp;rel=0" title="${esc(v.title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write; web-share"></iframe></td></tr>` : "");
+  // Watch starts the video; a direct link to a meeting opens the player without starting it.
+  const playerRow = (v, cols) => (ui.openVideo === v.id ? `<tr class="detail"><td colspan="${cols}"><iframe class="video-frame" src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(v.id)}?${ui.autoplay === false ? "" : "autoplay=1&amp;"}rel=0" title="${esc(v.title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write; web-share"></iframe></td></tr>` : "");
   const MEET_HEAD = `<thead><tr><th>Date</th><th>Meeting</th><th>Term</th><th class="r">Views</th><th></th></tr></thead>`;
-  const meetingRows = (list) => list.map((m) => `<tr>
-      <td class="mono">${esc(m.day)}</td>
-      <td>${m.agenda.length ? `<div>${extLink(m.url, esc(m.title))}</div><button class="link muted" data-act="agenda" data-id="${esc(m.id)}">${ui.openAgenda === m.id ? "Hide agenda" : "See agenda"}</button>` : `<div class="t2">${extLink(m.url, esc(m.title))}</div>`}${m.pips.length ? `<div class="sub">${m.pips.map(pipLink).join(" ")}</div>` : ""}</td>
+  const meetingRows = (list) => list.map((m) => {
+    const edBtn = editing() ? `<button class="btn sm ed-btn" data-act="min-open" data-day="${esc(m.day)}">${m.minutes ? "Edit minutes" : "Add minutes"}</button>` : "";
+    return `<tr id="${meetingAnchor(m)}">
+      <td class="mono"><a class="plain" href="#council/${meetingAnchor(m)}" title="Link to this meeting (opens its minutes and video)">${esc(m.day)}</a></td>
+      <td>${m.minutes ? `<div>${extLink(m.url, esc(m.title))}</div><button class="link muted" data-act="minutes" data-day="${esc(m.day)}">${ui.openMinutes === m.day ? "Hide minutes" : "See minutes"}</button>` : `<div class="t2">${extLink(m.url, esc(m.title))}</div>`}${m.pips.length ? `<div class="sub">${m.pips.map(pipLink).join(" ")}</div>` : ""}</td>
       <td>${esc(m.term ?? "—")}</td>
       <td class="n">${m.views == null ? "—" : num(m.views)}</td>
-      <td class="r">${watchBtn(m)}</td>
-    </tr>${ui.openAgenda === m.id ? `<tr class="detail"><td></td><td colspan="4"><strong>Agenda</strong><div class="sub">${m.agenda.map((a) => "• " + esc(a)).join("<br>")}</div></td></tr>` : ""}${playerRow(m, 5)}`).join("");
+      <td class="r">${edBtn}<button class="btn sm" data-act="mt-share" data-day="${esc(m.day)}" title="Copy a link that opens this meeting with its minutes and video">Share</button>${m.url ? watchBtn(m) : `<span class="sub">no recording</span>`}</td>
+    </tr>${ui.openMinutes === m.day && m.minutes ? `<tr class="detail"><td></td><td colspan="4"><strong>Minutes</strong><div class="md">${discordMd(m.minutes)}</div></td></tr>` : ""}${m.url ? playerRow(m, 5) : ""}`;
+  }).join("");
+
+  // Discord-style markdown: minutes are posted on Discord and pasted here as they are. Every
+  // character is escaped before markup is added, so pasted HTML stays plain text.
+  function discordMd(src) {
+    const kept = [];
+    const keep = (html) => `\u0000${kept.push(html) - 1}\u0000`;
+    const link = (url, text) => keep(`<a href="${url}" target="_blank" rel="noopener">${text}</a>`);
+    const inline = (raw) => {
+      let s = raw.replace(/`([^`\n]+)`/g, (_, c) => keep(`<code>${esc(c)}</code>`))
+        .replace(/\\([*_~|`>#\-\\[\]()])/g, (_, c) => keep(esc(c)));
+      s = esc(s)
+        // Discord's own tokens, as "Copy Text" gives them: mentions, channels, roles, custom emoji, timestamps.
+        .replace(/&lt;@!?\d+&gt;/g, "@user").replace(/&lt;@&amp;\d+&gt;/g, "@role").replace(/&lt;#\d+&gt;/g, "#channel")
+        .replace(/&lt;a?(:\w+:)\d+&gt;/g, "$1")
+        .replace(/&lt;t:(\d+)(?::[tTdDfFR])?&gt;/g, (_, t) => new Date(Number(t) * 1000).toISOString().slice(0, 16).replace("T", " ") + " UTC")
+        .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, t, u) => link(u, t))
+        .replace(/&lt;(https?:\/\/\S+?)&gt;/g, (_, u) => link(u, u))
+        .replace(/https?:\/\/\S+/g, (u) => { const tail = (u.match(/[.,;:!?)]+$/) || [""])[0]; const url = u.slice(0, u.length - tail.length); return link(url, url) + tail; });
+      return s.replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/__(.+?)__/g, "<u>$1</u>")
+        .replace(/~~(.+?)~~/g, "<s>$1</s>")
+        .replace(/\|\|(.+?)\|\|/g, `<span class="spoiler" tabindex="0">$1</span>`)
+        // Discord also closes on a marker after a space ("*italic *"), as its toolbar often leaves one.
+        .replace(/(^|[^\w*])\*(?![\s*])(.+?)\*(?![\w*])/g, "$1<em>$2</em>")
+        .replace(/(^|[^\w])_(?!\s)(.+?)_(?!\w)/g, "$1<em>$2</em>");
+    };
+    const lines = String(src ?? "").replace(/\r\n?/g, "\n").split("\n");
+    const out = [], lists = [];
+    let para = [], quote = [];
+    const flushPara = () => { if (para.length) out.push(`<p>${para.join("<br>")}</p>`); para = []; };
+    const flushQuote = () => { if (quote.length) out.push(`<blockquote>${quote.join("<br>")}</blockquote>`); quote = []; };
+    const closeLists = (to = -1) => { while (lists.length && lists.at(-1).indent > to) out.push(`</li></${lists.pop().tag}>`); };
+    const flush = () => { flushPara(); flushQuote(); closeLists(); };
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      let m;
+      if ((m = line.match(/^\s*```(.*?)```\s*$/)) && m[1]) { flush(); out.push(`<pre><code>${esc(m[1])}</code></pre>`); continue; }
+      if (/^\s*```/.test(line)) {
+        flush();
+        const buf = [];
+        for (i++; i < lines.length && !/^\s*```/.test(lines[i]); i++) buf.push(lines[i]);
+        out.push(`<pre><code>${esc(buf.join("\n"))}</code></pre>`);
+        continue;
+      }
+      if ((m = line.match(/^>>> ?(.*)$/))) { flush(); out.push(`<blockquote>${discordMd([m[1], ...lines.slice(i + 1)].join("\n"))}</blockquote>`); break; }
+      if ((m = line.match(/^> ?(.*)$/))) { flushPara(); closeLists(); quote.push(inline(m[1])); continue; }
+      flushQuote();
+      if ((m = line.match(/^(\s*)([-*]|\d{1,3}[.)])\s+(.*)$/))) {
+        flushPara();
+        const indent = m[1].replace(/\t/g, "  ").length, tag = /\d/.test(m[2]) ? "ol" : "ul";
+        closeLists(indent);
+        const top = lists.at(-1);
+        if (top && top.indent === indent && top.tag === tag) out.push("</li><li>");
+        else {
+          if (top && top.indent === indent) out.push(`</li></${lists.pop().tag}>`);
+          const n = parseInt(m[2], 10);
+          out.push(`<${tag}${tag === "ol" && n !== 1 ? ` start="${n}"` : ""}><li>`);
+          lists.push({ indent, tag });
+        }
+        out.push(inline(m[3]));
+        continue;
+      }
+      closeLists();
+      if ((m = line.match(/^(#{1,3})\s+(.*)$/))) { flushPara(); out.push(`<h${m[1].length + 3}>${inline(m[2])}</h${m[1].length + 3}>`); continue; }
+      if ((m = line.match(/^-#\s+(.*)$/))) { flushPara(); out.push(`<p class="sub">${inline(m[1])}</p>`); continue; }
+      if (!line.trim()) { flushPara(); continue; }
+      para.push(inline(line));
+    }
+    flush();
+    let html = out.join("");
+    while (html.includes("\u0000")) html = html.replace(/\u0000(\d+)\u0000/g, (_, n) => kept[Number(n)]);
+    return html;
+  }
+
+  // A Discord post holds 2,000 characters (4,000 with Nitro); longer minutes go out as several posts.
+  const countText = (s) => `${num(s.length)} character${s.length === 1 ? "" : "s"}`;
+  const countNote = (s) => `${countText(s)}${s.length > 2000 ? " · more than one Discord post holds (2,000), so post it in parts" : ""}`;
+  const minutesPreview = (s) => discordMd(s) || `<p class="muted">Nothing to show yet.</p>`;
+  function openMinutes(day) {
+    const m = V().meetings.find((x) => x.day === day && x.minutes);
+    ed.minutes = m ? { day: m.day, title: m.noRecording ? m.title : "", text: m.minutes, from: m.minutes, fixed: true } : { day: day ?? "", title: "", text: "", from: null, fixed: Boolean(day) };
+    ed.minutes.orig = { day: ed.minutes.day, title: ed.minutes.title, text: ed.minutes.text };
+    ed.minutesMsg = null;
+    render();
+    $("#mn-text")?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+  // True while the minutes form holds changes that are not saved.
+  const minutesDirty = () => { const m = ed.minutes; return Boolean(m && m.orig && (m.text !== m.orig.text || m.title !== m.orig.title || m.day !== m.orig.day)); };
+  // Called on every keystroke and toolbar click: the counter and an open preview follow the text,
+  // without redrawing the page (the cursor stays put).
+  const minutesCount = () => {
+    if (!ed.minutes) return;
+    const n = $("#mn-count"), p = $("#mn-preview");
+    if (n) n.textContent = countNote(ed.minutes.text);
+    if (p && ed.minutes.preview) p.innerHTML = minutesPreview(ed.minutes.text);
+  };
+  // Toolbar groups, in Discord's order where it has the same buttons: heading; text style; quote,
+  // code, spoiler (Discord's icons); lists; link.
+  const icon = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const FMT = [
+    [["h", "Heading", "Heading (selected lines)"]],
+    [["b", "<strong>B</strong>", "Bold"], ["i", "<em>I</em>", "Italic"], ["u", "<u>U</u>", "Underline"], ["s", "<s>S</s>", "Strikethrough"]],
+    [["q", icon(`<path fill="currentColor" stroke="none" d="M3 18h7v-7H6.5c0-2.2 1.3-3.5 3.5-3.5V5C5.8 5 3 7.8 3 12v6zm11 0h7v-7h-3.5c0-2.2 1.3-3.5 3.5-3.5V5c-4.2 0-7 2.8-7 7v6z"/>`), "Quote (selected lines)"], ["code", icon(`<polyline points="8 6 2 12 8 18"/><polyline points="16 6 22 12 16 18"/>`), "Code"], ["spoiler", icon(`<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>`), "Spoiler"]],
+    [["ul", "• List", "Bullet list (selected lines)"], ["ol", "1. List", "Numbered list (selected lines)"]],
+    [["link", "Link", "Link"]],
+  ];
+
+  // Signed-in editors: add or edit a meeting's minutes (the sheet's "Meeting minutes" tab).
+  function minutesEditor() {
+    if (!editing()) return "";
+    const st = ed.minutes;
+    if (!st) return `<div class="ed-zone"><p class="edact"><button class="btn ed-btn" data-act="min-open">Add minutes</button></p>${okMsg(ed.minutesMsg)}
+      <p class="src">Write the minutes here and copy them to Discord, or paste a Discord post (copied from "Edit message" so its formatting comes along); bold, lists, headings, quotes and links look the same in both. A meeting with a recording gets its minutes from the button in its row; minutes for a day without a recording are listed as a meeting of their own. They are saved in the sheet's "Meeting minutes" tab (created on the first save), which anyone with the sheet's link can read. To hide minutes, set Show to FALSE there.</p></div>`;
+    return `<div class="ed-zone"><div class="edform">
+      <label>Meeting date *<input id="mn-day" placeholder="YYYY-MM-DD" value="${esc(st.day)}"${st.fixed ? " readonly" : ""}></label>
+      <label>Title<input id="mn-title" placeholder="only needed without a recording" value="${esc(st.title)}"></label>
+      <div class="edact wide">${FMT.map((g) => `<span class="btn-group">${g.map(([f, label, title]) => `<button class="btn sm" data-act="min-fmt" data-fmt="${f}" title="${title}" aria-label="${title}">${label}</button>`).join("")}</span>`).join("")}</div>
+      <label class="wide">Minutes *<textarea id="mn-text" rows="16" placeholder="Paste the Discord post here (copy it from Edit message to keep the formatting), or write them here">${esc(st.text)}</textarea><span class="sub" id="mn-count">${esc(countNote(st.text))}</span></label>
+      ${st.preview ? `<div class="wide"><strong>Preview</strong><div class="md" id="mn-preview">${minutesPreview(st.text)}</div></div>` : ""}
+      ${st.conflict != null ? `<div class="wide"><p class="ed-err">These minutes were changed in the sheet since you opened them. The sheet now holds:</p><div class="md">${discordMd(st.conflict)}</div>
+        <p class="edact"><button class="btn primary" data-act="min-overwrite">Save mine anyway</button><button class="btn" data-act="min-take">Use the sheet's</button></p></div>` : ""}
+      ${st.error ? `<p class="ed-err wide">${esc(st.error)}</p>` : ""}
+      ${st.pending ? `<div class="edact wide" id="mn-warn"><span class="ed-err">These minutes are not saved. ${st.pending.cancel ? "Close the form" : st.pending.day ? `Open the minutes of ${esc(st.pending.day)}` : "Start new minutes"} and lose the changes?</span><button class="btn danger" data-act="min-discard">Discard changes</button><button class="btn" data-act="min-keep">Keep editing</button></div>` : ""}
+      <div class="edact wide"><button class="btn primary" data-act="min-save">Save minutes</button><button class="btn" data-act="min-preview">${st.preview ? "Hide preview" : "Preview"}</button><button class="btn" data-act="min-copy">Copy for Discord</button><button class="btn" data-act="min-cancel">Cancel</button></div>
+    </div></div>`;
+  }
+  // Direct link to one meeting: #council/meeting-2026-11-03 opens its minutes and its player (not
+  // playing) and scrolls to it. Called before drawing, on load and on every address change.
+  const meetingAnchor = (m) => `meeting-${m.day}`;
+  function openLinkedMeeting() {
+    const day = (location.hash.match(/\/meeting-(\d{4}-\d{2}-\d{2})$/) || [])[1];
+    ui.linkedMeeting = day ?? null;
+    if (!day) return;
+    // Minutes may arrive with the live sheet read, after this first draw: opened by day either way.
+    ui.openMinutes = day;
+    const m = V().meetings.find((x) => x.day === day);
+    if (!m) return;
+    if (m.url) { ui.openVideo = m.id; ui.autoplay = false; }
+  }
   function meetingsSection() {
-    const M = V().meetings;
-    if (!M.length) return "";
+    const all = V().meetings;
+    // The latest 4, plus a linked older meeting so its link still lands on it.
+    const M = all.slice(0, 4).concat(all.slice(4).filter((m) => m.day === ui.linkedMeeting));
+    if (!M.length && !editing()) return "";
     return `
     <section class="sec" id="meetings">
-      ${sub("Council meetings", `<span class="src">${extLink(V().channelUrl, "YouTube channel ↗")} · ${viewsNote()}</span>`)}
-      <div class="tbl"><table>${MEET_HEAD}<tbody>${meetingRows(M)}</tbody></table></div>
-      <p class="src">Recordings from the Council's YouTube channel, read on every build. The agenda is taken from each video's description ("Agenda Items:"); a PIP number in the agenda (e.g. PIP-36) lists the meeting on that proposal's page.</p>
+      ${sub("Council meetings", `<span class="src">${extLink(V().channelUrl, "YouTube channel ↗")}${viewsNote() ? ` · ${viewsNote()}` : ""}</span>`)}
+      ${M.length ? `<div class="tbl"><table>${MEET_HEAD}<tbody>${meetingRows(M.slice(0, 4))}</tbody></table></div>` : ""}
+      ${minutesEditor()}
+      <p class="src">The latest 4 meetings. Recordings come from the Council's YouTube channel (older ones are on the channel), read on every build. Minutes are posted by the Council. A PIP number in the minutes (e.g. PIP-36) lists the meeting on that proposal's page.</p>
     </section>`;
   }
   // Hidden for now (owner 2026-11-05): the meetings chart until earlier meetings are known, and the
@@ -1125,7 +1340,7 @@
     ${detail}`;
   }
 
-  // Proposal page: Council meetings whose agenda names this PIP.
+  // Proposal page: Council meetings whose minutes (or title) name this PIP.
   function pipMeetingsSection(p) {
     const list = V().meetings.filter((m) => m.pips.includes(p.pip));
     if (!list.length) return "";
@@ -1230,11 +1445,24 @@
   }
 
   // "#council/meetings" opens the Council page at its #meetings section; any other page opens at the top.
+  // The page keeps growing after the first draw (live sheet data, images, charts), which would push a
+  // linked section or meeting down. For a few seconds it is scrolled back into place on every size
+  // change, until the visitor scrolls or clicks themselves.
+  let pin = null;
   function scrollToAnchor() {
     const parts = location.hash.slice(1).split("/");
     const anchor = parts.length > 1 ? parts[parts.length - 1] : "";
     const el = ANCHOR_RE.test(anchor) ? document.getElementById(anchor) : null;
-    if (el) el.scrollIntoView(); else window.scrollTo({ top: 0 });
+    if (!el) { pin = null; window.scrollTo({ top: 0 }); return; }
+    // On a reload the browser would put back the old scroll position after this; the link decides.
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+    el.scrollIntoView();
+    pin = { id: anchor, until: Date.now() + 4000 };
+  }
+  function keepAnchor() {
+    if (!pin) return;
+    if (Date.now() > pin.until) { pin = null; return; }
+    document.getElementById(pin.id)?.scrollIntoView();
   }
 
   function render() {
@@ -1250,12 +1478,13 @@
     Charts.mount(view);
     fitTables();
     buildToc();
+    keepAnchor();
     $("#tip").hidden = true;
     const bar = $("#editbar");
     if (bar) bar.innerHTML = editBar();
   }
 
-  const EDIT_ACTIONS = new Set(["ed-signin", "ed-signout", "ed-update", "doc-open", "doc-close", "doc-upload", "wal-open", "wal-cancel", "wal-save", "ed-preview", "lbl-open", "lbl-cancel", "lbl-save", "lbl-clear", "lbl-clear-yes", "lbl-clear-no", "pip-edit", "pip-reload", "pip-cancel", "pip-save", "pip-overwrite", "mem-seed", "mem-open", "mem-cancel", "mem-save"]);
+  const EDIT_ACTIONS = new Set(["min-open", "min-cancel", "min-keep", "min-discard", "min-fmt", "min-copy", "min-preview", "min-take", "min-save", "min-overwrite", "ed-signin", "ed-signout", "ed-update", "doc-open", "doc-close", "doc-upload", "wal-open", "wal-cancel", "wal-save", "ed-preview", "lbl-open", "lbl-cancel", "lbl-save", "lbl-clear", "lbl-clear-yes", "lbl-clear-no", "pip-edit", "pip-reload", "pip-cancel", "pip-save", "pip-overwrite", "mem-seed", "mem-open", "mem-cancel", "mem-save"]);
   function editClick(e) {
     const el = e.target.closest("[data-act]");
     if (!el || !EDIT_ACTIONS.has(el.dataset.act)) return false;
@@ -1275,13 +1504,28 @@
       const act = e.target.closest("[data-act]");
       // These open the Transactions page with its filters set.
       const toTransactions = () => { if (location.hash === "#transactions") render(); else location.hash = "#transactions"; window.scrollTo(0, 0); };
-      if (act?.dataset.act === "agenda") { ui.openAgenda = ui.openAgenda === act.dataset.id ? null : act.dataset.id; render(); return; }
-      if (act?.dataset.act === "yt-play") { ui.openVideo = ui.openVideo === act.dataset.id ? null : act.dataset.id; render(); return; }
+
+      if (act?.dataset.act === "minutes") { ui.openMinutes = ui.openMinutes === act.dataset.day ? null : act.dataset.day; render(); return; }
+      // Share: copies the meeting's direct link. If the browser refuses, the page goes to that link
+      // instead, so it stands in the address bar to copy from there.
+      if (act?.dataset.act === "mt-share") {
+        const hash = `#council/meeting-${act.dataset.day}`, url = location.href.split("#")[0] + hash;
+        const done = (label) => { act.textContent = label; setTimeout(() => { act.textContent = "Share"; }, 2000); };
+        Promise.resolve().then(() => navigator.clipboard.writeText(url)).then(() => done("Link copied"), () => { location.hash = hash; done("Link in address bar"); });
+        return;
+      }
+      if (act?.dataset.act === "yt-play") { ui.openVideo = ui.openVideo === act.dataset.id ? null : act.dataset.id; ui.autoplay = true; playerTouched = false; render(); return; }
       if (act?.dataset.act === "pay-inflows") { ui.payDir = "in"; ui.payConf = "all"; ui.payAccount = "all"; toTransactions(); return; }
       if (act?.dataset.act === "attention" || act?.dataset.act === "pay-filter") { ui.payConf = act.dataset.key ?? "attention"; ui.payAccount = act.dataset.acc ?? "all"; ui.payDir = "out"; toTransactions(); }
     });
     // Typing in the movements filter redraws the page; focus and cursor are put back where they were.
+    // Closing or reloading the tab with unsaved minutes: the browser's own leave-page warning
+    // (the only warning a page can give at that point).
+    window.addEventListener("beforeunload", (e) => { if (minutesDirty()) { e.preventDefault(); e.returnValue = ""; } });
     view.addEventListener("input", (e) => {
+      // The minutes form: kept as it is typed (no redraw), see "min-open".
+      const mn = { "mn-day": "day", "mn-title": "title", "mn-text": "text" }[e.target.id];
+      if (mn && ed.minutes) { ed.minutes[mn] = e.target.value; if (mn === "text") minutesCount(); return; }
       if (e.target.id !== "f-q") return;
       ui.payQuery = e.target.value;
       const at = e.target.selectionStart;
@@ -1298,13 +1542,19 @@
       else return;
       render();
     });
-    window.addEventListener("hashchange", () => { ui.openVideo = null; render(); scrollToAnchor(); });
+    window.addEventListener("hashchange", () => { ui.openVideo = null; playerTouched = false; openLinkedMeeting(); render(); scrollToAnchor(); });
+    for (const t of ["wheel", "touchstart", "keydown", "mousedown"]) window.addEventListener(t, () => { pin = null; }, { passive: true });
+    if (typeof ResizeObserver === "function") new ResizeObserver(keepAnchor).observe(document.body);
     let tocFrame = 0;
     window.addEventListener("scroll", () => { if (!tocFrame) tocFrame = requestAnimationFrame(() => { tocFrame = 0; markToc(); }); }, { passive: true });
     window.addEventListener("resize", fitTables);
     // Pinned table headers sit right under the page header, whose height changes with wrapping.
     const top = document.querySelector(".top");
-    if (top && "ResizeObserver" in window) new ResizeObserver(() => document.documentElement.style.setProperty("--top-h", `${top.getBoundingClientRect().height}px`)).observe(top);
+    // Measured once right away too: a linked section is scrolled to before the observer first reports,
+    // and its offset below the header depends on this height.
+    const setTopH = () => { if (top) document.documentElement.style.setProperty("--top-h", `${top.getBoundingClientRect().height}px`); };
+    setTopH();
+    if (top && "ResizeObserver" in window) new ResizeObserver(() => { setTopH(); keepAnchor(); }).observe(top);
     $("#editbar")?.addEventListener("click", editClick);
     // Copy buttons: handled before any row click, so copying never opens or follows the row.
     window.addEventListener("click", (e) => {
@@ -1337,6 +1587,7 @@
     if (D.testNotice) { $("#notice").hidden = false; $("#notice").innerHTML = `<div class="note">${esc(D.testNotice)}</div>`; }
     ED?.init(D.editing);
     bind();
+    openLinkedMeeting();
     render();
     scrollToAnchor();
     loadPrices();
@@ -1346,9 +1597,13 @@
     window.addEventListener("dash:data", (e) => {
       D = e.detail.D; liveAt = e.detail.at;
       setStamp();
-      // Never redraw under an open form (it would lose what is being typed); the next redraw shows it.
-      if (!anyFormOpen() && !ui.openVideo) render();
+      // Never redraw under an open form (it would lose what is being typed) or a video that may be
+      // playing (it would restart); the next redraw shows the new data. A player opened by a link and
+      // not touched yet only shows its cover, so it is redrawn (e.g. to show the minutes that just came in).
+      if (!anyFormOpen() && !(ui.openVideo && (ui.autoplay !== false || playerTouched))) render();
     });
+    // Clicking into the player moves the focus into its frame, which takes it from this window.
+    window.addEventListener("blur", () => { if (document.activeElement?.tagName === "IFRAME") playerTouched = true; });
     window.dispatchEvent(new CustomEvent("dash:ready"));
   }
 
@@ -1358,7 +1613,8 @@
     const t = (d) => new Date(d).toISOString().slice(0, 16).replace("T", " ");
     $("#stamp").innerHTML = `Data as of ${esc(t(D.dataAt))} UTC${liveAt ? ` · sheet live ${esc(t(liveAt).slice(11))} UTC` : ""}`;
   }
-  const anyFormOpen = () => Boolean(ed.wallet || ed.labelFor || ed.docFor || ed.pip || ed.member || ed.clearFor);
+  let playerTouched = false;
+  const anyFormOpen = () => Boolean(ed.wallet || ed.labelFor || ed.docFor || ed.pip || ed.member || ed.clearFor || ed.minutes);
   // After a save: read the sheet again right away, so the change shows within seconds.
   const liveRefresh = () => window.DashLive?.refresh?.();
 

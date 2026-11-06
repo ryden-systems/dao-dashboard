@@ -12,6 +12,18 @@
   // "Payout label" (formerly "Label"): applied to payouts to the wallet only, never to inflows.
   const WALLET_HEADERS = ["Wallet", "Name", "Payout label", "Track balance", "Note"];
   const MEMBER_HEADERS = ["Name", "Role", "Term", "Start", "End", "Elected (PIP)", "Wallet", "Discord", "X", "Image", "Show"];
+  const MINUTES_HEADERS = ["Date", "Title", "Minutes", "Show"];
+  // Google Sheets holds at most 50,000 characters in one cell.
+  const MINUTES_MAX = 50000;
+  // Minutes keep their line breaks, so they are compared without collapsing whitespace.
+  const minutesText = (s) => String(s ?? "").replace(/\r\n?/g, "\n").trim();
+  // A sheet date as YYYY-MM-DD: ISO, or the sheet's US format M/D/YYYY.
+  function isoDate(raw) {
+    const s = clean(raw);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    return m ? `${m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}` : "";
+  }
 
   // Editable PIP fields -> header text in the Tracker tab (matched by prefix, like the importer).
   const PIP_FIELDS = {
@@ -85,5 +97,5 @@
     return [m.name, m.role || "Council member", m.term || "", textDate(m.start), textDate(m.end), m.electedIn ? `PIP-${m.electedIn}` : "", m.wallet || "", m.discord || "", m.x ? String(m.x).replace(/^@/, "") : "", m.image || "", "TRUE"];
   }
 
-  root.SheetMap = { clean, LABEL_HEADERS, DOC_HEADERS, WALLET_HEADERS, MEMBER_HEADERS, PIP_FIELDS, findHeaderRow, colIndex, colLetter, a1, a1Tab, locatePip, validate, memberRow };
+  root.SheetMap = { clean, LABEL_HEADERS, DOC_HEADERS, WALLET_HEADERS, MEMBER_HEADERS, MINUTES_HEADERS, MINUTES_MAX, PIP_FIELDS, minutesText, isoDate, textDate, findHeaderRow, colIndex, colLetter, a1, a1Tab, locatePip, validate, memberRow };
 })(typeof window !== "undefined" ? window : globalThis);

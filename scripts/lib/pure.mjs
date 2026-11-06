@@ -19,6 +19,15 @@ export function parseCSV(text) {
   return rows;
 }
 
+// Tab name -> gid, from the sheet's public "htmlview" page. Shared by the build and the page.
+export function parseTabIndex(html) {
+  const index = {};
+  for (const m of String(html).matchAll(/items\.push\(\{name: "((?:[^"\\]|\\.)*)", pageUrl: "[^"]*?gid=(\d+)/g)) {
+    index[JSON.parse(`"${m[1]}"`)] = m[2];
+  }
+  return index;
+}
+
 // Collapse whitespace, including the line breaks the sheet uses inside headers.
 export const clean = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 

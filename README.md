@@ -18,7 +18,8 @@ go straight into the same sheet.
 | PIP names, amounts, currency, category, SAC term, phase | The PIP tracker sheet | You | No, sheet only |
 | Council activity per month | The sheet's "Goes into Dashboard" tab | You | No, sheet only |
 | Council activity on chain per month | Transactions on the Council's Squads multisigs (`councilMultisigs` in config.json) | Nobody | Yes, every build |
-| Council meetings, their agenda and the PIPs they name | The Council's YouTube channel (public feed, `youtube` in config.json); agenda = the "Agenda Items:" list in a video's description, PIPs = numbers written as PIP-36 | You (by posting the recording) | Yes, every build |
+| Council meetings (recordings) | The Council's YouTube channel (public feed, `youtube` in config.json) | You (by posting the recording) | Yes, every build |
+| Meeting minutes | The sheet's "Meeting minutes" tab (see below) | You, on the dashboard or in the sheet | Yes, live |
 | Current and incoming Council members | A "Council members" tab in the sheet | You | Create the tab and add members; changing or hiding a member is sheet only |
 | Other wallets: names, automatic payout labels, tracked balances (optional tab) | A "Wallets" tab in the sheet | You | Yes, see *Wallets* |
 | Labels for payouts the dashboard could not match (optional tab) | A "Payment labels" tab in the sheet | You | Yes, see *Payment labels* |
@@ -123,12 +124,30 @@ Invoices, receipts and other PDF files can be attached to any payout, several pe
   and every tab is backed up into this repository, so the file names and links are public; the files themselves are not.
   The public site itself never lists documents.
 
+### Meeting minutes (optional)
+
+Minutes are written or pasted on the Council page (**Add minutes**, or **Add / Edit minutes** in a meeting's row) and
+saved in a "Meeting minutes" tab, created on the first save:
+
+| Date | Title | Minutes | Show |
+|---|---|---|---|
+| the meeting's day, YYYY-MM-DD | only needed for a meeting without a recording | the text, in Discord markdown | FALSE hides the row |
+
+- **Format.** The text uses Discord's markdown (bold, italic, underline, strikethrough, headings, lists, quotes, code,
+  links, spoilers), so it looks the same on Discord and on the dashboard. The form has a formatting toolbar, a preview,
+  and **Copy for Discord**. A Discord post holds 2,000 characters; the form says when the minutes are longer. To bring a
+  Discord post over, copy it from *Edit message* (plain copying drops the formatting).
+- **Where they show.** Minutes attach to the recording of the same day (a grey **See minutes** link in its row).
+  Minutes for a day without a recording are listed as a meeting of their own, marked "no recording". A PIP named in
+  the minutes (PIP-36) lists the meeting on that proposal's page.
+- **Public.** The tab, like every tab, can be read by anyone with the sheet's link and is backed up into this repository.
+
 ---
 
 ## Two-way editing (included, switchable)
 
 Signed-in editors can change some human-maintained fields on the dashboard itself: payout labels, a PIP's milestones,
-DAO ROI and note, and adding Council members. Everything else is edited in the sheet (see the table under *For the
+DAO ROI and note, meeting minutes, and adding Council members. Everything else is edited in the sheet (see the table under *For the
 Council maintainer*). Every save goes straight into the Council's sheet; the dashboard never keeps
 its own copy. It is off until it is configured, and the dashboard works the same without it.
 

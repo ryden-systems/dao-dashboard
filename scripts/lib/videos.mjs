@@ -1,22 +1,8 @@
-// The Council's videos as the dashboard shows them: meetings (with their agenda, Council term and the
+// The Council's videos as the dashboard shows them: meetings (with their Council term, minutes and the
 // PIPs they name) and other videos. Pure: used by the build and by the page's live calculation.
 
 const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
 
-// "Agenda Items:" followed by "- point" lines, up to the first blank line.
-export function agendaOf(description) {
-  const lines = String(description ?? "").split(/\r?\n/);
-  const at = lines.findIndex((l) => /^\s*agenda( items)?\s*:?\s*$/i.test(l));
-  if (at < 0) return [];
-  const out = [];
-  for (const l of lines.slice(at + 1)) {
-    if (!l.trim()) { if (out.length) break; continue; }
-    const m = l.match(/^\s*(?:[-•*–]|\d+[.)])\s*(.+)$/);
-    if (!m) break;
-    out.push(m[1].trim());
-  }
-  return out;
-}
 
 // The meeting's own date from its title ("... - October 27, 2026"), else the upload day.
 function meetingDay(v) {
@@ -31,23 +17,36 @@ export function pipsNamed(text) {
   return [...new Set([...String(text ?? "").matchAll(/\bPIP[\s-]*#?\s*(\d{1,3})\b/gi)].map((m) => Number(m[1])))].sort((a, b) => a - b);
 }
 
-export function councilVideos({ store = { videos: {} }, terms = [], channelUrl = null }) {
+export function councilVideos({ store = { videos: {} }, terms = [], channelUrl = null, minutes = [] }) {
   const starts = terms.filter((t) => t.start).map((t) => ({ label: t.label, start: t.start })).sort((a, b) => a.start.localeCompare(b.start));
   const meetings = [], other = [];
   for (const v of Object.values(store.videos ?? {})) {
-    const agenda = agendaOf(v.description);
     const day = meetingDay(v);
     const item = {
       id: v.id, title: v.title, day, published: v.published, views: v.views ?? null, viewsAt: v.viewsAt ?? null,
       url: `https://www.youtube.com/watch?v=${encodeURIComponent(v.id)}`,
     };
-    // A meeting: the title says so or names a Council term ("Term #4", "CT-4"), the description
-    // calls it a meeting recording or a session, or it carries an agenda.
-    if (/meeting|\bCT-?\d|\bterm\s*#?\d/i.test(v.title ?? "") || /recording of the (weekly )?meeting|council is in session/i.test(v.description ?? "") || agenda.length) {
-      meetings.push({ ...item, agenda, term: starts.filter((t) => t.start <= day).pop()?.label ?? null, pips: pipsNamed(`${v.title}\n${agenda.join("\n")}`) });
+    // A meeting: the title says so or names a Council term ("Term #4", "CT-4"), or the description
+    // calls it a meeting recording or a session. What was discussed comes from the minutes (below).
+    if (/meeting|\bCT-?\d|\bterm\s*#?\d/i.test(v.title ?? "") || /recording of the (weekly )?meeting|council is in session/i.test(v.description ?? "")) {
+      meetings.push({ ...item, term: starts.filter((t) => t.start <= day).pop()?.label ?? null, pips: pipsNamed(v.title), minutes: null });
     } else {
       other.push({ ...item, summary: String(v.description ?? "").split(/\n\s*\n/)[0].trim() });
     }
+  }
+  // Minutes from the sheet's "Meeting minutes" tab: attached to the recording of the same day, or
+  // listed as a meeting of their own when there is no recording. PIPs they name count as discussed.
+  for (const mn of minutes) {
+    const v = meetings.find((m) => m.day === mn.day && !m.minutes);
+    if (v) {
+      v.minutes = mn.text;
+      v.pips = [...new Set([...v.pips, ...pipsNamed(mn.text)])].sort((a, b) => a - b);
+      continue;
+    }
+    meetings.push({
+      id: `minutes-${mn.day}`, title: mn.title || "Council meeting", day: mn.day, published: null, views: null, viewsAt: null, url: null,
+      term: starts.filter((t) => t.start <= mn.day).pop()?.label ?? null, pips: pipsNamed(`${mn.title}\n${mn.text}`), minutes: mn.text, noRecording: true,
+    });
   }
   meetings.sort((a, b) => b.day.localeCompare(a.day));
   other.sort((a, b) => String(b.published).localeCompare(String(a.published)));

@@ -241,7 +241,7 @@ export function compute({ config, sources, proposals, ledger, history, now, nowA
     series,
     council: sources.council,
     councilChain,
-    videos: councilVideos({ store: youtube, terms: council.terms, channelUrl: config.youtube?.url ?? null }),
+    videos: councilVideos({ store: youtube, terms: council.terms, channelUrl: config.youtube?.url ?? null, minutes: sources.minutes ?? [] }),
     councilTerms: { source: council.source, note: council.note, terms: council.terms },
     testNotice: config.sheet.testNotice || null,
     // Two-way editing: public identifiers only. Off unless enabled and a client ID is set.
