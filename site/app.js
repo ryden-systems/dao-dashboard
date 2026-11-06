@@ -1258,7 +1258,7 @@
       return `<tr><td class="mono">${esc(u.due ?? "—")}${u.overdue ? `<div><span class="chip warn">due</span></div>` : ""}</td><td>${accName(u.account)}</td><td>${/^PIP-\d+$/i.test(u.for) ? pipLink(Number(u.for.replace(/\D/g, ""))) : esc(u.for)}</td><td class="mono">${esc(u.fiscalYear ?? "—")}</td><td class="n">${num(u.amount, 2)} ${esc(u.currency)}${u.projected ? "" : `<div class="sub">not in the projection</div>`}</td><td>${esc(u.description)}</td>${editing() ? `<td class="r">${btns}</td>` : ""}</tr>${pay}${docRow}`;
     }).join("");
     const d = ed.upcomingDraft ?? {};
-    const cats = [...new Set(["Operating costs", ...D.payments.map((p) => p.category).filter(Boolean)])];
+    const cats = [...new Set([...(D.budget?.foundation?.categories ?? []), ...D.payments.map((p) => p.category).filter(Boolean)])];
     const form = `<div class="edform">
       <label>Due *<input id="up-due" placeholder="YYYY-MM-DD" value="${esc(d.due ?? "")}"></label>
       <label>Paid from *<select id="up-from"><option value="treasury"${d.account === "fund" ? "" : " selected"}>DAO Treasury</option><option value="fund"${d.account === "fund" ? " selected" : ""}>Ecosystem Fund</option></select></label>
@@ -1292,7 +1292,7 @@
     const pct = (x) => `${(x * 100).toFixed(1)}%`;
     const signed = (x) => `${x >= 0 ? "+" : "−"}${Math.abs(x * 100).toFixed(0)}%`;
     const fRule = F.rule;
-    const span = (m) => (m == null ? "not shrinking" : m >= 24 ? `${(m / 12).toFixed(1)} years` : `${Math.round(m)} months`);
+    const span = (m) => (m == null ? "not shrinking" : m >= 24 ? `${(m / 12).toFixed(1)} years` : m < 1 ? "under a month" : Math.round(m) === 1 ? "1 month" : `${Math.round(m)} months`);
     const owedT = B.owed?.treasury ?? {}, owedF = B.owed?.fund ?? {};
     const owedText = (o) => Object.entries(o).map(([c, v]) => `${num(v)} ${esc(c)}`).join(" + ") || "nothing";
     // A projected balance below zero: the account would run short.
@@ -1316,7 +1316,8 @@
         <thead><tr><th>Last ${B.window.months} months</th><th class="r">ATLAS</th><th class="r">USDC</th></tr></thead>
         <tbody>
           <tr><td>Income</td><td class="n">${num(Math.round(I.atlas * B.window.months))}</td><td class="n">${num(Math.round(I.usdc * B.window.months))}</td></tr>
-          <tr><td>Running costs <div class="sub">payouts labelled with a cost category (e.g. Operating costs)</div></td><td class="n">${num(S.treasury.running.ATLAS.total)}</td><td class="n">${num(S.treasury.running.USDC.total)}</td></tr>
+          <tr><td>Running costs <div class="sub">payouts labelled with a cost category</div></td><td class="n">${num(S.treasury.running.ATLAS.total)}</td><td class="n">${num(S.treasury.running.USDC.total)}</td></tr>
+          ${(S.treasury.runningByCategory ?? []).map((c) => `<tr><td><span class="sub">· ${esc(c.category)}${c.foundation ? " (Foundation budget, PIP-2)" : ""}</span></td><td class="n sub">${num(c.ATLAS)}</td><td class="n sub">${num(c.USDC)}</td></tr>`).join("")}
           ${B.unlabelled.payouts ? `<tr><td>Not labelled yet <div class="sub">${B.unlabelled.payouts} payout${B.unlabelled.payouts === 1 ? "" : "s"}; not projected until labelled · ${txLink("label them", { account: "treasury", match: "attention", dir: "out" })}</div></td><td class="n">${num(B.unlabelled.ATLAS)}</td><td class="n">${num(B.unlabelled.USDC)}</td></tr>` : ""}
           <tr><td>PIP payouts from the Treasury <div class="sub">one-off, by vote; not projected</div></td><td class="n">${num(S.treasury.pip.ATLAS.total)}</td><td class="n">${num(S.treasury.pip.USDC.total)}</td></tr>
           <tr><td><strong>Still owed</strong> on approved PIPs <div class="sub">see the list below</div></td><td class="n"><strong>${num(owedT.ATLAS ?? 0)}</strong></td><td class="n"><strong>${num(owedT.USDC ?? 0)}</strong></td></tr>
@@ -1330,7 +1331,7 @@
         <thead><tr><th>Fiscal year</th><th class="r">USDC paid</th><th class="r">Upcoming</th><th class="r">Budget</th><th>Used</th><th class="r">Payouts</th></tr></thead>
         <tbody>${F.years.length ? F.years.map((y) => { const u = y.cap ? (y.USDC + (y.upcoming ?? 0)) / y.cap : 0; return `<tr><td class="mono">${esc(y.year)}</td><td class="n">${num(y.USDC)}${y.ATLAS ? `<div class="sub">+ ${num(y.ATLAS)} ATLAS</div>` : ""}</td><td class="n">${y.upcoming ? `${num(y.upcoming)}<div class="sub">${y.upcomingCount} known, not paid yet</div>` : `<span class="blank">—</span>`}</td><td class="n">${num(y.cap)}</td><td><span class="${u > 1 ? "over" : ""}">${pct(u)}</span><div class="bar${u > 1 ? " over" : ""}" style="margin-top:5px"><span style="width:${Math.min(100, u * 100)}%"></span></div></td><td class="n">${y.payouts}${y.noFiscalYear ? `<div class="sub">${y.noFiscalYear} without fiscal year</div>` : ""}</td></tr>`; }).join("") : `<tr><td colspan="6" class="sub">No payouts labelled with a Foundation cost category yet.</td></tr>`}</tbody>
       </table></div>
-      <p class="src">Counts payouts labelled ${(F.categories ?? []).map((c) => `&quot;${esc(c)}&quot;`).join(" or ")}, by the fiscal year set in each payout's label; a payout without one counts in the year it was paid, so those years are only an approximation. Set it with the payout's Label button on the Payments page. The Foundation is paid in irregular amounts, not monthly. ${B.unlabelled.USDC ? `${num(B.unlabelled.USDC)} USDC paid from the Treasury in the last ${B.window.months} months has no label yet; if some of it was for the Foundation, labelling it counts it here.` : ""}</p>
+      <p class="src">Counts only payouts and upcoming payments labelled ${(F.categories ?? []).map((c) => `&quot;${esc(c)}&quot;`).join(" or ")} (other running costs such as hosting stay out), by the fiscal year set in each payout's label; a payout without one counts in the year it was paid, so those years are only an approximation. Set it with the payout's Label button on the Payments page. The Foundation is paid in irregular amounts, not monthly. ${B.unlabelled.USDC ? `${num(B.unlabelled.USDC)} USDC paid from the Treasury in the last ${B.window.months} months has no label yet; if some of it was for the Foundation, labelling it counts it here.` : ""}</p>
     </section>` : ""}
 
     ${upcomingSection(B)}

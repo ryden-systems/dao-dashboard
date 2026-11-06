@@ -116,9 +116,9 @@
     ]
   },
   "budget": {
-    "_note": "Budget page settings. windowMonths: complete months the averages use. foundationCategories: payout labels (cost categories) that count against the Foundation's yearly budget. projectRefills: how many upcoming refill dates the projection shows.",
+    "_note": "Budget page settings. windowMonths: complete months the averages use. foundationCategories: the payout labels (cost categories) that count against the Foundation's yearly budget (PIP-2); keep this to labels used only for Foundation costs, so other running costs (e.g. Hosting) never mix in. projectRefills: how many upcoming refill dates the projection shows.",
     "windowMonths": 12,
-    "foundationCategories": ["Operating costs", "Foundation"],
+    "foundationCategories": ["Foundation"],
     "projectRefills": 4
   },
   "reconcile": {

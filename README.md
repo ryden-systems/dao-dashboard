@@ -276,7 +276,7 @@ first save:
 
 | ID | Due | Paid from | For | Fiscal year | Amount | Currency | Description | Paid by (tx) |
 |---|---|---|---|---|---|---|---|---|
-| set by the dashboard | YYYY-MM-DD | DAO Treasury or Ecosystem Fund | a cost category (e.g. `Operating costs`) or `PIP-36` | the budget year it belongs to | e.g. `12446.95` | `USDC` or `ATLAS` | short text | the payout's transaction, once paid |
+| set by the dashboard | YYYY-MM-DD | DAO Treasury or Ecosystem Fund | a cost category (e.g. `Foundation`, `Hosting`) or `PIP-36` | the budget year it belongs to | e.g. `12446.95` | `USDC` or `ATLAS` | short text | the payout's transaction, once paid |
 
 - **Documents:** attach the invoice with the entry's **Documents** button (same owner account and Drive folder as
   payout documents). Once the entry is marked paid, its documents also show on that payout.
@@ -296,8 +296,11 @@ Income, spending and a projection, all derived from the ledger and the rules; no
   income sources (marketplace fees), all of which reach the Treasury.
 - **Running costs** are Treasury payouts with a cost category, plus payouts not labelled yet (counted as running
   until labelled). **PIP payouts** are decided one vote at a time, so they are shown but not projected.
-- **Foundation budget** (PIP-2, `daoRules.foundation`): payouts labelled with one of `budget.foundationCategories`
-  per calendar year, against the yearly cap of 100,000 USD.
+- **Foundation budget** (PIP-2, `daoRules.foundation`): payouts and upcoming payments labelled `Foundation`
+  (`budget.foundationCategories`) per fiscal year, against the yearly cap of 100,000 USD. Use that label only for
+  the Foundation's own costs (director, registered office, secretary, legal); other running costs get their own
+  category (e.g. `Hosting`), so they never count against the Foundation's budget. The Budget page lists running
+  costs per category.
 - **Projection**: Treasury and Fund at the next refill dates (`budget.projectRefills`), if income and running costs
   continue as in the window and the Fund keeps paying its average; at each refill date the PIP-23 rule tops the Fund
   up to 20% of the DAO's ATLAS. The USDC runway is the Treasury's USDC divided by its net monthly USDC outflow.

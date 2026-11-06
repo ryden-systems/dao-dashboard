@@ -50,6 +50,14 @@ export function budgetOf({ payments = [], income = {}, accounts = {}, pips = [],
   for (const acc of ["treasury", "fund"]) for (const kind of ["pip", "running", "unlabelled"]) for (const sym of ["ATLAS", "USDC"]) {
     ((spend[acc] ??= {})[kind] ??= {})[sym] = { total: round(sum(acc, kind, sym)), perMonth: round(sum(acc, kind, sym) / n) };
   }
+  // Running costs per category (Treasury), so each kind of cost stays visible on its own.
+  const byCategory = {};
+  for (const p of outs) {
+    if (accOf(p) !== "treasury" || kindOf(p) !== "running") continue;
+    const c = (byCategory[p.category] ??= { category: p.category, ATLAS: 0, USDC: 0, foundation: foundationCats.has(p.category.toLowerCase()) });
+    c[p.symbol] = (c[p.symbol] ?? 0) + p.amount;
+  }
+  spend.treasury.runningByCategory = Object.values(byCategory).map((c) => ({ ...c, ATLAS: round(c.ATLAS), USDC: round(c.USDC) })).sort((a, b) => b.USDC - a.USDC || b.ATLAS - a.ATLAS);
   const unlabelled = {
     USDC: spend.treasury.unlabelled.USDC.total, ATLAS: spend.treasury.unlabelled.ATLAS.total,
     payouts: outs.filter((p) => accOf(p) === "treasury" && kindOf(p) === "unlabelled").length,
