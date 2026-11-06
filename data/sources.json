@@ -2568,6 +2568,62 @@
    "label": "PIP-17",
    "confirmed": true,
    "fiscalYear": null
+  },
+  {
+   "signature": "3VVJNKBzpoZ4yghmBnuYXfLNk87qFARGpaZU1x2N4C8U1SL8dnX3va2mc4eATQC1vN4TvYcMijtR8xQGfwzW4rD5",
+   "recipient": "CkLygqZbFEoGJja39ortnCy4tpANKm282eaHcysVmvxS",
+   "label": "Foundation",
+   "confirmed": true,
+   "fiscalYear": "2024"
+  },
+  {
+   "signature": "3HBWDmLeVGptFj7bzNUnv4CiibmuVoirut2BBQSDT8kUMGAWD4rjW69xGMzbMtfBo8aj23MztJqDgBMGFCBRL83Z",
+   "recipient": "CkLygqZbFEoGJja39ortnCy4tpANKm282eaHcysVmvxS",
+   "label": "Foundation",
+   "confirmed": true,
+   "fiscalYear": "2024"
+  },
+  {
+   "signature": "pHuQGqFzuFKytHNRdhrosnkmoGXr3ri4ZN7oNsngD5DQfpa8Yf1ch57JYXf7CAhCARBPMC4qYGbhWHj3yttZpwd",
+   "recipient": "B5hX2Aj8FYmdYjXQFVF1jpz7BkrdpLXgSPs92G6DFGjA",
+   "label": "Foundation",
+   "confirmed": true,
+   "fiscalYear": "2026"
+  },
+  {
+   "signature": "3zvwNQkV4qJZkpNXzjJRVhcuYVE1b6kqVHJonz5VdMAMZEmDX2VUfBDNefNLDRgf9bZukcFawnKCkyARNNFeRg5K",
+   "recipient": "B5hX2Aj8FYmdYjXQFVF1jpz7BkrdpLXgSPs92G6DFGjA",
+   "label": "unknown",
+   "confirmed": true,
+   "fiscalYear": null
+  },
+  {
+   "signature": "odGVK8ep19ux2R4j5Xd5Xw9JG8ELoALmahwsg7zy23BFHybW5hZwjKchu7aUuZpEBNQ8RY9CsU6Fht25yRzUnNr",
+   "recipient": "CkLygqZbFEoGJja39ortnCy4tpANKm282eaHcysVmvxS",
+   "label": "Foundation",
+   "confirmed": true,
+   "fiscalYear": "2026"
+  },
+  {
+   "signature": "5v8rifwY94h3GpGwCPdiC6Qm3K9Lm2wYRcR6QcMhw4vBJtm9KnnWw1ZhMhXozmeFMWBvbWMguHoHezsuaiJm7mHc",
+   "recipient": "CkLygqZbFEoGJja39ortnCy4tpANKm282eaHcysVmvxS",
+   "label": "Foundation",
+   "confirmed": true,
+   "fiscalYear": "2025"
+  },
+  {
+   "signature": "4nnBQ81Axw3TN549WrkRjp5ZPEHUPSsjBgY1nNcW9f4hKqFYweT96LPzAV66X9FfZNMh2c8iqhZhWry7pJ4Z51ph",
+   "recipient": "B5hX2Aj8FYmdYjXQFVF1jpz7BkrdpLXgSPs92G6DFGjA",
+   "label": "Foundation",
+   "confirmed": true,
+   "fiscalYear": "2025"
+  },
+  {
+   "signature": "5bGKWUWE1XaTrF1hy1qLFyzW9dGGSNB5dhuHxVFXdVKJGszZFWwiJan2Co7RonVHGa3UWpHfwC2s72MiWaUiEQRc",
+   "recipient": "CkLygqZbFEoGJja39ortnCy4tpANKm282eaHcysVmvxS",
+   "label": "Foundation",
+   "confirmed": true,
+   "fiscalYear": "2025"
   }
  ],
  "members": [
@@ -2845,7 +2901,7 @@
    "id": "UMW4VRBVN",
    "due": "2026-12-01",
    "account": "treasury",
-   "for": "Operating costs",
+   "for": "Foundation",
    "fiscalYear": "2027",
    "amount": 12446.95,
    "currency": "USDC",
@@ -2887,5 +2943,5 @@
    "name": "Upcoming payments"
   }
  },
- "fetchedAt": "2026-11-06T11:30:40.746Z"
+ "fetchedAt": "2026-11-06T11:35:31.366Z"
 }
