@@ -287,6 +287,12 @@ ok(docList.length === 2 && docList[1].link === "https://drive/2" && docList[0].b
   ok(u.saved && /^U[0-9A-Z]+$/.test(u.id) && u.gid != null && book["Upcoming payments"]?.[0]?.join() === SM.UPCOMING_HEADERS.join(), "first upcoming payment creates the tab with an ID: " + JSON.stringify(u));
   const back = parseUpcomingTab(book["Upcoming payments"]);
   ok(back.length === 1 && back[0].id === u.id && back[0].due === "2026-12-01" && back[0].account === "treasury" && back[0].amount === 1234.5 && back[0].fiscalYear === "2027" && back[0].description === "- annual fees" && !back[0].paidBy, "the build reads it back as written: " + JSON.stringify(back[0]));
+  ok((await core.updateUpcoming(u.id, { due: "2026-12-02", account: "treasury", for: "Foundation", fiscalYear: "2027", amount: "1234.50", currency: "USDC", description: "annual fees" })).updated, "an upcoming payment can be edited");
+  const edited = parseUpcomingTab(book["Upcoming payments"])[0];
+  ok(edited.id === u.id && edited.for === "Foundation" && edited.due === "2026-12-02" && edited.description === "annual fees", "the edit keeps its ID and changes the fields: " + JSON.stringify(edited));
+  ok((await core.updateUpcoming("UNKNOWN", { due: "2026-12-02", account: "treasury", for: "Foundation", amount: "1" })).error, "editing an ID that is not in the sheet is refused");
+  const extra = await core.addUpcoming({ due: "2027-01-15", account: "treasury", for: "Hosting", amount: "50" });
+  ok((await core.deleteUpcoming(extra.id)).deleted && parseUpcomingTab(book["Upcoming payments"]).map((x) => x.id).join() === u.id, "deleting removes only that row");
   ok((await core.markUpcomingPaid(u.id, "not-a-signature")).error, "marking paid needs a transaction signature");
   const SIG = "5".repeat(88);
   ok((await core.markUpcomingPaid(u.id, SIG)).saved && parseUpcomingTab(book["Upcoming payments"])[0].paidBy === SIG, "marking paid stores the payout's transaction");

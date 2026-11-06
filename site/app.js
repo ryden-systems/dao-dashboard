@@ -642,16 +642,35 @@
         render(); return;
       }
       // Upcoming payments (Budget page): add one, mark one as paid by its payout.
-      case "up-open": ed.upcoming = true; ed.upcomingMsg = null; render(); return;
-      case "up-cancel": ed.upcoming = false; ed.upPay = null; render(); return;
+      case "up-open": ed.upcoming = true; ed.upEdit = null; ed.upcomingDraft = null; ed.upcomingMsg = null; render(); return;
+      case "up-edit": {
+        const u = (D.budget?.upcoming ?? []).find((x) => x.id === el.dataset.id);
+        if (!u) return;
+        ed.upcoming = true; ed.upEdit = u.id; ed.upDel = null; ed.upcomingMsg = null;
+        ed.upcomingDraft = { due: u.due ?? "", account: u.account ?? "treasury", for: u.for, fiscalYear: u.fiscalYear ?? "", amount: String(u.amount), currency: u.currency, description: u.description };
+        render(); $("#up-due")?.scrollIntoView({ block: "center", behavior: "smooth" }); return;
+      }
+      case "up-cancel": ed.upcoming = false; ed.upEdit = null; ed.upPay = null; ed.upcomingDraft = null; render(); return;
       case "up-save": {
         const u = { due: val("up-due").trim(), account: val("up-from"), for: val("up-for").trim(), fiscalYear: val("up-fy").trim(), amount: val("up-amount").trim(), currency: val("up-cur"), description: val("up-desc").trim() };
         ed.upcomingDraft = u;
         el.disabled = true;
         try {
-          const r = await ED.core.addUpcoming(u);
-          ed.upcomingMsg = r.error ? { err: r.error } : { ok: `Added: ${u.for}, ${u.amount} ${u.currency} due ${u.due}. Attach the invoice with its Documents button.` };
-          if (!r.error) { ed.upcoming = false; ed.upcomingDraft = null; window.DashLive?.addTab?.("upcomingPayments", r.tab, r.gid); liveRefresh(); }
+          const r = ed.upEdit ? await ED.core.updateUpcoming(ed.upEdit, u) : await ED.core.addUpcoming(u);
+          ed.upcomingMsg = r.error ? { err: r.error } : { ok: ed.upEdit ? `Saved: ${u.for}, ${u.amount} ${u.currency} due ${u.due}.` : `Added: ${u.for}, ${u.amount} ${u.currency} due ${u.due}. Attach the invoice with its Documents button.` };
+          if (!r.error) { ed.upcoming = false; ed.upEdit = null; ed.upcomingDraft = null; if (r.tab) window.DashLive?.addTab?.("upcomingPayments", r.tab, r.gid); liveRefresh(); }
+        } catch (e) { ed.upcomingMsg = { err: e.message }; }
+        render(); return;
+      }
+      // Deleting asks once more in place (no browser dialog).
+      case "up-del": ed.upDel = el.dataset.id; ed.upPay = null; ed.upcomingMsg = null; render(); return;
+      case "up-del-no": ed.upDel = null; render(); return;
+      case "up-del-yes": {
+        el.disabled = true;
+        try {
+          const r = await ED.core.deleteUpcoming(el.dataset.id);
+          ed.upcomingMsg = r.error ? { err: r.error } : { ok: "Deleted. Its documents stay in the Drive folder." };
+          if (!r.error) { ed.upDel = null; if (ed.upEdit === el.dataset.id) { ed.upcoming = false; ed.upEdit = null; } liveRefresh(); }
         } catch (e) { ed.upcomingMsg = { err: e.message }; }
         render(); return;
       }
@@ -1248,14 +1267,15 @@
     const cands = (u) => D.payments.filter((p) => p.direction === "out" && (p.onBehalfOf ?? p.account) === u.account && p.symbol === u.currency && day(p.t) >= (u.due ? new Date(Date.parse(u.due) - 120 * 86400000).toISOString().slice(0, 10) : "0") && !(D.upcoming ?? []).some((x) => x.paidBy === p.sig)).slice(0, 30);
     const rows = U.map((u) => {
       const key = `upcoming:${u.id}:`, docs = docsOf({ sig: `upcoming:${u.id}`, owner: "" }).length;
-      const btns = editing() ? `<button class="btn sm ed-btn" data-act="doc-open" data-key="${esc(key)}">${docs ? `Documents (${docs})` : "Documents"}</button><button class="btn sm ed-btn" data-act="up-pay-open" data-id="${esc(u.id)}">Mark paid</button>` : "";
+      const btns = editing() ? `<button class="btn sm ed-btn" data-act="up-edit" data-id="${esc(u.id)}">Edit</button><button class="btn sm ed-btn" data-act="doc-open" data-key="${esc(key)}">${docs ? `Documents (${docs})` : "Documents"}</button><button class="btn sm ed-btn" data-act="up-pay-open" data-id="${esc(u.id)}">Mark paid</button><button class="btn sm danger" data-act="up-del" data-id="${esc(u.id)}">Delete</button>` : "";
+      const del = editing() && ed.upDel === u.id ? `<tr class="detail ed-only"><td colspan="7"><div class="edact"><span>Delete this upcoming payment (${esc(u.for)}, ${esc(num(u.amount, 2))} ${esc(u.currency)} due ${esc(u.due ?? "")})?${docs ? ` Its ${docs} document${docs === 1 ? "" : "s"} stay in the Drive folder.` : ""}</span><button class="btn danger" data-act="up-del-yes" data-id="${esc(u.id)}">Yes, delete</button><button class="btn" data-act="up-del-no">Keep it</button></div></td></tr>` : "";
       const pay = editing() && ed.upPay === u.id ? `<tr class="detail ed-only"><td colspan="${editing() ? 7 : 6}"><div class="edform">
           <label class="wide">Paid by this payout<select id="up-pay-pick"><option value="">Choose a payout…</option>${cands(u).map((p) => `<option value="${esc(p.sig)}">${esc(day(p.t))} · ${esc(num(p.amount, 2))} ${esc(p.symbol)} · ${esc(ownerLabel(p.owner) || short(p.owner))}${p.category || p.pip ? ` · now: ${esc(p.category ?? `PIP-${p.pip}`)}` : ""}</option>`).join("")}</select></label>
           <label class="wide">Or paste its transaction<input id="up-pay-tx" placeholder="transaction signature"></label>
           <div class="edact wide"><button class="btn primary" data-act="up-pay-save" data-id="${esc(u.id)}">Mark as paid</button><button class="btn" data-act="up-pay-open" data-id="${esc(u.id)}">Cancel</button></div>
         </div></td></tr>` : "";
       const docRow = editing() && ed.docFor === key ? `<tr class="detail ed-only"><td colspan="7">${docPanel({ sig: `upcoming:${u.id}`, owner: "", prefix: `${u.due ?? ""} ${u.amount} ${u.currency}`.trim() })}</td></tr>` : "";
-      return `<tr><td class="mono">${esc(u.due ?? "—")}${u.overdue ? `<div><span class="chip warn">due</span></div>` : ""}</td><td>${accName(u.account)}</td><td>${/^PIP-\d+$/i.test(u.for) ? pipLink(Number(u.for.replace(/\D/g, ""))) : esc(u.for)}</td><td class="mono">${esc(u.fiscalYear ?? "—")}</td><td class="n">${num(u.amount, 2)} ${esc(u.currency)}${u.projected ? "" : `<div class="sub">not in the projection</div>`}</td><td>${esc(u.description)}</td>${editing() ? `<td class="r">${btns}</td>` : ""}</tr>${pay}${docRow}`;
+      return `<tr><td class="mono">${esc(u.due ?? "—")}${u.overdue ? `<div><span class="chip warn">due</span></div>` : ""}</td><td>${accName(u.account)}</td><td>${/^PIP-\d+$/i.test(u.for) ? pipLink(Number(u.for.replace(/\D/g, ""))) : esc(u.for)}</td><td class="mono">${esc(u.fiscalYear ?? "—")}</td><td class="n">${num(u.amount, 2)} ${esc(u.currency)}${u.projected ? "" : `<div class="sub">not in the projection</div>`}</td><td>${esc(u.description)}</td>${editing() ? `<td class="r">${btns}</td>` : ""}</tr>${del}${pay}${docRow}`;
     }).join("");
     const d = ed.upcomingDraft ?? {};
     const cats = [...new Set([...(D.budget?.foundation?.categories ?? []), ...D.payments.map((p) => p.category).filter(Boolean)])];
@@ -1268,7 +1288,7 @@
       <label>Currency<select id="up-cur"><option${d.currency === "ATLAS" ? "" : " selected"}>USDC</option><option${d.currency === "ATLAS" ? " selected" : ""}>ATLAS</option></select></label>
       <label class="wide">Description<input id="up-desc" placeholder="e.g. Registered office and secretary fees 2027" value="${esc(d.description ?? "")}"></label>
       <p class="ed-err wide">Never enter bank or wire details or a person's name: the sheet and its backup are public. Attach the invoice with Documents after saving.</p>
-      <div class="edact wide"><button class="btn primary" data-act="up-save">Add upcoming payment</button><button class="btn" data-act="up-cancel">Cancel</button></div>
+      <div class="edact wide"><button class="btn primary" data-act="up-save">${ed.upEdit ? "Save changes" : "Add upcoming payment"}</button><button class="btn" data-act="up-cancel">Cancel</button></div>
     </div>`;
     const totals = Object.entries(B.upcomingTotals ?? {}).map(([a, o]) => `${a === "fund" ? "Ecosystem Fund" : a === "treasury" ? "DAO Treasury" : "not set"}: ${Object.entries(o).map(([c, v]) => `${num(v, 0)} ${esc(c)}`).join(" + ")}`).join(" · ");
     return `<section class="sec">
@@ -1694,7 +1714,7 @@
     if (bar) bar.innerHTML = editBar();
   }
 
-  const EDIT_ACTIONS = new Set(["up-open", "up-cancel", "up-save", "up-pay-open", "up-pay-save", "min-open", "min-cancel", "min-keep", "min-discard", "min-fmt", "min-copy", "min-preview", "min-take", "min-save", "min-overwrite", "ed-signin", "ed-signout", "ed-update", "doc-open", "doc-close", "doc-upload", "wal-open", "wal-cancel", "wal-save", "ed-preview", "lbl-open", "lbl-cancel", "lbl-save", "lbl-clear", "lbl-clear-yes", "lbl-clear-no", "pip-edit", "pip-reload", "pip-cancel", "pip-save", "pip-overwrite", "mem-seed", "mem-open", "mem-cancel", "mem-save"]);
+  const EDIT_ACTIONS = new Set(["up-edit", "up-del", "up-del-yes", "up-del-no", "up-open", "up-cancel", "up-save", "up-pay-open", "up-pay-save", "min-open", "min-cancel", "min-keep", "min-discard", "min-fmt", "min-copy", "min-preview", "min-take", "min-save", "min-overwrite", "ed-signin", "ed-signout", "ed-update", "doc-open", "doc-close", "doc-upload", "wal-open", "wal-cancel", "wal-save", "ed-preview", "lbl-open", "lbl-cancel", "lbl-save", "lbl-clear", "lbl-clear-yes", "lbl-clear-no", "pip-edit", "pip-reload", "pip-cancel", "pip-save", "pip-overwrite", "mem-seed", "mem-open", "mem-cancel", "mem-save"]);
   function editClick(e) {
     const el = e.target.closest("[data-act]");
     if (!el || !EDIT_ACTIONS.has(el.dataset.act)) return false;
@@ -1822,7 +1842,7 @@
     $("#stamp").innerHTML = `Data as of ${esc(t(D.dataAt))} UTC${liveAt ? ` · sheet live ${esc(t(liveAt).slice(11))} UTC` : ""}`;
   }
   let playerTouched = false;
-  const anyFormOpen = () => Boolean(ed.wallet || ed.labelFor || ed.docFor || ed.pip || ed.member || ed.clearFor || ed.minutes || ed.upcoming || ed.upPay);
+  const anyFormOpen = () => Boolean(ed.wallet || ed.labelFor || ed.docFor || ed.pip || ed.member || ed.clearFor || ed.minutes || ed.upcoming || ed.upPay || ed.upDel);
   // After a save: read the sheet again right away, so the change shows within seconds.
   const liveRefresh = () => window.DashLive?.refresh?.();
 
