@@ -24,7 +24,7 @@ const SM = ctx.SheetMap;
 
 // ---------- fake Sheets API ----------
 const book = { Tracker: parseCSV(fs.readFileSync(path.join(ROOT, "test", "fixtures", "tracker.csv"), "utf8")) };
-let access = true;
+let access = true, readOnly = false;
 const writes = [];
 function parseRange(r) {
   const m = r.match(/^'((?:[^']|'')+)'(?:!([A-Z]+)(\d+))?$/);
@@ -37,6 +37,8 @@ function parseRange(r) {
 const json = (status, body) => ({ ok: status < 400, status, text: async () => JSON.stringify(body) });
 async function fakeFetch(url, opts = {}) {
   if (!access) return json(403, { error: { message: "The caller does not have permission" } });
+  // A view-only account: reading works, every write is refused.
+  if (readOnly && (opts.method || "GET") !== "GET") return json(403, { error: { message: "The caller does not have permission" } });
   const u = new URL(url);
   const rest = decodeURIComponent(u.pathname.split("/spreadsheets/")[1]).split("/").slice(1).join("/");
   const body = opts.body ? JSON.parse(opts.body) : null;
@@ -310,7 +312,13 @@ ok(docList.length === 2 && docList[1].link === "https://drive/2" && docList[0].b
 
 // ---------- sign-in problems in plain words ----------
 {
+  ok((await core.canEdit()).ok, "an editor passes the edit-rights check");
+  readOnly = true;
+  const v = await core.canEdit();
+  ok(!v.ok && v.status === 403 && (await core.canAccess()), "a view-only account can open the sheet but fails the edit-rights check");
+  readOnly = false;
   const m = ctx.Editor.signInMessage;
+  ok(/can view the Council's sheet but not edit it/.test(m("view-only: The caller does not have permission", "x@y.org")), "view-only sign-in explained");
   ok(/tick the box for Google Sheets/.test(m("Request had insufficient authentication scopes.")), "missing Sheets permission explained");
   ok(/tick the box for Google Sheets/.test(m("The Google Sheets permission was not granted.")), "unticked Sheets box explained");
   ok(/window was closed/.test(m("popup_closed")) && /Allow pop-ups/.test(m("popup_failed_to_open")), "closed and blocked popups explained");

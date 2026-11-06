@@ -24,6 +24,7 @@
   function signInMessage(raw, email) {
     const s = String(raw || "");
     const google = s ? ` (Google: ${s})` : "";
+    if (/^view-only/.test(s)) return `This Google account${email ? ` (${email})` : ""} can view the Council's sheet but not edit it, so it cannot sign in as an editor. Ask the Council for edit access to the sheet.`;
     if (/insufficient.*scope|scopes? (were|was) not granted|sheets permission/i.test(s)) return `The Google Sheets permission was not given. Sign in again and, on Google's permission screen, tick the box for Google Sheets.${google}`;
     if (/popup_closed|cancel/i.test(s)) return `The Google sign-in window was closed before it finished. Sign in again and complete every step in that window.${google}`;
     if (/popup_failed_to_open|popup.*block/i.test(s)) return `The browser blocked Google's sign-in window. Allow pop-ups for this page and sign in again.${google}`;
@@ -61,6 +62,12 @@
         catch (e) { if (e.status === 403 || e.status === 404) return { ok: false, status: e.status, message: e.message }; throw e; }
       },
       async canAccess() { return (await core.accessCheck()).ok; },
+      // Edit rights: opening the sheet is not enough (anyone with its link can view it). An update with
+      // no changes is accepted only from accounts that can edit, and changes nothing in the sheet.
+      async canEdit() {
+        try { await call(":batchUpdate", { method: "POST", body: { requests: [] } }); return { ok: true }; }
+        catch (e) { if (e.status === 403 || e.status === 404) return { ok: false, status: e.status, message: e.message }; throw e; }
+      },
       async tabTitles() {
         const j = await call("?fields=sheets.properties(title,sheetId)");
         return (j.sheets || []).map((s) => s.properties.title);
@@ -481,11 +488,17 @@
         this.state.email = who.email || null;
         const access = await this.core.accessCheck();
         if (!access.ok) throw new Error(`${access.status}: ${access.message}`);
+        // Only accounts that can edit the sheet sign in: every editor function saves into it.
+        const edit = await this.core.canEdit();
+        if (!edit.ok) throw new Error(`view-only: ${edit.message}`);
         this.state.signedIn = true;
       } catch (e) {
         console.warn("[editor] sign-in failed:", e.message);
         this.state.error = signInMessage(e.message, this.state.email);
         this.state.signedIn = false;
+        // Not signed in, so the Google permission is not kept either.
+        try { if (this._token) google.accounts.oauth2.revoke(this._token, () => {}); } catch { /* already gone */ }
+        this._token = null; this._expires = 0;
       }
       this._emit();
     },
