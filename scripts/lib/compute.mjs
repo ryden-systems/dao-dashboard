@@ -3,6 +3,7 @@
 // browser: an edit in the sheet then shows on the next page load without waiting for a build.
 import { reconcile } from "./reconcile.mjs";
 import { fundLimits } from "./limit.mjs";
+import { budgetOf } from "./budget.mjs";
 import { healthChecks } from "./health.mjs";
 import { councilTerms } from "./members.mjs";
 import { rebuildSeries, fullyIndexed } from "./series.mjs";
@@ -16,9 +17,14 @@ export function compute({ config, sources, proposals, ledger, history, now, nowA
   const nowTs = Date.parse(nowAt) / 1000;
 
   // Sheet labels override seed labels for the same payout.
-  const labels = [...seedLabels.filter((s) => !sources.labels.some((l) => l.signature === s.signature)), ...sources.labels];
+  // A paid upcoming payment labels the payout that settled it (what it was for, its fiscal year);
+  // a Council label on that payout wins.
+  const upcomingLabels = (sources.upcoming ?? []).filter((u) => u.paidBy && u.for)
+    .map((u) => ({ signature: u.paidBy, recipient: "", label: u.for, confirmed: true, fiscalYear: u.fiscalYear }))
+    .filter((u) => !sources.labels.some((l) => l.signature === u.signature));
+  const labels = [...seedLabels.filter((s) => !sources.labels.some((l) => l.signature === s.signature)), ...upcomingLabels, ...sources.labels];
   const recon = reconcile({ pips: sources.pips, ledger, labels, wallets: sources.wallets ?? [], config });
-  const limit = fundLimits({ ledger, fundNow: now.fund.ATLAS, percent: config.fundLimit.percent, nowTs });
+  const limit = fundLimits({ ledger, fundNow: now.fund.ATLAS, treasuryNow: now.treasury, rules: config.daoRules?.fund ?? [], nowTs });
   const flags = healthChecks({ pips: sources.pips, missingColumns: sources.missingColumns, proposals, recon, ledger, history, now, config, nowTs });
   // A payout labelled in more than one row: the last row is used, which is easy to miss in the sheet.
   const labelCount = new Map();
@@ -28,6 +34,43 @@ export function compute({ config, sources, proposals, ledger, history, now, nowA
   }
   const council = councilTerms({ sheetMembers: sources.members ?? [], proposals, history: councilHistory });
   for (const w of council.warnings) flags.push({ severity: "warning", area: "council", message: w });
+  // Paid by the Fund through the Treasury: the Treasury pays a Fund PIP (sheet "Ecosystem Fund?" = YES)
+  // and the Fund then sends the Treasury the same amount within 30 days (e.g. PIP-29 and PIP-30 in
+  // April 2026). Those payouts count as the Fund's (onBehalfOf), on the Budget page as well.
+  const fundPip = new Map(recon.summary.map((s) => [s.pip, s.ecosystemFund]));
+  const reimbursements = recon.legs.filter((l) => l.account === "fund" && l.direction === "out" && l.confidence === "internal");
+  const bySig = new Map();
+  for (const l of recon.legs) {
+    if (l.account !== "treasury" || l.direction !== "out" || l.pip == null || fundPip.get(l.pip) !== true) continue;
+    const k = `${l.sig}:${l.symbol}`;
+    if (!bySig.has(k)) bySig.set(k, []);
+    bySig.get(k).push(l);
+  }
+  for (const legs of bySig.values()) {
+    const total = legs.reduce((s, l) => s + l.amount, 0), t = legs[0].t;
+    const r = reimbursements.find((x) => x.symbol === legs[0].symbol && Math.abs(x.amount - total) < 1 && x.t >= t && x.t - t <= 30 * 86400);
+    if (r) for (const l of legs) { l.onBehalfOf = "fund"; l.reimbursedBy = r.sig; }
+  }
+  // Which account pays a PIP: the sheet's "Ecosystem Fund?" column, checked against the wallet its
+  // matched payouts actually came from (the dashboard's own guesses, "inferred", are left out). The
+  // Budget page relies on it for what each account still owes.
+  const ACC = { fund: "Ecosystem Fund", treasury: "DAO Treasury" };
+  const paidFrom = new Map();
+  for (const l of recon.legs) {
+    if (l.direction !== "out" || l.pip == null || l.confidence === "internal" || l.confidence === "inferred" || !ACC[l.account]) continue;
+    if (!paidFrom.has(l.pip)) paidFrom.set(l.pip, new Set());
+    paidFrom.get(l.pip).add(l.onBehalfOf ?? l.account);
+  }
+  for (const s of recon.summary) {
+    const from = [...(paidFrom.get(s.pip) ?? [])];
+    if (s.ecosystemFund == null) {
+      flags.push({ severity: "warning", area: "sheet", pip: s.pip, message: `PIP-${s.pip}: "Ecosystem Fund?" is empty in the sheet, so it is not known whether the Ecosystem Fund or the DAO Treasury pays it${from.length ? ` (its payouts so far came from the ${from.map((a) => ACC[a]).join(" and the ")})` : ""}. Enter YES or NO.` });
+      continue;
+    }
+    const want = s.ecosystemFund ? "fund" : "treasury";
+    const other = from.filter((a) => a !== want);
+    if (other.length) flags.push({ severity: "warning", area: "sheet", pip: s.pip, message: `PIP-${s.pip}: the sheet says the ${ACC[want]} pays it ("Ecosystem Fund?" = ${s.ecosystemFund ? "YES" : "NO"}), but payouts matched to it came from the ${other.map((a) => ACC[a]).join(" and the ")}. Correct the column, or the payout's label if it belongs to another PIP.` });
+  }
   // Council activity on chain: decisions executed on the Council's Squads multisigs per month, by
   // kind (payouts, member changes, other), and proposals created. Counted from the first Council
   // term on; each term's start is returned so the chart can mark it.
@@ -110,7 +153,7 @@ export function compute({ config, sources, proposals, ledger, history, now, nowA
       candidates: a?.candidates ?? null,
       amount: s?.amount?.value ?? null,
       currency: s?.currency ?? null,
-      ecosystemFund: s?.ecosystemFund ?? false,
+      ecosystemFund: s?.ecosystemFund ?? null,
       roi: s?.roi ?? "",
       note: s?.note ?? "",
       funding: pay.get(n) ?? null,
@@ -217,6 +260,12 @@ export function compute({ config, sources, proposals, ledger, history, now, nowA
     top: voterList.slice(0, 15).map((w) => ({ ...w, pvp: round2(w.pvp), polis: w.polis == null ? null : round2(w.polis), share: w.daoPvp ? w.pvp / w.daoPvp : null })),
   };
 
+  // Shared by the output and the budget.
+  const accountsOut = Object.fromEntries(Object.entries(config.accounts).map(([k, a]) => [k, { label: a.label, wallet: a.wallet, now: now[k], retired: a.retired ?? null }]));
+  const payoutsList = recon.legs
+      .filter((l) => l.amount > 0 && !(l.confidence === "income" && recurring.has(l.owner)))
+      .map((l) => ({ sig: l.sig, t: l.t, account: l.account, symbol: l.symbol, amount: round2(l.amount), direction: l.direction, owner: l.owner, confidence: l.confidence, pip: l.pip, category: l.category ?? null, labelled: Boolean(l.labelled), reason: l.reason, isReturn: Boolean(l.isReturn), onBehalfOf: l.onBehalfOf ?? null, reimbursedBy: l.reimbursedBy ?? null, fiscalYear: l.fiscalYear ?? null }))
+      .sort((a, b) => b.t - a.t);
   const out = {
     generatedAt,
     dataAt: nowAt,
@@ -225,7 +274,7 @@ export function compute({ config, sources, proposals, ledger, history, now, nowA
       governance: config.governance.api,
       sheetFetchedAt: sources.fetchedAt,
     },
-    accounts: Object.fromEntries(Object.entries(config.accounts).map(([k, a]) => [k, { label: a.label, wallet: a.wallet, now: now[k], retired: a.retired ?? null }])),
+    accounts: accountsOut,
     pips,
     knownWallets: known,
     // Names for counterparties: the Council's "Wallets" tab, plus known income sources from config.
@@ -233,11 +282,10 @@ export function compute({ config, sources, proposals, ledger, history, now, nowA
     wallets: (sources.wallets ?? []).map((w) => ({ ...w, now: w.track ? tracked[w.wallet] ?? null : null })),
     income,
     voters,
-    payments: recon.legs
-      .filter((l) => l.amount > 0 && !(l.confidence === "income" && recurring.has(l.owner)))
-      .map((l) => ({ sig: l.sig, t: l.t, account: l.account, symbol: l.symbol, amount: round2(l.amount), direction: l.direction, owner: l.owner, confidence: l.confidence, pip: l.pip, category: l.category ?? null, labelled: Boolean(l.labelled), reason: l.reason, isReturn: Boolean(l.isReturn) }))
-      .sort((a, b) => b.t - a.t),
+    payments: payoutsList,
     limit,
+    budget: budgetOf({ payments: payoutsList, income, accounts: accountsOut, pips, limit, upcoming: sources.upcoming ?? [], rules: config.daoRules ?? {}, settings: config.budget ?? {}, nowTs }),
+    upcoming: sources.upcoming ?? [],
     series,
     council: sources.council,
     councilChain,

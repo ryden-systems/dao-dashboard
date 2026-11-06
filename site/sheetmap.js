@@ -7,12 +7,15 @@
   const clean = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 
   // Headers of the tabs the dashboard writes to.
-  const LABEL_HEADERS = ["Signature", "Recipient", "PIP", "Confirmed"];
+  // "Fiscal year": the budget year a payout belongs to (e.g. a January payment for last year's costs).
+  const LABEL_HEADERS = ["Signature", "Recipient", "PIP", "Confirmed", "Fiscal year"];
   const DOC_HEADERS = ["Signature", "Recipient", "File", "Link", "Uploaded (UTC)", "By"];
   // "Payout label" (formerly "Label"): applied to payouts to the wallet only, never to inflows.
   const WALLET_HEADERS = ["Wallet", "Name", "Payout label", "Track balance", "Note"];
   const MEMBER_HEADERS = ["Name", "Role", "Term", "Start", "End", "Elected (PIP)", "Wallet", "Discord", "X", "Image", "Show"];
   const MINUTES_HEADERS = ["Date", "Title", "Minutes", "Show"];
+  // Payments the DAO knows are coming (e.g. an invoice). "Paid by (tx)" is filled in once it is paid.
+  const UPCOMING_HEADERS = ["ID", "Due", "Paid from", "For", "Fiscal year", "Amount", "Currency", "Description", "Paid by (tx)"];
   // Google Sheets holds at most 50,000 characters in one cell.
   const MINUTES_MAX = 50000;
   // Minutes keep their line breaks, so they are compared without collapsing whitespace.
@@ -84,6 +87,7 @@
       case "date": return v === "" || /^\d{4}-\d{2}-\d{2}$/.test(v) ? "" : "Use the format YYYY-MM-DD.";
       case "url": return v === "" || /^https:\/\/\S+$/i.test(v) ? "" : "Image links must start with https://";
       case "required": return v ? "" : "This field is required.";
+      case "year": return v === "" || /^(19|20)\d{2}$/.test(v) ? "" : "Enter a year, e.g. 2025.";
       default: return "";
     }
   }
@@ -97,5 +101,5 @@
     return [m.name, m.role || "Council member", m.term || "", textDate(m.start), textDate(m.end), m.electedIn ? `PIP-${m.electedIn}` : "", m.wallet || "", m.discord || "", m.x ? String(m.x).replace(/^@/, "") : "", m.image || "", "TRUE"];
   }
 
-  root.SheetMap = { clean, LABEL_HEADERS, DOC_HEADERS, WALLET_HEADERS, MEMBER_HEADERS, MINUTES_HEADERS, MINUTES_MAX, PIP_FIELDS, minutesText, isoDate, textDate, findHeaderRow, colIndex, colLetter, a1, a1Tab, locatePip, validate, memberRow };
+  root.SheetMap = { clean, LABEL_HEADERS, DOC_HEADERS, WALLET_HEADERS, MEMBER_HEADERS, MINUTES_HEADERS, UPCOMING_HEADERS, MINUTES_MAX, PIP_FIELDS, minutesText, isoDate, textDate, findHeaderRow, colIndex, colLetter, a1, a1Tab, locatePip, validate, memberRow };
 })(typeof window !== "undefined" ? window : globalThis);

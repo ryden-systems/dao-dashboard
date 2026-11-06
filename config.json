@@ -60,7 +60,8 @@
       "councilMembers": "Council members",
       "paymentDocuments": "Payment documents",
       "wallets": "Wallets",
-      "meetingMinutes": "Meeting minutes"
+      "meetingMinutes": "Meeting minutes",
+      "upcomingPayments": "Upcoming payments"
     },
     "_tabsNote": "Each tab is a gid (digits) or a tab name. Named tabs are found automatically once they exist, including tabs created from the dashboard's editor."
   },
@@ -88,9 +89,37 @@
     "signatures": "https://api.mainnet-beta.solana.com",
     "_note": "RPC_URL (env) is used for balances and transaction lookups; any provider works. SIGNATURES_RPC_URL (env) is used to list each address's transaction history and MUST be archive-complete: some commercial RPCs silently return gaps there. The public endpoint is complete."
   },
-  "fundLimit": {
-    "percent": 5,
-    "cadence": "quarter"
+  "daoRules": {
+    "_note": "DAO rules the dashboard calculates with. Only a passed PIP changes them: add a new version with the day the PIP passed as 'from' (keep the older versions, past figures are calculated with the rules of their time). The Ecosystem Fund page lists the rules in force. pipLimitBasis: 'initialFunding' = % of the fund's balance after its first funding; 'lastRefill' = % of the fund's balance after the latest refill, until the next refill.",
+    "fund": [
+      {
+        "from": "2024-08-06", "pip": 4, "title": "Star Atlas Ecosystem Fund",
+        "pipLimitPercent": 5, "pipLimitBasis": "initialFunding",
+        "targetSharePercent": 20, "usdcThreshold": 500000, "usdcSharePercent": 20,
+        "refillDates": ["03-31", "06-30", "09-30", "12-31"]
+      },
+      {
+        "from": "2025-11-18", "pip": 23, "title": "Refresh of PIP-4 the Ecosystem Fund",
+        "pipLimitPercent": 5, "pipLimitBasis": "lastRefill",
+        "targetSharePercent": 20, "usdcThreshold": 500000, "usdcSharePercent": 20,
+        "refillDates": ["03-31", "06-30", "09-30", "12-31"],
+        "maxPipMonths": 12, "paysIn": "ATLAS",
+        "_refillDatesNote": "PIP-23 writes 'Mar 31, Jun 20, Sep 30, and Dec 31'; read as the quarter ends (Jun 30)."
+      }
+    ],
+    "foundation": [
+      {
+        "from": "2024-07-23", "pip": 2, "title": "Star Atlas Foundation",
+        "budgetUsdPerYear": 100000,
+        "_note": "A recurring annual budget of no more than 100,000 USD from the Treasury for the Foundation's operations and maintenance; anything beyond needs a DAO vote in advance."
+      }
+    ]
+  },
+  "budget": {
+    "_note": "Budget page settings. windowMonths: complete months the averages use. foundationCategories: payout labels (cost categories) that count against the Foundation's yearly budget. projectRefills: how many upcoming refill dates the projection shows.",
+    "windowMonths": 12,
+    "foundationCategories": ["Operating costs", "Foundation"],
+    "projectRefills": 4
   },
   "reconcile": {
     "ignoreUsdcBelow": 100,

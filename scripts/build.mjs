@@ -142,7 +142,7 @@ function computePhase() {
 }
 
 // The calculation and the sheet parsers, served to the page as ES modules (no other files: these import only each other).
-const LIVE_MODULES = ["compute.mjs", "reconcile.mjs", "limit.mjs", "health.mjs", "members.mjs", "series.mjs", "pure.mjs", "sheetparse.mjs", "videos.mjs"];
+const LIVE_MODULES = ["compute.mjs", "reconcile.mjs", "limit.mjs", "budget.mjs", "health.mjs", "members.mjs", "series.mjs", "pure.mjs", "sheetparse.mjs", "videos.mjs"];
 
 function copyDir(from, to) {
   if (!fs.existsSync(from)) return;

@@ -6,7 +6,8 @@ import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 import { ROOT, parseCSV } from "../scripts/lib/util.mjs";
-import { parsePipTab, parseLabelTab, parseMembersTab, parseWalletsTab, parseMinutesTab } from "../scripts/lib/sheet.mjs";
+import { parsePipTab, parseLabelTab, parseMembersTab, parseWalletsTab, parseMinutesTab, parseUpcomingTab } from "../scripts/lib/sheet.mjs";
+import { budgetOf } from "../scripts/lib/budget.mjs";
 import { councilVideos } from "../scripts/lib/videos.mjs";
 import { reconcile } from "../scripts/lib/reconcile.mjs";
 import { councilTerms } from "../scripts/lib/members.mjs";
@@ -102,6 +103,18 @@ ok(book["Payment labels"].length === 3, "second label appended, tab not recreate
 ok((await core.addLabel({ signature: "SIG3", pip: "28" })).error, "invalid label refused");
 r = await core.addLabel({ signature: "SIG1", recipient: "OWNER1", pip: "PIP-29", confirmed: false });
 ok(r.updated && book["Payment labels"].length === 3 && book["Payment labels"][1][2] === "PIP-29" && book["Payment labels"][1][3] === "FALSE", "relabelling updates the row instead of adding one");
+ok((await core.addLabel({ signature: "SIG1", recipient: "OWNER1", pip: "Foundation", confirmed: true, fiscalYear: "last year" })).error, "a fiscal year that is not a year is refused");
+r = await core.addLabel({ signature: "SIG1", recipient: "OWNER1", pip: "PIP-29", confirmed: false, fiscalYear: "2024" });
+ok(r.updated && book["Payment labels"][1][4] === "2024" && parseLabelTab(book["Payment labels"])[0].fiscalYear === "2024", "the fiscal year is saved and read back by the build");
+{
+  // A tab made before the column existed: the header is added on the first fiscal year saved.
+  const saved = book["Payment labels"];
+  book["Payment labels"] = [["Signature", "Recipient", "PIP", "Confirmed"], ["OLD", "", "Foundation", "TRUE"]];
+  r = await core.addLabel({ signature: "OLD", recipient: "", pip: "Foundation", confirmed: true, fiscalYear: "2025" });
+  ok(r.updated && book["Payment labels"][0][4] === "Fiscal year" && book["Payment labels"][1][4] === "2025" && parseLabelTab(book["Payment labels"])[0].fiscalYear === "2025", "an old tab gets the Fiscal year column: " + JSON.stringify(book["Payment labels"]));
+  book["Payment labels"] = saved;
+}
+r = await core.addLabel({ signature: "SIG1", recipient: "OWNER1", pip: "PIP-29", confirmed: false });
 book["Payment labels"].push(["SIG1", "OWNER1", "not a payout", "TRUE"]); // a duplicate row, e.g. typed into the sheet
 r = await core.addLabel({ signature: "SIG1", recipient: "OWNER1", pip: "PIP-28", confirmed: true });
 ok(r.updated && r.removed === 1 && book["Payment labels"].length === 3 && book["Payment labels"].filter((x) => x[0] === "SIG1").length === 1 && book["Payment labels"][1][2] === "PIP-28", "relabelling removes duplicate rows for the payout: " + JSON.stringify(book["Payment labels"]));
@@ -263,6 +276,41 @@ ok(docList.length === 2 && docList[1].link === "https://drive/2" && docList[0].b
   const V = councilVideos({ store, terms: [{ label: "Term 4", start: "2026-10-11" }], minutes: [{ day: "2026-11-03", title: "", text: "PIP-36 approved" }, { day: "2026-10-28", title: "Recording failed", text: "notes on PIP-40" }] });
   ok(V.meetings.length === 2 && V.meetings[0].id === "V1" && V.meetings[0].minutes === "PIP-36 approved" && V.meetings[0].pips.includes(36), "minutes attach to the same day's recording, and their PIPs count");
   ok(V.meetings[1].noRecording && V.meetings[1].url === null && V.meetings[1].title === "Recording failed" && V.meetings[1].term === "Term 4" && V.meetings[1].pips.includes(40), "minutes without a recording are a meeting of their own");
+}
+
+// ---------- upcoming payments ----------
+{
+  ok((await core.addUpcoming({ due: "1.12.2026", account: "treasury", for: "Operating costs", amount: "100" })).error, "a due date that is not YYYY-MM-DD is refused");
+  ok((await core.addUpcoming({ due: "2026-12-01", account: "treasury", for: "Operating costs", amount: "0" })).error, "an amount of 0 is refused");
+  ok((await core.addUpcoming({ due: "2026-12-01", account: "", for: "Operating costs", amount: "100" })).error, "the paying account is required");
+  let u = await core.addUpcoming({ due: "2026-12-01", account: "treasury", for: "Operating costs", fiscalYear: "2027", amount: "1,234.50", currency: "USDC", description: "- annual fees" });
+  ok(u.saved && /^U[0-9A-Z]+$/.test(u.id) && u.gid != null && book["Upcoming payments"]?.[0]?.join() === SM.UPCOMING_HEADERS.join(), "first upcoming payment creates the tab with an ID: " + JSON.stringify(u));
+  const back = parseUpcomingTab(book["Upcoming payments"]);
+  ok(back.length === 1 && back[0].id === u.id && back[0].due === "2026-12-01" && back[0].account === "treasury" && back[0].amount === 1234.5 && back[0].fiscalYear === "2027" && back[0].description === "- annual fees" && !back[0].paidBy, "the build reads it back as written: " + JSON.stringify(back[0]));
+  ok((await core.markUpcomingPaid(u.id, "not-a-signature")).error, "marking paid needs a transaction signature");
+  const SIG = "5".repeat(88);
+  ok((await core.markUpcomingPaid(u.id, SIG)).saved && parseUpcomingTab(book["Upcoming payments"])[0].paidBy === SIG, "marking paid stores the payout's transaction");
+
+  // Budget: an unpaid Foundation invoice counts in its fiscal year and comes off the Treasury on its due date.
+  const rules = { foundation: [{ from: "2024-07-23", pip: 2, budgetUsdPerYear: 100000 }], fund: [{ from: "2024-08-06", pip: 4, pipLimitPercent: 5, pipLimitBasis: "lastRefill", targetSharePercent: 20, usdcThreshold: 500000, usdcSharePercent: 20, refillDates: ["03-31", "06-30", "09-30", "12-31"] }] };
+  const base = { accounts: { treasury: { now: { ATLAS: 1000, USDC: 50000 } }, fund: { now: { ATLAS: 100 } } }, rules, settings: { foundationCategories: ["Operating costs"], projectRefills: 2 }, nowTs: Date.parse("2026-11-06T00:00:00Z") / 1000 };
+  const inv = { id: "U1", due: "2026-12-01", account: "treasury", for: "Operating costs", fiscalYear: "2027", amount: 12000, currency: "USDC", description: "", paidBy: null };
+  const without = budgetOf(base), withInv = budgetOf({ ...base, upcoming: [inv] });
+  ok(withInv.foundation.years.find((y) => y.year === "2027")?.upcoming === 12000, "the invoice counts in fiscal year 2027 of the Foundation budget");
+  const dec = (b) => b.projection.find((s) => s.date === "2026-12-31").treasuryUSDC;
+  ok(dec(without) - dec(withInv) === 12000, "the projection takes it off the Treasury's USDC by its due date");
+  ok(budgetOf({ ...base, upcoming: [{ ...inv, paidBy: SIG }] }).upcoming.length === 0, "a paid entry leaves the upcoming list");
+}
+
+// ---------- sign-in problems in plain words ----------
+{
+  const m = ctx.Editor.signInMessage;
+  ok(/tick the box for Google Sheets/.test(m("Request had insufficient authentication scopes.")), "missing Sheets permission explained");
+  ok(/tick the box for Google Sheets/.test(m("The Google Sheets permission was not granted.")), "unticked Sheets box explained");
+  ok(/window was closed/.test(m("popup_closed")) && /Allow pop-ups/.test(m("popup_failed_to_open")), "closed and blocked popups explained");
+  ok(/registered as a tester/.test(m("access_denied")), "access denied explained");
+  ok(/x@y\.org\) cannot edit the Council's sheet/.test(m("403: The caller does not have permission", "x@y.org")) && /\(Google: 403/.test(m("403: The caller does not have permission")), "no edit access explained, with Google's own text kept");
+  ok(/^Sign-in failed\. \(Google: something new\)$/.test(m("something new")), "unknown errors keep Google's text");
 }
 
 // ---------- Google Drive upload against a fake Drive API ----------

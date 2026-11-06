@@ -53,6 +53,10 @@
   --info-soft: color-mix(in srgb, var(--info) 14%, transparent);
   /* Editor-only elements (visible after Editor sign-in): a blue tint marks what visitors don't see. */
   --editor: var(--usdc-text);
+  /* Pages or sections still being built ("Under development"): red, their figures are not to be relied on yet. */
+  --dev: var(--crit);
+  /* A budget used beyond its cap (e.g. the Foundation's yearly budget). */
+  --over-budget: var(--usdc-text);
   --editor-soft: color-mix(in srgb, var(--editor) 16%, var(--surface));
   --series-1: var(--atlas-text);
   --series-2: var(--usdc-text);
@@ -248,6 +252,8 @@ tr.detail.ed-only > td { background-color: var(--editor-soft); }
 .ed-zone { display: block; background-color: var(--editor-soft); border-radius: var(--radius); padding: 12px 16px 14px; }
 .editbar .ed-zone { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0; background-color: transparent; }
 .tabs a.ed-only { background-color: var(--editor-soft); }
+.tabs a.all-clear { background-color: var(--good-soft); }
+.tabs a.has-critical { background-color: var(--crit-soft); }
 tr.ed-only > td { background-color: var(--editor-soft); }
 .preview-info { display: flex; flex-direction: column; gap: 10px; }
 .preview-info ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; color: var(--ink-2); max-width: 90ch; }
@@ -336,12 +342,19 @@ tr.detail td { background: var(--surface-2); padding: 14px 16px 18px; }
 .chip.good { background: var(--good-soft); color: var(--good); border-color: color-mix(in srgb, var(--good) 40%, transparent); }
 .chip.warn { background: var(--warn-soft); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
 .chip.crit { background: var(--crit-soft); color: var(--crit); border-color: color-mix(in srgb, var(--crit) 40%, transparent); }
+.chip.dev  { background: color-mix(in srgb, var(--dev) 16%, transparent); color: var(--dev); border-color: color-mix(in srgb, var(--dev) 45%, transparent); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.sec-head .title-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.dev-note { color: var(--dev); font-weight: 500; }
+/* A projected balance below zero. */
+.short { color: var(--crit); }
 .chip.acc  { background: var(--info-soft); color: var(--info); border-color: color-mix(in srgb, var(--info) 40%, transparent); }
 
 /* Progress bar */
 .bar { position: relative; height: 4px; border-radius: 2px; background: var(--line-strong); overflow: hidden; min-width: 70px; }
 .bar > span { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
 .bar.done > span { background: var(--good); }
+.bar.over > span { background: var(--over-budget); }
+span.over { color: var(--over-budget); }
 
 /* Vote split bar */
 .split { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--line-strong); min-width: 120px; }

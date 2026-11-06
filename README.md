@@ -27,7 +27,7 @@ go straight into the same sheet.
 | Vote results, voting power, participation | Star Atlas governance API | Automatic | n/a |
 | Treasury and Ecosystem Fund balances | Solana mainnet | Automatic | n/a |
 | Payments to PIPs and running costs (e.g. the Foundation), returns, fee income | Solana mainnet; the purpose of a non-PIP payout comes from a payment label | Automatic | n/a |
-| The 5% Ecosystem Fund limit | Solana mainnet (fund balance each quarter) | Automatic | n/a |
+| The Ecosystem Fund's per-PIP limit and refill status | Solana mainnet (fund history) + the DAO rules in `config.json` (`daoRules`) | Automatic; rules change only by a passed PIP | n/a |
 
 **Fixing problems.** Sign in as an editor and open the **Data health** page. Maintenance items (the Data health page
 and tile, "Payouts to label") are shown to signed-in editors only, tinted blue so editors can tell them apart; with
@@ -76,9 +76,9 @@ which the site does not recount. If the record ever disagrees with an official A
 Most payouts are matched to PIPs automatically. A payout stays "needs label" when the dashboard cannot be sure, usually because
 one wallet was paid for several PIPs. To label them, add a tab to the sheet with these column headers:
 
-| Signature | Recipient | PIP | Confirmed |
-|---|---|---|---|
-| the transaction signature (copy it from the dashboard's payment list) | optional: the recipient wallet, if one transaction paid several people | e.g. `PIP-28`, a cost category such as `Foundation`, or `internal`, `refund`, `not a payout` | `TRUE` once checked |
+| Signature | Recipient | PIP | Confirmed | Fiscal year |
+|---|---|---|---|---|
+| the transaction signature (copy it from the dashboard's payment list) | optional: the recipient wallet, if one transaction paid several people | e.g. `PIP-28`, a cost category such as `Foundation`, or `internal`, `refund`, `not a payout` | `TRUE` once checked | optional: the budget year the payout belongs to, e.g. `2025` for a January 2026 payment of 2025 costs |
 
 The tab is found by its name ("Payment labels") automatically. With two-way editing switched on, editors can label a
 payout straight from the dashboard instead (a **Label** button next to every payout except transfers between the DAO's
@@ -257,11 +257,54 @@ A typical daily run takes under 10 seconds and about 20 RPC calls.
 Inflows from a known PIP recipient are treated as **returns**: paid stays the gross amount sent, and the return is shown
 separately, so money sent and later returned is not counted as "still owed".
 
-### The 5% limit
+### The Ecosystem Fund rules (PIP limit, refills)
 
-For each calendar quarter: 5% of the Ecosystem Fund's ATLAS balance at the start of the quarter, held for the whole quarter.
-The fund's complete transaction history is in the ledger, so its balance at any past quarter boundary is exact.
-Percent and cadence are set in `config.json` (`fundLimit`).
+The rules come from the PIPs that set them and live in `config.json` under `daoRules.fund`, one version per PIP, each
+in force from the day its PIP passed. Past figures are calculated with the rules of their time.
+
+- **PIP limit** (PIP-23, since 2025-11-18): no single PIP may exceed 5% of the fund's ATLAS balance right after its
+  latest refill, until the next refill. Before that (PIP-4): 5% of the fund's initial funding. The fund's complete
+  transaction history is in the ledger, so the balance after every refill is exact.
+- **Refills**: quarterly, the Treasury tops the fund up to 20% of the ATLAS in Treasury and fund together, plus 20% of
+  the Treasury's USDC above 500,000. The Ecosystem Fund page shows the fund's share and whether a refill is due.
+
+### Upcoming payments (optional)
+
+Payments the DAO knows are coming, such as an invoice that is due, so the Budget page does not have to rely on
+averages alone. Signed-in editors add them on the Budget page (**Add upcoming payment**); the tab is created on the
+first save:
+
+| ID | Due | Paid from | For | Fiscal year | Amount | Currency | Description | Paid by (tx) |
+|---|---|---|---|---|---|---|---|---|
+| set by the dashboard | YYYY-MM-DD | DAO Treasury or Ecosystem Fund | a cost category (e.g. `Operating costs`) or `PIP-36` | the budget year it belongs to | e.g. `12446.95` | `USDC` or `ATLAS` | short text | the payout's transaction, once paid |
+
+- **Documents:** attach the invoice with the entry's **Documents** button (same owner account and Drive folder as
+  payout documents). Once the entry is marked paid, its documents also show on that payout.
+- **Paid:** **Mark paid** links the entry to its payout (pick it from the list or paste the transaction). The payout then
+  carries the entry's category and fiscal year (a Council label on the payout still wins), and the entry leaves the list.
+- **Budget:** an unpaid entry comes off its account in the projection on its due date (already due: right away), and
+  Foundation costs count in their fiscal year. The projection keeps the running-cost average as well, so it errs on
+  the cautious side.
+- **Never** enter bank or wire details or a person's name: the sheet can be read by anyone with its link and every tab
+  is backed up into this repository.
+
+### The Budget page
+
+Income, spending and a projection, all derived from the ledger and the rules; nothing is typed in.
+
+- **Averages** use the last 12 complete months (`budget.windowMonths`). Income is crafting fees plus transfers from
+  income sources (marketplace fees), all of which reach the Treasury.
+- **Running costs** are Treasury payouts with a cost category, plus payouts not labelled yet (counted as running
+  until labelled). **PIP payouts** are decided one vote at a time, so they are shown but not projected.
+- **Foundation budget** (PIP-2, `daoRules.foundation`): payouts labelled with one of `budget.foundationCategories`
+  per calendar year, against the yearly cap of 100,000 USD.
+- **Projection**: Treasury and Fund at the next refill dates (`budget.projectRefills`), if income and running costs
+  continue as in the window and the Fund keeps paying its average; at each refill date the PIP-23 rule tops the Fund
+  up to 20% of the DAO's ATLAS. The USDC runway is the Treasury's USDC divided by its net monthly USDC outflow.
+
+**When a PIP changes a rule:** add a new version to `daoRules.fund` with `from` set to the day the PIP passed, its
+`pip` number and `title`, and every field (copy the previous version and change what the PIP changed). Keep the old
+versions. The Ecosystem Fund page lists every version under *Rules*.
 
 ---
 

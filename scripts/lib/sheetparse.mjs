@@ -18,6 +18,7 @@ export function sheetSources({ rowsOf, tabs = {}, fetchedAt = new Date().toISOSt
     members: opt("councilMembers", parseMembersTab, []),
     wallets: opt("wallets", parseWalletsTab, []),
     minutes: opt("meetingMinutes", parseMinutesTab, []),
+    upcoming: opt("upcomingPayments", parseUpcomingTab, []),
     tabs,
     fetchedAt,
   };
@@ -42,6 +43,8 @@ function dateCell(raw) {
 }
 
 const yes = (raw) => /^(yes|true)$/i.test(clean(raw));
+// YES -> true, NO -> false, anything else (blank, "?") -> null: not known.
+const yesNo = (raw) => (/^(yes|true)$/i.test(clean(raw)) ? true : /^(no|false)$/i.test(clean(raw)) ? false : null);
 
 export function parsePipTab(rows) {
   const hi = rows.findIndex((r) => r.some((c) => clean(c) === "PIP") && r.some((c) => clean(c) === "PIP Name"));
@@ -92,7 +95,8 @@ export function parsePipTab(rows) {
       amount: parseNum(get("amount")),
       currency: CURRENCY[typeRaw] ?? (typeRaw ? typeRaw.toUpperCase() : null),
       roi: termName(clean(get("roi"))),
-      ecosystemFund: yes(get("eco")),
+      // Which account pays the PIP: the Ecosystem Fund (YES) or the DAO Treasury (NO); null when not filled in.
+      ecosystemFund: yesNo(get("eco")),
       voteResult: clean(get("result")),
       category: clean(get("category")),
       sacTerm: termName(clean(get("sac"))),
@@ -204,6 +208,33 @@ export function parseMinutesTab(rows) {
     .filter((m) => m.day && m.text && !seen.has(m.day) && seen.add(m.day));
 }
 
+// Optional "Upcoming payments" tab: payments the DAO knows are coming (e.g. an invoice), one row each.
+// Headers: ID, Due (YYYY-MM-DD), Paid from (DAO Treasury or Ecosystem Fund), For (a cost category such
+// as Operating costs, or PIP-36), Fiscal year, Amount, Currency (USDC or ATLAS; USD reads as USDC),
+// Description, Paid by (tx) (the payout's transaction once it is paid). Rows without an amount are skipped.
+export function parseUpcomingTab(rows) {
+  const hi = rows.findIndex((r) => r.some((c) => /^due$/i.test(clean(c))) && r.some((c) => /^amount$/i.test(clean(c))));
+  if (hi < 0) return [];
+  const h = rows[hi].map((c) => clean(c).toLowerCase());
+  const at = (n) => h.findIndex((x) => x === n || x.startsWith(n));
+  const C = { id: at("id"), due: at("due"), from: at("paid from"), for: at("for"), fy: at("fiscal"), amount: at("amount"), cur: at("currency"), desc: at("description"), paid: at("paid by") };
+  const get = (r, k) => (C[k] >= 0 ? clean(r[C[k]]) : "");
+  return rows.slice(hi + 1).map((r, i) => {
+    const from = get(r, "from").toLowerCase(), amt = parseNum(get(r, "amount")), fy = get(r, "fy");
+    return {
+      id: get(r, "id") || `row-${hi + 2 + i}`,
+      due: dateCell(get(r, "due")),
+      account: /fund/.test(from) ? "fund" : /treasury/.test(from) ? "treasury" : null,
+      for: get(r, "for"),
+      fiscalYear: /^(19|20)\d{2}$/.test(fy) ? fy : null,
+      amount: amt.state === "ok" ? amt.value : null,
+      currency: (get(r, "cur") || "USDC").toUpperCase().replace(/^USD$/, "USDC"),
+      description: get(r, "desc"),
+      paidBy: get(r, "paid") || null,
+    };
+  }).filter((u) => u.amount > 0);
+}
+
 // Optional tab maintained by the Council: one row per on-chain payout they have labelled.
 // Expected headers: "Signature", "PIP" (e.g. PIP-29, a cost category such as "Foundation", or "internal" / "refund" / "not a payout"), "Confirmed".
 export function parseLabelTab(rows) {
@@ -211,12 +242,15 @@ export function parseLabelTab(rows) {
   if (hi < 0) return [];
   const h = rows[hi].map((c) => clean(c).toLowerCase());
   const iSig = h.indexOf("signature"), iPip = h.indexOf("pip"), iOk = h.indexOf("confirmed"), iRecipient = h.indexOf("recipient");
+  const iFy = h.findIndex((x) => x.startsWith("fiscal"));
   return rows.slice(hi + 1)
     .map((r) => ({
       signature: clean(r[iSig]),
       recipient: iRecipient >= 0 ? clean(r[iRecipient]) : "",
       label: clean(r[iPip]),
       confirmed: iOk >= 0 ? yes(r[iOk]) : true,
+      // The budget year the payout belongs to (optional); anything but a year is ignored.
+      fiscalYear: iFy >= 0 && /^(19|20)\d{2}$/.test(clean(r[iFy])) ? clean(r[iFy]) : null,
     }))
     .filter((x) => x.signature && x.label);
 }

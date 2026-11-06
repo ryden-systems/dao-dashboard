@@ -9,6 +9,7 @@
   "use strict";
   const SM = root.SheetMap; // site/sheetmap.js must be loaded first
   const SHEETS = "https://sheets.googleapis.com/v4/spreadsheets/";
+  const SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets";
   const SCOPE = "https://www.googleapis.com/auth/spreadsheets openid email";
   // Asked for separately, by the owner account only, on its first upload. It covers only files
   // this dashboard creates itself, never the rest of the account's Drive.
@@ -17,6 +18,20 @@
   const DRIVE_UPLOAD = "https://www.googleapis.com/upload/drive/v3/files";
   const CRLF = String.fromCharCode(13, 10);
   const same = (a, b) => SM.clean(a) === SM.clean(b);
+
+  // Sign-in problems in plain words: what happened and what to do. Google's own text is kept at the
+  // end so it can still be looked up. Every failure is also written to the browser console.
+  function signInMessage(raw, email) {
+    const s = String(raw || "");
+    const google = s ? ` (Google: ${s})` : "";
+    if (/insufficient.*scope|scopes? (were|was) not granted|sheets permission/i.test(s)) return `The Google Sheets permission was not given. Sign in again and, on Google's permission screen, tick the box for Google Sheets.${google}`;
+    if (/popup_closed|cancel/i.test(s)) return `The Google sign-in window was closed before it finished. Sign in again and complete every step in that window.${google}`;
+    if (/popup_failed_to_open|popup.*block/i.test(s)) return `The browser blocked Google's sign-in window. Allow pop-ups for this page and sign in again.${google}`;
+    if (/access_denied|access blocked/i.test(s)) return `Google refused the sign-in. Use an account that is registered as a tester of the dashboard's Google app (see the README), and allow the Google Sheets permission.${google}`;
+    if (/\b403\b/.test(s)) return `This Google account${email ? ` (${email})` : ""} cannot edit the Council's sheet. Sign in with an account the sheet is shared with for editing, or ask for edit access.${google}`;
+    if (/\b404\b/.test(s)) return `The Council's sheet was not found with this account${email ? ` (${email})` : ""}. Check that the account can open the sheet.${google}`;
+    return `Sign-in failed.${google}`;
+  }
 
   // ---------- core: Sheets API operations (no DOM; testable with a fake fetch) ----------
   function makeCore({ sheetId, tabs, fetchFn, getToken }) {
@@ -119,14 +134,21 @@
         return { saved: true };
       },
 
-      async addLabel({ signature, recipient, pip, confirmed }) {
+      // fiscalYear (optional): the budget year the payout belongs to. A tab made before the column
+      // existed gets its "Fiscal year" header added the first time one is saved.
+      async addLabel({ signature, recipient, pip, confirmed, fiscalYear = "" }) {
         const msg = SM.validate("pipLabel", pip);
         if (msg) return { error: msg };
+        const fy = SM.clean(fiscalYear);
+        const fyMsg = SM.validate("year", fy);
+        if (fyMsg) return { error: `Fiscal year: ${fyMsg}` };
         await core.ensureTab(tabs.paymentLabels, SM.LABEL_HEADERS);
         const rows = await core.readTab(tabs.paymentLabels);
         const hi = SM.findHeaderRow(rows, ["Signature"]);
         if (hi >= 0) {
           const h = rows[hi], cSig = SM.colIndex(h, "Signature"), cRec = SM.colIndex(h, "Recipient"), cPip = SM.colIndex(h, "PIP"), cOk = SM.colIndex(h, "Confirmed");
+          let cFy = SM.colIndex(h, "Fiscal year");
+          if (cFy < 0 && fy) { cFy = h.length; await core.writeCell(tabs.paymentLabels, hi, cFy, "Fiscal year"); }
           const hits = [];
           for (let i = hi + 1; i < rows.length; i++) {
             if (same(rows[i][cSig], signature) && (cRec < 0 || same(rows[i][cRec], recipient))) hits.push(i);
@@ -134,12 +156,18 @@
           if (hits.length) {
             await core.writeCell(tabs.paymentLabels, hits[0], cPip, pip);
             await core.writeCell(tabs.paymentLabels, hits[0], cOk, confirmed ? "TRUE" : "FALSE");
+            if (cFy >= 0) await core.writeCell(tabs.paymentLabels, hits[0], cFy, fy);
             // One payout, one row: further rows for it would override this one (the last row wins).
             if (hits.length > 1) await core.deleteRows(tabs.paymentLabels, hits.slice(1));
             return { saved: true, updated: true, removed: hits.length - 1 };
           }
+          // A new row, placed by the tab's own column order.
+          const row = [];
+          row[cSig] = signature; if (cRec >= 0) row[cRec] = recipient || ""; row[cPip] = pip; if (cOk >= 0) row[cOk] = confirmed ? "TRUE" : "FALSE"; if (cFy >= 0) row[cFy] = fy;
+          await core.appendRow(tabs.paymentLabels, Array.from(row, (v) => v ?? ""));
+          return { saved: true };
         }
-        await core.appendRow(tabs.paymentLabels, [signature, recipient || "", pip, confirmed ? "TRUE" : "FALSE"]);
+        await core.appendRow(tabs.paymentLabels, [signature, recipient || "", pip, confirmed ? "TRUE" : "FALSE", fy]);
         return { saved: true };
       },
 
@@ -252,6 +280,48 @@
         return { saved: true, updated, tab, gid: gid == null ? null : String(gid) };
       },
 
+      // Upcoming payments (e.g. an invoice that is due): one row each, with an ID that its documents
+      // are filed under. Text is written with a leading apostrophe so nothing is read as a formula.
+      // Returns the tab's gid, so the page can read a tab it has only just created.
+      async addUpcoming({ due, account, for: what, fiscalYear = "", amount, currency = "USDC", description = "" }) {
+        for (const [v, kind, label] of [[due, "required", "Due"], [due, "date", "Due"], [what, "required", "For"], [fiscalYear, "year", "Fiscal year"]]) {
+          const msg = SM.validate(kind, v);
+          if (msg) return { error: `${label}: ${msg}` };
+        }
+        if (!["treasury", "fund"].includes(account)) return { error: "Paid from: choose the DAO Treasury or the Ecosystem Fund." };
+        const n = Number(String(amount).replace(/[,\s]/g, ""));
+        if (!(n > 0)) return { error: "Amount: enter a number above 0." };
+        const tab = tabs.upcomingPayments || "Upcoming payments";
+        await core.ensureTab(tab, SM.UPCOMING_HEADERS);
+        const rows = await core.readTab(tab);
+        const hi = SM.findHeaderRow(rows, ["Due", "Amount"]);
+        if (hi < 0) return { error: `The "${tab}" tab has no header row with "Due" and "Amount".` };
+        const id = "U" + Date.now().toString(36).toUpperCase();
+        const text = (s) => (SM.clean(s) ? "'" + SM.clean(s) : "");
+        const values = { ID: id, Due: SM.textDate(due), "Paid from": account === "fund" ? "Ecosystem Fund" : "DAO Treasury", For: text(what), "Fiscal year": SM.clean(fiscalYear), Amount: String(n), Currency: currency, Description: text(description), "Paid by (tx)": "" };
+        const h = rows[hi], row = [];
+        for (const [k, v] of Object.entries(values)) { const c = SM.colIndex(h, k); if (c >= 0) row[c] = v; }
+        await core.appendRow(tab, Array.from(row, (v) => v ?? ""));
+        const j = await call("?fields=sheets.properties(title,sheetId)");
+        const gid = (j.sheets || []).find((s) => s.properties.title === tab)?.properties.sheetId;
+        return { saved: true, id, tab, gid: gid == null ? null : String(gid) };
+      },
+      // Mark an upcoming payment as paid by the payout (transaction signature) that settled it.
+      async markUpcomingPaid(id, signature) {
+        const tab = tabs.upcomingPayments || "Upcoming payments";
+        const sig = SM.clean(signature);
+        if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig)) return { error: "Enter the payout's transaction signature." };
+        const rows = await core.readTab(tab);
+        const hi = SM.findHeaderRow(rows, ["Due", "Amount"]);
+        if (hi < 0) return { error: `The "${tab}" tab was not found.` };
+        const h = rows[hi], cId = SM.colIndex(h, "ID"), cPaid = SM.colIndex(h, "Paid by");
+        if (cId < 0 || cPaid < 0) return { error: `The "${tab}" tab needs "ID" and "Paid by (tx)" columns.` };
+        const at = rows.findIndex((r, i) => i > hi && same(r[cId], id));
+        if (at < 0) return { error: `No upcoming payment with ID ${id} in the sheet.` };
+        await core.writeCell(tab, at, cPaid, sig);
+        return { saved: true };
+      },
+
       // "Update now": writes the request time into the sheet's Dashboard tab. The sheet's sync script
       // sees the sheet change and starts a rebuild; the page itself never holds a GitHub token.
       async requestUpdate(by) {
@@ -351,6 +421,9 @@
       return new Promise((resolve, reject) => {
         this._client.callback = (r) => {
           if (r.error) return reject(new Error(r.error_description || r.error));
+          // Google may let the user untick the Sheets permission: the sign-in "works", but every read fails.
+          const granted = google.accounts.oauth2.hasGrantedAllScopes ? google.accounts.oauth2.hasGrantedAllScopes(r, SHEETS_SCOPE) : true;
+          if (!granted) return reject(new Error("The Google Sheets permission was not granted."));
           this._token = r.access_token;
           this._expires = Date.now() + (Number(r.expires_in) || 3600) * 1000 - 60000;
           resolve(this._token);
@@ -374,10 +447,11 @@
         const who = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", { headers: { Authorization: "Bearer " + this._token } }).then((r) => (r.ok ? r.json() : {}));
         this.state.email = who.email || null;
         const access = await this.core.accessCheck();
-        if (!access.ok) throw new Error(`This Google account cannot open the sheet (${access.status}): ${access.message}`);
+        if (!access.ok) throw new Error(`${access.status}: ${access.message}`);
         this.state.signedIn = true;
       } catch (e) {
-        this.state.error = e.message;
+        console.warn("[editor] sign-in failed:", e.message);
+        this.state.error = signInMessage(e.message, this.state.email);
         this.state.signedIn = false;
       }
       this._emit();
@@ -433,6 +507,7 @@
   };
 
   Editor.makeCore = makeCore; // exposed for tests
+  Editor.signInMessage = signInMessage;
   Editor.makeDrive = makeDrive;
   root.Editor = Editor;
 })(typeof window !== "undefined" ? window : globalThis);

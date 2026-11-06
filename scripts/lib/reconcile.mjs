@@ -84,7 +84,7 @@ export function reconcile({ pips, ledger, labels = [], wallets = [], config }) {
   for (const leg of legs) {
     if (leg.ownerDao) { set(leg, "internal", null, `${leg.direction === "out" ? "to" : "from"} ${config.accounts[leg.ownerDao]?.label ?? leg.ownerDao}`); continue; }
     const l = labelBySig.get(`${leg.sig}:${leg.owner}`) ?? labelBySig.get(leg.sig);
-    if (l) { leg.labelled = true; applyLabel(leg, l.label, l.confirmed, "Council label"); continue; }
+    if (l) { leg.labelled = true; leg.fiscalYear = l.fiscalYear ?? null; applyLabel(leg, l.label, l.confirmed, "Council label"); continue; }
     const w = leg.direction === "out" && leg.owner ? walletLabel.get(leg.owner) : null;
     if (w) applyLabel(leg, w.label, true, `wallet label${w.name ? ` (${w.name})` : ""}`);
   }
