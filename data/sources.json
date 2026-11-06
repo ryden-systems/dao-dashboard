@@ -2823,6 +2823,7 @@
    "note": ""
   }
  ],
+ "minutes": [],
  "tabs": {
   "pips": {
    "gid": "0",
@@ -2847,7 +2848,11 @@
   "wallets": {
    "gid": "854841751",
    "name": "Wallets"
+  },
+  "meetingMinutes": {
+   "gid": null,
+   "name": "Meeting minutes"
   }
  },
- "fetchedAt": "2026-11-05T23:04:16.884Z"
+ "fetchedAt": "2026-11-06T08:30:26.931Z"
 }
