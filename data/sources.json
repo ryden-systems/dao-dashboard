@@ -2510,55 +2510,64 @@
    "signature": "2CZsYH9kZVXFZvLdsgj7cuxZHvnPc5N5GEj5wfB5y2iPBNjegX1vPn3FMqaCGGuJW3bcJJmwwbX9HLj7pFjmEdun",
    "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
    "label": "PIP-33",
-   "confirmed": true
+   "confirmed": true,
+   "fiscalYear": null
   },
   {
    "signature": "4MCuMaXJE4ve8tkXagUAf8EQuud15Doj5M1m8wATKbR7n9U9xEDgeP3hheTZnAtBCC2wSvph6ufpUG2eELJ6t24K",
    "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
    "label": "PIP-33",
-   "confirmed": true
+   "confirmed": true,
+   "fiscalYear": null
   },
   {
    "signature": "44VNCiMb4Z9dio2QLy7c5xAfFX8KFu7TtXwiLEHb2Pcky5yHSecijGAh4m9Hs9gkwy6LGAVBFASnWsniW6rNsJ1a",
    "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
    "label": "unknown",
-   "confirmed": true
+   "confirmed": true,
+   "fiscalYear": null
   },
   {
    "signature": "64xGRLPVVNyoWcZCKDrWBjNXViR9pJ7gn3K4huKwB5pvDRL9sQ6hf596ktbSA1MtCAUY6cKV3M4ZdT6q9aJ4a1XA",
    "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
    "label": "unknown",
-   "confirmed": true
+   "confirmed": true,
+   "fiscalYear": null
   },
   {
    "signature": "42zkXcpwchTWVL6GRYeTfehw4T4CETbTeZTkrRsSkNY3GVEsGB2beAAwsFjHDsvKa1o9vgiQH7C8UebcHRrsMCae",
    "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
    "label": "unknown",
-   "confirmed": true
+   "confirmed": true,
+   "fiscalYear": null
   },
   {
    "signature": "43wMFhfx9B8GfcyhhJMzBwjQt9Sem7vb6wUb5P4mQEVgEyWd5mAoHv5g3fHASWaggo5LvhhYT82kEJvngT1URnwA",
    "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
    "label": "unknown",
-   "confirmed": true
+   "confirmed": true,
+   "fiscalYear": null
   },
   {
    "signature": "4LHsdHhNfHCcRwzV18xfcV3ynER3VdyvioBquhwEoxKTg6cY3aRx5KJVJBp4Uzp1oqHoGVHrvP4Mmf9t5wmYUbme",
    "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
    "label": "unknown",
-   "confirmed": true
+   "confirmed": true,
+   "fiscalYear": null
   },
   {
    "signature": "56xcHzUAt15U4oL17ujh7KPovD5J8TDpdNS5fKFuYDU7rasxTDTt94pUrZ4DiLV5P7QExLC3YFsay1xYzB1GxwXM",
    "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
    "label": "unknown",
-   "confirmed": true
+   "confirmed": true,
+   "fiscalYear": null
   },
   {
    "signature": "4qsHRZ9gx6NYS5L7UWzbtBZyNj6XjwxBrz86v78msWy2udbW4PXVqy4vFxH3iEYGbEJF4TReUzDUMu3PxPxMU1F5",
    "recipient": "D977ubEu8NdWyyXpX3TYdYD6yFdpS5tYfcu7CnaAdvLn",
    "label": "PIP-17",
-   "confirmed": true
+   "confirmed": true,
+   "fiscalYear": null
   }
  ],
  "members": [
@@ -2831,6 +2840,7 @@
   }
  ],
  "minutes": [],
+ "upcoming": [],
  "tabs": {
   "pips": {
    "gid": "0",
@@ -2859,7 +2869,11 @@
   "meetingMinutes": {
    "gid": null,
    "name": "Meeting minutes"
+  },
+  "upcomingPayments": {
+   "gid": null,
+   "name": "Upcoming payments"
   }
  },
- "fetchedAt": "2026-11-06T10:55:44.020Z"
+ "fetchedAt": "2026-11-06T11:13:15.050Z"
 }
