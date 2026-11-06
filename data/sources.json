@@ -2789,17 +2789,17 @@
   },
   {
    "wallet": "NPCxfjPxh6pvRJbGbWZjxfkqWfGBvKkqPbtiJar3mom",
-   "name": "?",
+   "name": "DAO Sales Account",
    "label": "",
    "track": false,
-   "note": "[Council to name]"
+   "note": "Named in PIP-1"
   },
   {
    "wallet": "AUTHSpZXYptT5aj3iDw1PCEAZQHgAGjHWc9KbiWdBwFH",
-   "name": "?",
+   "name": "Sage",
    "label": "",
    "track": false,
-   "note": "[Council to name]"
+   "note": "collected crafting fees before they went straight to dao ?"
   },
   {
    "wallet": "B5hX2Aj8FYmdYjXQFVF1jpz7BkrdpLXgSPs92G6DFGjA",
@@ -2854,5 +2854,5 @@
    "name": "Meeting minutes"
   }
  },
- "fetchedAt": "2026-11-06T08:30:26.931Z"
+ "fetchedAt": "2026-11-06T09:45:29.674Z"
 }
