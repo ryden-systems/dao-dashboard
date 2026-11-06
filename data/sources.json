@@ -2821,6 +2821,13 @@
    "label": "",
    "track": false,
    "note": ""
+  },
+  {
+   "wallet": "CkLygqZbFEoGJja39ortnCy4tpANKm282eaHcysVmvxS",
+   "name": "Foundation CEX?",
+   "label": "Operating costs",
+   "track": false,
+   "note": ""
   }
  ],
  "minutes": [],
@@ -2854,5 +2861,5 @@
    "name": "Meeting minutes"
   }
  },
- "fetchedAt": "2026-11-06T09:45:29.674Z"
+ "fetchedAt": "2026-11-06T10:30:30.080Z"
 }
