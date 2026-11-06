@@ -2840,7 +2840,19 @@
   }
  ],
  "minutes": [],
- "upcoming": [],
+ "upcoming": [
+  {
+   "id": "UMW4VRBVN",
+   "due": "2026-12-01",
+   "account": "treasury",
+   "for": "Operating costs",
+   "fiscalYear": "2027",
+   "amount": 12446.95,
+   "currency": "USDC",
+   "description": "Walkers Corporate Limited - Star Atlas Foundation",
+   "paidBy": null
+  }
+ ],
  "tabs": {
   "pips": {
    "gid": "0",
@@ -2871,9 +2883,9 @@
    "name": "Meeting minutes"
   },
   "upcomingPayments": {
-   "gid": null,
+   "gid": "1520517905",
    "name": "Upcoming payments"
   }
  },
- "fetchedAt": "2026-11-06T11:13:15.050Z"
+ "fetchedAt": "2026-11-06T11:20:21.419Z"
 }
