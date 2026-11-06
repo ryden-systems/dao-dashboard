@@ -1011,7 +1011,7 @@
    "voteResult": "Passed",
    "category": "Ecosystem Fund",
    "sacTerm": "Term 2",
-   "note": "Transitioning from Eveeye Star Atlas [EDIT TEST]",
+   "note": "Transitioning from Eveeye Star Atlas",
    "paidUsdc": {
     "value": 8464.79,
     "raw": "8,464.79",
@@ -2079,14 +2079,14 @@
     "state": "blank"
    },
    "paidAtlas": {
-    "value": null,
-    "raw": "",
-    "state": "blank"
+    "value": 10182294,
+    "raw": "10,182,294.00",
+    "state": "ok"
    },
    "leftAtlas": {
-    "value": null,
-    "raw": "",
-    "state": "blank"
+    "value": 3394098,
+    "raw": "3394098",
+    "state": "ok"
    },
    "authorizedUsdc": {
     "value": null,
@@ -2155,14 +2155,14 @@
     "state": "blank"
    },
    "authorizedUsdc": {
-    "value": 352135.15,
-    "raw": "352135.15",
-    "state": "ok"
+    "value": null,
+    "raw": "",
+    "state": "blank"
    },
    "authorizedAtlas": {
-    "value": 753707176,
-    "raw": "753707176",
-    "state": "ok"
+    "value": null,
+    "raw": "",
+    "state": "blank"
    },
    "milestonesDone": {
     "value": null,
@@ -2505,410 +2505,11 @@
    }
   ]
  },
- "labels": [
-  {
-   "signature": "2CZsYH9kZVXFZvLdsgj7cuxZHvnPc5N5GEj5wfB5y2iPBNjegX1vPn3FMqaCGGuJW3bcJJmwwbX9HLj7pFjmEdun",
-   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
-   "label": "PIP-33",
-   "confirmed": true,
-   "fiscalYear": null
-  },
-  {
-   "signature": "4MCuMaXJE4ve8tkXagUAf8EQuud15Doj5M1m8wATKbR7n9U9xEDgeP3hheTZnAtBCC2wSvph6ufpUG2eELJ6t24K",
-   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
-   "label": "PIP-33",
-   "confirmed": true,
-   "fiscalYear": null
-  },
-  {
-   "signature": "44VNCiMb4Z9dio2QLy7c5xAfFX8KFu7TtXwiLEHb2Pcky5yHSecijGAh4m9Hs9gkwy6LGAVBFASnWsniW6rNsJ1a",
-   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
-   "label": "unknown",
-   "confirmed": true,
-   "fiscalYear": null
-  },
-  {
-   "signature": "64xGRLPVVNyoWcZCKDrWBjNXViR9pJ7gn3K4huKwB5pvDRL9sQ6hf596ktbSA1MtCAUY6cKV3M4ZdT6q9aJ4a1XA",
-   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
-   "label": "unknown",
-   "confirmed": true,
-   "fiscalYear": null
-  },
-  {
-   "signature": "42zkXcpwchTWVL6GRYeTfehw4T4CETbTeZTkrRsSkNY3GVEsGB2beAAwsFjHDsvKa1o9vgiQH7C8UebcHRrsMCae",
-   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
-   "label": "unknown",
-   "confirmed": true,
-   "fiscalYear": null
-  },
-  {
-   "signature": "43wMFhfx9B8GfcyhhJMzBwjQt9Sem7vb6wUb5P4mQEVgEyWd5mAoHv5g3fHASWaggo5LvhhYT82kEJvngT1URnwA",
-   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
-   "label": "unknown",
-   "confirmed": true,
-   "fiscalYear": null
-  },
-  {
-   "signature": "4LHsdHhNfHCcRwzV18xfcV3ynER3VdyvioBquhwEoxKTg6cY3aRx5KJVJBp4Uzp1oqHoGVHrvP4Mmf9t5wmYUbme",
-   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
-   "label": "unknown",
-   "confirmed": true,
-   "fiscalYear": null
-  },
-  {
-   "signature": "56xcHzUAt15U4oL17ujh7KPovD5J8TDpdNS5fKFuYDU7rasxTDTt94pUrZ4DiLV5P7QExLC3YFsay1xYzB1GxwXM",
-   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
-   "label": "unknown",
-   "confirmed": true,
-   "fiscalYear": null
-  },
-  {
-   "signature": "4qsHRZ9gx6NYS5L7UWzbtBZyNj6XjwxBrz86v78msWy2udbW4PXVqy4vFxH3iEYGbEJF4TReUzDUMu3PxPxMU1F5",
-   "recipient": "D977ubEu8NdWyyXpX3TYdYD6yFdpS5tYfcu7CnaAdvLn",
-   "label": "PIP-17",
-   "confirmed": true,
-   "fiscalYear": null
-  },
-  {
-   "signature": "3VVJNKBzpoZ4yghmBnuYXfLNk87qFARGpaZU1x2N4C8U1SL8dnX3va2mc4eATQC1vN4TvYcMijtR8xQGfwzW4rD5",
-   "recipient": "CkLygqZbFEoGJja39ortnCy4tpANKm282eaHcysVmvxS",
-   "label": "Foundation",
-   "confirmed": true,
-   "fiscalYear": "2024"
-  },
-  {
-   "signature": "3HBWDmLeVGptFj7bzNUnv4CiibmuVoirut2BBQSDT8kUMGAWD4rjW69xGMzbMtfBo8aj23MztJqDgBMGFCBRL83Z",
-   "recipient": "CkLygqZbFEoGJja39ortnCy4tpANKm282eaHcysVmvxS",
-   "label": "Foundation",
-   "confirmed": true,
-   "fiscalYear": "2024"
-  },
-  {
-   "signature": "pHuQGqFzuFKytHNRdhrosnkmoGXr3ri4ZN7oNsngD5DQfpa8Yf1ch57JYXf7CAhCARBPMC4qYGbhWHj3yttZpwd",
-   "recipient": "B5hX2Aj8FYmdYjXQFVF1jpz7BkrdpLXgSPs92G6DFGjA",
-   "label": "Foundation",
-   "confirmed": true,
-   "fiscalYear": "2026"
-  },
-  {
-   "signature": "3zvwNQkV4qJZkpNXzjJRVhcuYVE1b6kqVHJonz5VdMAMZEmDX2VUfBDNefNLDRgf9bZukcFawnKCkyARNNFeRg5K",
-   "recipient": "B5hX2Aj8FYmdYjXQFVF1jpz7BkrdpLXgSPs92G6DFGjA",
-   "label": "unknown",
-   "confirmed": true,
-   "fiscalYear": null
-  },
-  {
-   "signature": "odGVK8ep19ux2R4j5Xd5Xw9JG8ELoALmahwsg7zy23BFHybW5hZwjKchu7aUuZpEBNQ8RY9CsU6Fht25yRzUnNr",
-   "recipient": "CkLygqZbFEoGJja39ortnCy4tpANKm282eaHcysVmvxS",
-   "label": "Foundation",
-   "confirmed": true,
-   "fiscalYear": "2026"
-  },
-  {
-   "signature": "5v8rifwY94h3GpGwCPdiC6Qm3K9Lm2wYRcR6QcMhw4vBJtm9KnnWw1ZhMhXozmeFMWBvbWMguHoHezsuaiJm7mHc",
-   "recipient": "CkLygqZbFEoGJja39ortnCy4tpANKm282eaHcysVmvxS",
-   "label": "Foundation",
-   "confirmed": true,
-   "fiscalYear": "2025"
-  },
-  {
-   "signature": "4nnBQ81Axw3TN549WrkRjp5ZPEHUPSsjBgY1nNcW9f4hKqFYweT96LPzAV66X9FfZNMh2c8iqhZhWry7pJ4Z51ph",
-   "recipient": "B5hX2Aj8FYmdYjXQFVF1jpz7BkrdpLXgSPs92G6DFGjA",
-   "label": "Foundation",
-   "confirmed": true,
-   "fiscalYear": "2025"
-  },
-  {
-   "signature": "5bGKWUWE1XaTrF1hy1qLFyzW9dGGSNB5dhuHxVFXdVKJGszZFWwiJan2Co7RonVHGa3UWpHfwC2s72MiWaUiEQRc",
-   "recipient": "CkLygqZbFEoGJja39ortnCy4tpANKm282eaHcysVmvxS",
-   "label": "Foundation",
-   "confirmed": true,
-   "fiscalYear": "2025"
-  }
- ],
- "members": [
-  {
-   "name": "JP",
-   "role": "Council member",
-   "term": "Term 1",
-   "start": "2024-10-11",
-   "end": "2025-04-11",
-   "electedIn": 7,
-   "wallet": null,
-   "discord": "https://discord.com/users/360133561262538754",
-   "x": "missionpoole",
-   "image": "https://cdn.staratlas.com/dao/council-election/1/JP.jpg"
-  },
-  {
-   "name": "Funcracker",
-   "role": "Council member",
-   "term": "Term 1",
-   "start": "2024-10-11",
-   "end": "2025-04-11",
-   "electedIn": 7,
-   "wallet": null,
-   "discord": "https://discord.com/users/287632162570895361",
-   "x": "ronaldtreur",
-   "image": "https://cdn.staratlas.com/dao/council-election/1/Funcracker.png"
-  },
-  {
-   "name": "Bodhi [TREE]",
-   "role": "Council member",
-   "term": "Term 1",
-   "start": "2024-10-11",
-   "end": "2025-04-11",
-   "electedIn": 7,
-   "wallet": null,
-   "discord": "https://discord.com/users/694773417400074260",
-   "x": "Tree_guild",
-   "image": "https://cdn.staratlas.com/dao/council-election/1/Bodhi_TREE.png"
-  },
-  {
-   "name": "King Bryan",
-   "role": "Council member",
-   "term": "Term 1",
-   "start": "2024-10-11",
-   "end": "2025-04-11",
-   "electedIn": 7,
-   "wallet": null,
-   "discord": "https://discord.com/users/366908607591350283",
-   "x": "Bryan_Cogent",
-   "image": "https://cdn.staratlas.com/dao/council-election/1/King_Bryan.jpg"
-  },
-  {
-   "name": "DRUMCARL05",
-   "role": "Council member",
-   "term": "Term 1",
-   "start": "2024-10-11",
-   "end": "2025-04-11",
-   "electedIn": 7,
-   "wallet": null,
-   "discord": "https://discord.com/users/390532337730977793",
-   "x": "Carlito99897464",
-   "image": "https://cdn.staratlas.com/dao/council-election/1/DRUMCARL05.png"
-  },
-  {
-   "name": "Emperor ===[]",
-   "role": "Council Chair",
-   "term": "Term 2",
-   "start": "2025-04-11",
-   "end": "2026-01-11",
-   "electedIn": 11,
-   "wallet": null,
-   "discord": null,
-   "x": null,
-   "image": "https://cdn.staratlas.com/dao/council-election/2/Emperor.png"
-  },
-  {
-   "name": "Lanzer",
-   "role": "Presiding Officer",
-   "term": "Term 2",
-   "start": "2025-04-11",
-   "end": "2026-01-11",
-   "electedIn": 11,
-   "wallet": null,
-   "discord": null,
-   "x": null,
-   "image": "https://cdn.staratlas.com/dao/council-election/2/Lanzer.png"
-  },
-  {
-   "name": "DRUMCARL05",
-   "role": "Secretary",
-   "term": "Term 2",
-   "start": "2025-04-11",
-   "end": "2026-01-11",
-   "electedIn": 11,
-   "wallet": null,
-   "discord": null,
-   "x": null,
-   "image": "https://cdn.staratlas.com/dao/council-election/2/DRUMCARL05.JPG"
-  },
-  {
-   "name": "bodhitree_",
-   "role": "Treasurer",
-   "term": "Term 2",
-   "start": "2025-04-11",
-   "end": "2026-01-11",
-   "electedIn": 11,
-   "wallet": null,
-   "discord": null,
-   "x": null,
-   "image": "https://cdn.staratlas.com/dao/council-election/2/Bodhi_TREE.png"
-  },
-  {
-   "name": "ROME | Signal",
-   "role": "Public Relations Lead",
-   "term": "Term 2",
-   "start": "2025-04-11",
-   "end": "2026-01-11",
-   "electedIn": 11,
-   "wallet": null,
-   "discord": null,
-   "x": null,
-   "image": "https://cdn.staratlas.com/dao/council-election/2/Signal.jpeg"
-  },
-  {
-   "name": "ROME | Winston",
-   "role": "Council member",
-   "term": "Term 3",
-   "start": "2026-01-11",
-   "end": "2026-10-11",
-   "electedIn": 25,
-   "wallet": null,
-   "discord": null,
-   "x": null,
-   "image": "https://cdn.staratlas.com/dao/council-election/3/Winston.png"
-  },
-  {
-   "name": "Q | Morangø",
-   "role": "Council member",
-   "term": "Term 3",
-   "start": "2026-01-11",
-   "end": "2026-10-11",
-   "electedIn": 25,
-   "wallet": null,
-   "discord": null,
-   "x": null,
-   "image": "https://cdn.staratlas.com/dao/council-election/3/Morango.jpg"
-  },
-  {
-   "name": "[EMP] jith blade",
-   "role": "Council member",
-   "term": "Term 3",
-   "start": "2026-01-11",
-   "end": "2026-10-11",
-   "electedIn": 25,
-   "wallet": null,
-   "discord": null,
-   "x": null,
-   "image": "https://cdn.staratlas.com/dao/council-election/3/Jith_Blade.png"
-  },
-  {
-   "name": "LANZER",
-   "role": "Council member",
-   "term": "Term 3",
-   "start": "2026-01-11",
-   "end": "2026-10-11",
-   "electedIn": 25,
-   "wallet": null,
-   "discord": null,
-   "x": null,
-   "image": "https://cdn.staratlas.com/dao/council-election/3/Lanzer.png"
-  },
-  {
-   "name": "Emperor ===[]",
-   "role": "Council member",
-   "term": "Term 3",
-   "start": "2026-01-11",
-   "end": "2026-10-11",
-   "electedIn": 25,
-   "wallet": null,
-   "discord": null,
-   "x": null,
-   "image": "https://cdn.staratlas.com/dao/council-election/3/Emperor.png"
-  },
-  {
-   "name": "Emperor ===[]",
-   "role": "Council member",
-   "term": "Term 4",
-   "start": "2026-10-11",
-   "end": "2027-07-11",
-   "electedIn": 35,
-   "wallet": null,
-   "discord": null,
-   "x": null,
-   "image": "https://cdn.staratlas.com/dao/council-election/3/Emperor.png"
-  },
-  {
-   "name": "[EMP] jith blade",
-   "role": "Council member",
-   "term": "Term 4",
-   "start": "2026-10-11",
-   "end": "2027-07-11",
-   "electedIn": 35,
-   "wallet": null,
-   "discord": null,
-   "x": null,
-   "image": "https://cdn.staratlas.com/dao/council-election/3/Jith_Blade.png"
-  },
-  {
-   "name": "ROME | Earther",
-   "role": "Council member",
-   "term": "Term 4",
-   "start": "2026-10-11",
-   "end": "2027-07-11",
-   "electedIn": 35,
-   "wallet": null,
-   "discord": null,
-   "x": null,
-   "image": "https://cdn.staratlas.com/dao/council-election/4/Earther_Headshot.png"
-  }
- ],
- "wallets": [
-  {
-   "wallet": "DRGThVUMGEYcsoTERhmkFSa5q7HVjxBQdKwMNjyvehD1",
-   "name": "Initial DAO Treasury",
-   "label": "",
-   "track": false,
-   "note": "Funds transferred to new account on 2023-05-16"
-  },
-  {
-   "wallet": "NPCxfjPxh6pvRJbGbWZjxfkqWfGBvKkqPbtiJar3mom",
-   "name": "DAO Sales Account",
-   "label": "",
-   "track": false,
-   "note": "Named in PIP-1"
-  },
-  {
-   "wallet": "AUTHSpZXYptT5aj3iDw1PCEAZQHgAGjHWc9KbiWdBwFH",
-   "name": "Sage",
-   "label": "",
-   "track": false,
-   "note": "collected crafting fees before they went straight to dao ?"
-  },
-  {
-   "wallet": "B5hX2Aj8FYmdYjXQFVF1jpz7BkrdpLXgSPs92G6DFGjA",
-   "name": "Foundation",
-   "label": "Operating costs",
-   "track": false,
-   "note": ""
-  },
-  {
-   "wallet": "9q3ZZnezQyVXvBKYkKwjxpvVVPp7CFY9VYbaW5gBhX7Y",
-   "name": "Iris Bounty",
-   "label": "PIP-22",
-   "track": true,
-   "note": ""
-  },
-  {
-   "wallet": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
-   "name": "ATMTA",
-   "label": "",
-   "track": false,
-   "note": ""
-  },
-  {
-   "wallet": "CkLygqZbFEoGJja39ortnCy4tpANKm282eaHcysVmvxS",
-   "name": "Foundation CEX?",
-   "label": "Operating costs",
-   "track": false,
-   "note": ""
-  }
- ],
+ "labels": [],
+ "members": [],
+ "wallets": [],
  "minutes": [],
- "upcoming": [
-  {
-   "id": "UMW4VRBVN",
-   "due": "2026-12-01",
-   "account": "treasury",
-   "for": "Foundation",
-   "fiscalYear": "2027",
-   "amount": 12446.95,
-   "currency": "USDC",
-   "description": "Walkers Corporate Limited - Star Atlas Foundation",
-   "paidBy": null
-  }
- ],
+ "upcoming": [],
  "tabs": {
   "pips": {
    "gid": "0",
@@ -2919,11 +2520,11 @@
    "name": "Accomplishment Numbers"
   },
   "paymentLabels": {
-   "gid": "1250273902",
+   "gid": null,
    "name": "Payment labels"
   },
   "councilMembers": {
-   "gid": "822690761",
+   "gid": null,
    "name": "Council members"
   },
   "paymentDocuments": {
@@ -2931,7 +2532,7 @@
    "name": "Payment documents"
   },
   "wallets": {
-   "gid": "854841751",
+   "gid": null,
    "name": "Wallets"
   },
   "meetingMinutes": {
@@ -2939,9 +2540,9 @@
    "name": "Meeting minutes"
   },
   "upcomingPayments": {
-   "gid": "1520517905",
+   "gid": null,
    "name": "Upcoming payments"
   }
  },
- "fetchedAt": "2026-11-06T11:35:31.366Z"
+ "fetchedAt": "2026-11-06T14:09:53.367Z"
 }

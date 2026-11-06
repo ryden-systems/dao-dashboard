@@ -1,9 +1,9 @@
 {
- "at": "2026-11-06T11:36:18.355Z",
+ "at": "2026-11-06T14:10:17.383Z",
  "balances": {
   "treasury": {
    "SOL": 0.315155307,
-   "ATLAS": 825960566.9724326,
+   "ATLAS": 826033117.4196184,
    "USDC": 209921.579904,
    "POLIS": 1.23550999
   },
@@ -20,12 +20,5 @@
    "POLIS": 0
   }
  },
- "tracked": {
-  "9q3ZZnezQyVXvBKYkKwjxpvVVPp7CFY9VYbaW5gBhX7Y": {
-   "SOL": 0.001000002,
-   "ATLAS": 430162,
-   "USDC": 0,
-   "POLIS": 0
-  }
- }
+ "tracked": {}
 }
