@@ -1405,11 +1405,16 @@
       const ks = outs.map((p) => day(p.t).slice(0, 7)).sort();
       for (let [y, mo] = ks[0].split("-").map(Number); `${y}-${String(mo).padStart(2, "0")}` <= ks[ks.length - 1]; mo === 12 ? (y++, mo = 1) : mo++) months.push(`${y}-${String(mo).padStart(2, "0")}`);
     }
-    const monthly = (sym) => {
+    // Split by what each payout paid for, like the income charts: PIP payouts, each cost category,
+    // and payouts not labelled yet. Only kinds with an amount in that currency get a series.
+    const kindOf = (p) => (p.pip != null ? "PIP payouts" : p.category ?? "Not labelled yet");
+    const kinds = ["PIP payouts", ...[...new Set(outs.filter((p) => p.pip == null && p.category).map((p) => p.category))].sort(), "Not labelled yet"];
+    const colorOf = (k, i) => (k === "PIP payouts" ? css("--series-1") : k === "Not labelled yet" ? css("--muted") : css(`--series-${(i % 3) + 2}`));
+    const monthly = (sym) => kinds.map((k, i) => {
       const m = new Map();
-      for (const p of outs) if (p.symbol === sym) m.set(day(p.t).slice(0, 7), (m.get(day(p.t).slice(0, 7)) ?? 0) + p.amount);
-      return { categories: months, values: months.map((k) => Math.round(m.get(k) ?? 0)) };
-    };
+      for (const p of outs) if (p.symbol === sym && kindOf(p) === k) m.set(day(p.t).slice(0, 7), (m.get(day(p.t).slice(0, 7)) ?? 0) + p.amount);
+      return { name: k, color: colorOf(k, i - 1), values: months.map((x) => Math.round(m.get(x) ?? 0)) };
+    }).filter((s) => s.values.some((v) => v));
     const ma = monthly("ATLAS"), mu = monthly("USDC");
     const S = D.series;
     const tA = S.treasuryATLAS;
@@ -1457,16 +1462,19 @@
         </section>
       </div>
     </section>` : ""}
-    <div class="grid-2">
-      <section class="sec panel">
-        ${sub("USDC paid out per month")}
-        ${Charts.bar({ categories: mu.categories, label: "USDC outflows per month", yFmt: compact, series: [{ name: "USDC", color: css("--series-2"), values: mu.values }] })}
-      </section>
-      <section class="sec panel">
-        ${sub("ATLAS paid out per month", `<span class="src">excludes Treasury → Fund refills</span>`)}
-        ${Charts.bar({ categories: ma.categories, label: "ATLAS outflows per month", yFmt: compact, series: [{ name: "ATLAS", color: css("--series-1"), values: ma.values }] })}
-      </section>
-    </div>
+    <section class="sec">
+      ${sub("Expenses", `<span class="src">payouts by what they paid for · summed per month</span>`)}
+      <div class="grid-2">
+        <section class="sec panel">
+          ${sub("USDC paid out per month")}
+          ${Charts.bar({ categories: months, label: "USDC outflows per month", yFmt: compact, stacked: true, legend: true, series: mu })}
+        </section>
+        <section class="sec panel">
+          ${sub("ATLAS paid out per month", `<span class="src">excludes Treasury → Fund refills</span>`)}
+          ${Charts.bar({ categories: months, label: "ATLAS outflows per month", yFmt: compact, stacked: true, legend: true, series: ma })}
+        </section>
+      </div>
+    </section>
     ${otherIncomeSection()}`;
   };
 
