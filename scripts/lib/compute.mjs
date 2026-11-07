@@ -264,7 +264,7 @@ export function compute({ config, sources, proposals, ledger, history, now, nowA
     if (!nb.length) return;
     const base = nb.reduce((a, b) => a + b, 0) / nb.length;
     const dev = base > 0 ? (r.crafting - base) / base : 0;
-    if (Math.abs(dev) > tol) flags.push({ severity: "warning", area: "income", message: `Crafting fees ${r.month}: ${Math.round(r.crafting).toLocaleString("en-US")} ATLAS, ${dev > 0 ? "+" : ""}${Math.round(dev * 100)}% against the months around it (tolerance ${Math.round(tol * 100)}%). Crafting fees are the Treasury's ATLAS balance change minus recorded movements, so a transfer the ledger missed shows up here. Check the Treasury's ATLAS transfers that month on Solscan; a missed sender can be added to the scan.` });
+    if (Math.abs(dev) > tol) flags.push({ severity: "warning", area: "income", message: `SAGE fees ${r.month}: ${Math.round(r.crafting).toLocaleString("en-US")} ATLAS, ${dev > 0 ? "+" : ""}${Math.round(dev * 100)}% against the months around it (tolerance ${Math.round(tol * 100)}%). SAGE fees are the Treasury's ATLAS balance change minus recorded movements, so a transfer the ledger missed shows up here. Check the Treasury's ATLAS transfers that month on Solscan; a missed sender can be added to the scan.` });
   });
 
   const income = {

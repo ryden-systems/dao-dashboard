@@ -495,7 +495,7 @@
     // A reused wallet: its earlier purposes, oldest first, each with the PIP or date it started.
     const story = (w) => w.history?.length ? `<div class="sub">${w.history.map((h) => `${h.since ? `${esc(h.since)}: ` : ""}${esc(h.name || "unnamed")}${h.label ? ` (${esc(h.label)})` : ""}`).join(" → ")}</div>` : "";
     const rows = W.map((w) => `<tr${w.track ? "" : ` class="ed-only"`}>
-      <td><strong>${esc(w.name || short(w.wallet))}</strong>${w.multisig ? ` <span class="chip acc" title="Pays out through a ${esc(w.multisig.program ?? "Squads")} multisig${msName(w) ? `: ${esc(msName(w))}` : ""}, found on chain">multisig</span>` : ""}${w.note ? `<div class="sub">${esc(w.note)}</div>` : ""}${story(w)}</td>
+      <td><strong>${esc(w.name || short(w.wallet))}</strong>${w.multisig ? `<span class="chip acc" title="Pays out through a ${esc(w.multisig.program ?? "Squads")} multisig${msName(w) ? `: ${esc(msName(w))}` : ""}, found on chain">Multisig</span>` : ""}${w.note ? `<div class="sub">${esc(w.note)}</div>` : ""}${story(w)}</td>
       <td>${solAcc(w.wallet)}</td>
       <td>${w.label ? `<span class="chip">${esc(w.label)}</span>` : `<span class="blank">—</span>`}</td>
       ${w.now ? `<td class="n">${num(w.now.ATLAS)}</td><td class="n">${num(w.now.USDC, 2)}</td><td class="n">${num(w.now.SOL, 2)}</td>${usdCell(w.now)}` : `<td colspan="4" class="sub">${w.track ? "balances appear after the next update" : "balance not tracked"}</td>`}
@@ -1424,6 +1424,9 @@
     const failedBy = termCats.map((t) => voted.filter((p) => inTerm(p, t) && p.outcome === "failed").length);
     const part = voted.filter((p) => p.daoPvpM && p.totalPvp).map((p) => ({ pip: p.pip, v: (p.totalPvp / (p.daoPvpM * 1e6)) * 100, wallets: p.totalVotes ?? null }));
     const avgPart = part.length ? part.reduce((s, x) => s + x.v, 0) / part.length : null;
+    // Per voted PIP: ballots cast and PVP voted (the RFP's average votes and average PVP votes).
+    const avgOf = (k) => { const v = voted.map((p) => p[k]).filter((x) => x > 0); return v.length ? { avg: v.reduce((a, b) => a + b, 0) / v.length, n: v.length } : null; };
+    const avgVotes = avgOf("totalVotes"), avgPvp = avgOf("totalPvp");
 
     return `
     <section class="sec">
@@ -1432,6 +1435,8 @@
         ${kpi("PIPs voted", String(voted.length), "", `${voted.filter((p) => p.outcome === "passed").length} passed · ${voted.filter((p) => p.outcome === "failed").length} failed`)}
         ${kpi("Pass rate", voted.length ? num((voted.filter((p) => p.outcome === "passed").length / voted.length) * 100, 0) + "%" : "—", "")}
         ${kpi("Avg. participation", avgPart == null ? "—" : num(avgPart, 1) + "%", "", "of DAO voting power, per PIP")}
+        ${kpi("Avg. votes per PIP", avgVotes ? num(avgVotes.avg, 0) : "—", "", avgVotes ? `ballots, over ${avgVotes.n} voted PIPs` : "")}
+        ${kpi("Avg. PVP votes", avgPvp ? compact(avgPvp.avg) : "—", "", avgPvp ? `PVP voted per PIP, over ${avgPvp.n} voted PIPs` : "")}
       </div>
     </section>
     <div class="grid-2">
@@ -1605,7 +1610,7 @@
     <section class="sec">
       ${sub("DAO Treasury", `<span class="src">all income arrives here</span>`)}
       <div class="kpis">
-        ${kpi("Income", compact(I.atlas), "ATLAS/month", `crafting fees ${compact(I.crafting)} · marketplace ${compact(I.atlasTransfers)}${I.trend != null ? ` · ${signed(I.trend)} recent half-year` : ""}`)}
+        ${kpi("Income", compact(I.atlas), "ATLAS/month", `SAGE fees ${compact(I.crafting)} · marketplace ${compact(I.atlasTransfers)}${I.trend != null ? ` · ${signed(I.trend)} recent half-year` : ""}`)}
         ${kpi("Income", num(I.usdc), "USDC/month", "marketplace fees")}
         ${kpi("Running costs", num(S.treasury.running.USDC.perMonth), "USDC/month", `${num(S.treasury.running.USDC.total)} in ${B.window.months} months, averaged${S.treasury.running.ATLAS.perMonth ? ` · plus ${perMo(S.treasury.running.ATLAS.perMonth, "ATLAS")}` : ""}${B.recurringMonthly ? ` · repeating payments ${num(B.recurringMonthly)} USDC/month` : ""}`)}
         ${kpi("USDC runway", span(B.usdcRunwayAfterOwed ?? B.usdcRunwayMonths), "", `${num(Math.round(-(B.runwayRate ?? B.rate.tU)))} USDC/month net outflow`)}
@@ -1715,8 +1720,8 @@
     </div>
     ${D.income?.monthly?.length ? `
     <section class="sec">
-      ${sub("Recurring income", `<span class="src">${esc([...D.income.sources.map((s) => s.label ?? short(s.owner)), ...(D.income.crafting ? ["Crafting fees"] : [])].join(", "))} · summed per month</span>`)}
-      <div class="kpis">${D.income.sources.map((s) => kpi(s.label ?? short(s.owner), compact(s.totals.ATLAS ?? 0), "ATLAS", `${num(s.totals.USDC ?? 0, 0)} USDC · ${num(s.transfers)} transfers since ${esc(D.income.monthly[0].month)}`)).join("")}${D.income.crafting ? kpi("Crafting fees", compact(D.income.crafting.total), "ATLAS", `since ${esc(D.income.crafting.from)} · Treasury balance change minus recorded movements`) : ""}</div>
+      ${sub("Recurring income", `<span class="src">${esc([...D.income.sources.map((s) => s.label ?? short(s.owner)), ...(D.income.crafting ? ["SAGE fees"] : [])].join(", "))} · summed per month</span>`)}
+      <div class="kpis">${D.income.sources.map((s) => kpi(s.label ?? short(s.owner), compact(s.totals.ATLAS ?? 0), "ATLAS", `${num(s.totals.USDC ?? 0, 0)} USDC · ${num(s.transfers)} transfers since ${esc(D.income.monthly[0].month)}`)).join("")}${D.income.crafting ? kpi("SAGE fees", compact(D.income.crafting.total), "ATLAS", `since ${esc(D.income.crafting.from)} · Treasury balance change minus recorded movements`) : ""}</div>
       <div class="grid-2">
         <section class="sec panel">
           ${sub("USDC income per month")}
@@ -1726,7 +1731,7 @@
           ${sub("ATLAS income per month")}
           ${Charts.bar({ categories: D.income.monthly.map((m) => m.month), label: "ATLAS income per month", yFmt: compact, stacked: true, series: [
             { name: "Marketplace fees", color: css("--series-1"), values: D.income.monthly.map((m) => Math.round(m.ATLAS)) },
-            ...(D.income.crafting ? [{ name: "Crafting fees", color: css("--series-4"), values: D.income.monthly.map((m) => Math.max(0, Math.round(m.crafting ?? 0))) }] : []),
+            ...(D.income.crafting ? [{ name: "SAGE fees", color: css("--series-4"), values: D.income.monthly.map((m) => Math.max(0, Math.round(m.crafting ?? 0))) }] : []),
           ] })}
         </section>
       </div>

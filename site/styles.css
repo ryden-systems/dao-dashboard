@@ -337,6 +337,8 @@ td.mcell { white-space: nowrap; }
 .dy { display: block; white-space: nowrap; }
 /* A matched PIP and its match chip ("PIP-29  matches sheet"). */
 a.mono + .chip { margin-left: 5px; }
+/* A tag after a name in a table cell (e.g. Multisig on a wallet). */
+td > strong + .chip { margin-left: 10px; }
 tr.detail td { background: var(--surface-2); padding: 14px 16px 18px; }
 .sub { font-size: 12px; color: var(--muted); }
 .blank { color: var(--muted); font-style: italic; }

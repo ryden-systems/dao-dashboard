@@ -336,7 +336,7 @@ proposal page (**Add milestone**, **Add checklist item**, **Tick**, **Mark paid*
 
 Income, spending and a projection, all derived from the ledger and the rules; nothing is typed in.
 
-- **Averages** use the last 12 complete months (`budget.windowMonths`). Income is crafting fees plus transfers from
+- **Averages** use the last 12 complete months (`budget.windowMonths`). Income is SAGE fees plus transfers from
   income sources (marketplace fees), all of which reach the Treasury.
 - **Running costs** are Treasury payouts with a cost category, plus payouts not labelled yet (counted as running
   until labelled). **PIP payouts** are decided one vote at a time, so they are shown but not projected.
@@ -454,23 +454,28 @@ included; the export only has values). A tab that fails to download keeps its pr
 the last fetched sheet and governance data, and cached votes of closed proposals (`votes/`). Deleting `ledger.json` and
 `cursors.json` triggers a full backfill on the next run (a few minutes).
 
-### Income: marketplace fees and crafting fees
+### Income: marketplace fees and SAGE fees
 
 The Treasury earns ATLAS in two ways:
 
 - **Marketplace fees.** The Galactic Marketplace collects its fee share in a fee wallet (`feesQYAa…`), which forwards
   it every few days, ATLAS and USDC, 33% to the DAO Treasury. These transfers are in the ledger and counted exactly.
-- **Crafting fees.** Every SAGE crafting transaction pays a small ATLAS fee straight into the Treasury's ATLAS account,
-  thousands of times a day since April 2024. That account is too busy to scan, so the build derives the fees per
+- **SAGE fees** (shown under that name since 2026-11). The SAGE game program pays a small ATLAS fee straight into the
+  Treasury's ATLAS account for every crafting job, in the transaction that claims the job's output: thousands of
+  times a day since April 2024. That account is too busy to scan, so the build derives the fees per
   month: the change of the month-end ATLAS balance minus every movement the ledger recorded that month.
 
 Before 2024-04-03 the same account had about one transaction a day, so that part of its history is scanned once in
-full (`indexTokensBefore` in `config.json`). Crafting fees therefore start in April 2024, and every earlier inflow
+full (`indexTokensBefore` in `config.json`). SAGE fees therefore start in April 2024, and every earlier inflow
 (the initial funding and other one-off transfers) is recorded exactly and listed under **Other income** on Balances.
 
-Because crafting fees are a remainder, a transfer the ledger missed lands in them. Data health flags any complete month
-whose crafting fees differ from the average of the months on either side by more than `income.craftingTolerance`
+Because SAGE fees are a remainder, a transfer the ledger missed lands in them. Data health flags any complete month
+whose SAGE fees differ from the average of the months on either side by more than `income.craftingTolerance`
 (25%). If one is flagged, check the Treasury's ATLAS transfers that month on Solscan.
+
+A second high-volume stream into the same account (e.g. a new SAGE fee) would be counted as SAGE fees too: Data health
+flags the month it starts, but not the months after, because their neighbours rise with it. That is why the figure is
+called SAGE fees rather than crafting fees. A low-volume new sender can be added to the scan in `config.json`.
 
 `data/balance_history_import.json` is a one-time import of the Treasury's daily ATLAS balance from 2023-05-16 until
 the dashboard's own snapshots began (2026-10-09); its `_source` field says where it came from. The build never
@@ -487,6 +492,13 @@ and a commit never changes what the local page shows.
 - **Treasury ATLAS history.** The Treasury's ATLAS account receives tens of thousands of fee transfers a day, so it is not
   scanned. Its *payouts* are still captured (the Treasury wallet signs every one), but its balance history is recorded as one
   snapshot per build, starting from the first run.
+- **SAGE fees are a remainder.** The SAGE program pays them in about 20,000 small transfers a day, too many to read one
+  by one, so they are the Treasury's ATLAS balance change minus every recorded movement. Any other inflow into that
+  account therefore counts as SAGE fees. A one-off transfer is flagged on Data health (a month more than 25%
+  off its neighbours). A second high-volume stream (e.g. a new SAGE fee) is flagged only in the month it starts, then
+  silently stays inside SAGE fees, because the months around it rise with it. It cannot be added to the scan either
+  (too many transfers); separating it needs its own source, such as a fee account with a running total or an outside
+  index. A low-volume new sender can be added to the scan in `config.json`.
 - **Elections.** Ranked Council elections allocate seats by single transferable vote. The dashboard shows first preferences
   per candidate and does not recount the election.
 - **Matching needs labels where the chain is ambiguous**, most often when one wallet is paid for several PIPs.
