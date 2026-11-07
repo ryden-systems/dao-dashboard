@@ -21,12 +21,35 @@
 
   // Sign-in problems in plain words: what happened and what to do. Google's own text is kept at the
   // end so it can still be looked up. Every failure is also written to the browser console.
+  // The same cases in 2 to 4 words, for the header (the full text goes into its tooltip).
+  // Remembered across reloads (when the browser allows it): the next sign-in asks for Google's permission screen.
+  let consentFlag = false;
+  function needConsent(set) {
+    if (set === true || set === false) consentFlag = set;
+    try {
+      if (set === true) localStorage.setItem("dash.needConsent", "1");
+      else if (set === false) localStorage.removeItem("dash.needConsent");
+      else return consentFlag || localStorage.getItem("dash.needConsent") === "1";
+    } catch { /* storage blocked */ }
+    return consentFlag;
+  }
+  function signInShort(raw) {
+    const s = String(raw || "");
+    if (/^view-only/.test(s)) return "No edit rights";
+    if (/insufficient.*scope|scopes? (were|was) not granted|sheets permission/i.test(s)) return "Sheets permission missing";
+    if (/popup[_ ](window[_ ])?closed|cancel/i.test(s)) return "Sign-in cancelled";
+    if (/popup_failed_to_open|popup.*block/i.test(s)) return "Pop-up blocked";
+    if (/access_denied|access blocked/i.test(s)) return "Access refused";
+    if (/\b403\b/.test(s)) return "No access to sheet";
+    if (/\b404\b/.test(s)) return "Sheet not found";
+    return "Sign-in failed";
+  }
   function signInMessage(raw, email) {
     const s = String(raw || "");
     const google = s ? ` (Google: ${s})` : "";
     if (/^view-only/.test(s)) return `This Google account${email ? ` (${email})` : ""} can view the Council's sheet but not edit it, so it cannot sign in as an editor. Ask the Council for edit access to the sheet.`;
-    if (/insufficient.*scope|scopes? (were|was) not granted|sheets permission/i.test(s)) return `The Google Sheets permission was not given. Sign in again and, on Google's permission screen, tick the box for Google Sheets.${google}`;
-    if (/popup_closed|cancel/i.test(s)) return `The Google sign-in window was closed before it finished. Sign in again and complete every step in that window.${google}`;
+    if (/insufficient.*scope|scopes? (were|was) not granted|sheets permission/i.test(s)) return `The Google Sheets permission was not given. Click Editor sign-in again: Google shows its permission screen once more; tick the box for Google Sheets before Continue.${google}`;
+    if (/popup[_ ](window[_ ])?closed|cancel/i.test(s)) return `The Google sign-in window was closed before it finished. Sign in again and complete every step in that window.${google}`;
     if (/popup_failed_to_open|popup.*block/i.test(s)) return `The browser blocked Google's sign-in window. Allow pop-ups for this page and sign in again.${google}`;
     if (/access_denied|access blocked/i.test(s)) return `Google refused the sign-in. Use an account that is registered as a tester of the dashboard's Google app (see the README), and allow the Google Sheets permission.${google}`;
     if (/\b403\b/.test(s)) return `This Google account${email ? ` (${email})` : ""} cannot edit the Council's sheet. Sign in with an account the sheet is shared with for editing, or ask for edit access.${google}`;
@@ -62,11 +85,21 @@
         catch (e) { if (e.status === 403 || e.status === 404) return { ok: false, status: e.status, message: e.message }; throw e; }
       },
       async canAccess() { return (await core.accessCheck()).ok; },
-      // Edit rights: opening the sheet is not enough (anyone with its link can view it). An update with
-      // no changes is accepted only from accounts that can edit, and changes nothing in the sheet.
+      // Edit rights: opening the sheet is not enough (anyone with its link can view it). Setting the
+      // sheet's title to the title it already has is accepted only from accounts that can edit, and
+      // changes nothing. (Google refuses an update with no requests at all, so that cannot be used.)
+      // Only a refusal (403) keeps an account out; if the check itself fails for another reason the
+      // sign-in goes ahead, since Google refuses every save of a view-only account anyway.
       async canEdit() {
-        try { await call(":batchUpdate", { method: "POST", body: { requests: [] } }); return { ok: true }; }
-        catch (e) { if (e.status === 403 || e.status === 404) return { ok: false, status: e.status, message: e.message }; throw e; }
+        try {
+          const j = await call("?fields=properties.title");
+          await call(":batchUpdate", { method: "POST", body: { requests: [{ updateSpreadsheetProperties: { properties: { title: j.properties.title }, fields: "title" } }] } });
+          return { ok: true };
+        } catch (e) {
+          if (e.status === 403) return { ok: false, status: e.status, message: e.message };
+          console.warn("[editor] edit-rights check could not run:", e.message);
+          return { ok: true, unchecked: e.message };
+        }
       },
       async tabTitles() {
         const j = await call("?fields=sheets.properties(title,sheetId)");
@@ -300,7 +333,7 @@
         if (hi < 0) return { error: `The "${tab}" tab has no header row with "Due" and "Amount".` };
         const id = "U" + Date.now().toString(36).toUpperCase();
         const values = { ID: id, ...v.values, "Paid by (tx)": "" };
-        const h = rows[hi], row = [];
+        const h = await withColumns(tab, rows, hi), row = [];
         for (const [k, v] of Object.entries(values)) { const c = SM.colIndex(h, k); if (c >= 0) row[c] = v; }
         await core.appendRow(tab, Array.from(row, (v) => v ?? ""));
         const j = await call("?fields=sheets.properties(title,sheetId)");
@@ -323,7 +356,9 @@
         await core.deleteRows(f.tab, [f.row]);
         return { saved: true, deleted: true };
       },
-      // Mark an upcoming payment as paid by the payout (transaction signature) that settled it.
+      // Mark an upcoming payment as paid by the payout (transaction signature) that settled it. For a
+      // repeating payment the transaction is added to the ones before (one per payment made), which
+      // moves its next due date on by one period; returns how many payments are recorded.
       async markUpcomingPaid(id, signature) {
         const tab = tabs.upcomingPayments || "Upcoming payments";
         const sig = SM.clean(signature);
@@ -335,6 +370,13 @@
         if (cId < 0 || cPaid < 0) return { error: `The "${tab}" tab needs "ID" and "Paid by (tx)" columns.` };
         const at = rows.findIndex((r, i) => i > hi && same(r[cId], id));
         if (at < 0) return { error: `No upcoming payment with ID ${id} in the sheet.` };
+        const cRep = SM.colIndex(h, "Repeats");
+        if (cRep >= 0 && SM.clean(rows[at][cRep])) {
+          const before = SM.clean(rows[at][cPaid]).split(/[\s,;]+/).filter(Boolean);
+          if (before.includes(sig)) return { error: "This payout is already recorded for this payment." };
+          await core.writeCell(tab, at, cPaid, [...before, sig].join(" "));
+          return { saved: true, count: before.length + 1 };
+        }
         await core.writeCell(tab, at, cPaid, sig);
         return { saved: true };
       },
@@ -367,16 +409,27 @@
       },
     };
     // An upcoming payment's sheet values from the form, checked; or { error }.
-    function upcomingValues({ due, account, for: what, fiscalYear = "", amount, currency = "USDC", description = "" }) {
-      for (const [v, kind, label] of [[due, "required", "Due"], [due, "date", "Due"], [what, "required", "For"], [fiscalYear, "year", "Fiscal year"]]) {
+    function upcomingValues({ due, account, for: what, fiscalYear = "", amount, currency = "USDC", description = "", repeats = "", until = "" }) {
+      for (const [v, kind, label] of [[due, "required", "Due"], [due, "date", "Due"], [what, "required", "For"], [fiscalYear, "year", "Fiscal year"], [until, "date", "Until"]]) {
         const msg = SM.validate(kind, v);
         if (msg) return { error: `${label}: ${msg}` };
       }
+      if (!["", "Monthly", "Quarterly", "Yearly"].includes(repeats)) return { error: "Repeats: choose once, monthly, quarterly or yearly." };
+      if (until && !repeats) return { error: "Until: only for a repeating payment." };
+      if (until && SM.isoDate(until) < SM.isoDate(due)) return { error: "Until: the last due date cannot be before the first." };
       if (!["treasury", "fund"].includes(account)) return { error: "Paid from: choose the DAO Treasury or the Ecosystem Fund." };
       const n = Number(String(amount).replace(/[,\s]/g, ""));
       if (!(n > 0)) return { error: "Amount: enter a number above 0." };
       const text = (s) => (SM.clean(s) ? "'" + SM.clean(s) : "");
-      return { values: { Due: SM.textDate(due), "Paid from": account === "fund" ? "Ecosystem Fund" : "DAO Treasury", For: text(what), "Fiscal year": SM.clean(fiscalYear), Amount: String(n), Currency: currency, Description: text(description) } };
+      // A repeating payment's fiscal year is the year each payment falls due, so the column stays empty.
+      return { values: { Due: SM.textDate(due), "Paid from": account === "fund" ? "Ecosystem Fund" : "DAO Treasury", For: text(what), "Fiscal year": repeats ? "" : SM.clean(fiscalYear), Amount: String(n), Currency: currency, Description: text(description), Repeats: repeats, Until: until ? SM.textDate(until) : "" } };
+    }
+    // The header row of the Upcoming payments tab, with any of its columns that are missing (a tab made
+    // before Repeats and Until existed) added at the end, so no value is dropped on save.
+    async function withColumns(tab, rows, hi) {
+      const h = [...rows[hi]];
+      for (const name of SM.UPCOMING_HEADERS) if (SM.colIndex(h, name) < 0) { await core.writeCell(tab, hi, h.length, name); h.push(name); }
+      return h;
     }
     // The sheet row of an upcoming payment, by its ID.
     async function findUpcoming(id) {
@@ -384,7 +437,7 @@
       const rows = await core.readTab(tab);
       const hi = SM.findHeaderRow(rows, ["Due", "Amount"]);
       if (hi < 0) return { error: `The "${tab}" tab was not found.` };
-      const h = rows[hi], cId = SM.colIndex(h, "ID");
+      const h = await withColumns(tab, rows, hi), cId = SM.colIndex(h, "ID");
       const row = cId < 0 ? -1 : rows.findIndex((r, i) => i > hi && same(r[cId], id));
       if (row < 0) return { error: `No upcoming payment with ID ${id} in the sheet; it may have been changed there. Reload the page.` };
       return { tab, h, row };
@@ -463,7 +516,7 @@
           if (r.error) return reject(new Error(r.error_description || r.error));
           // Google may let the user untick the Sheets permission: the sign-in "works", but every read fails.
           const granted = google.accounts.oauth2.hasGrantedAllScopes ? google.accounts.oauth2.hasGrantedAllScopes(r, SHEETS_SCOPE) : true;
-          if (!granted) return reject(new Error("The Google Sheets permission was not granted."));
+          if (!granted) { needConsent(true); return reject(new Error("The Google Sheets permission was not granted.")); }
           this._token = r.access_token;
           this._expires = Date.now() + (Number(r.expires_in) || 3600) * 1000 - 60000;
           resolve(this._token);
@@ -483,7 +536,10 @@
       try {
         await loadScript("https://accounts.google.com/gsi/client");
         this._client = google.accounts.oauth2.initTokenClient({ client_id: this._cfg.googleClientId, scope: SCOPE, callback: () => {} });
-        await this._requestToken("select_account");
+        // After a sign-in without the Sheets permission, Google keeps that answer and skips its
+        // permission screen on "select_account", so the box could never be ticked: ask for it again.
+        await this._requestToken(needConsent() ? "consent" : "select_account");
+        needConsent(false);
         const who = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", { headers: { Authorization: "Bearer " + this._token } }).then((r) => (r.ok ? r.json() : {}));
         this.state.email = who.email || null;
         const access = await this.core.accessCheck();
@@ -495,9 +551,10 @@
       } catch (e) {
         console.warn("[editor] sign-in failed:", e.message);
         this.state.error = signInMessage(e.message, this.state.email);
+        this.state.errorShort = signInShort(e.message);
         this.state.signedIn = false;
-        // Not signed in, so the Google permission is not kept either.
-        try { if (this._token) google.accounts.oauth2.revoke(this._token, () => {}); } catch { /* already gone */ }
+        // Not signed in: the token is dropped. It is not revoked, since revoking removes the whole
+        // Google permission (Sheets box included) and the next sign-in would have to grant it again.
         this._token = null; this._expires = 0;
       }
       this._emit();
@@ -543,9 +600,10 @@
       return { saved: true, files: saved };
     },
 
+    // Signing out forgets the tokens in this page. The Google permission itself stays (as for any site
+    // with Google sign-in), so the next sign-in does not ask for the Sheets box again; it can be removed
+    // in the Google account under Security, Third-party connections (DAOdash).
     signOut() {
-      try { if (this._token) google.accounts.oauth2.revoke(this._token, () => {}); } catch { /* already gone */ }
-      try { if (this._driveToken) google.accounts.oauth2.revoke(this._driveToken, () => {}); } catch { /* already gone */ }
       this._token = null; this._expires = 0; this._driveToken = null; this._driveExpires = 0;
       this.state = { ...this.state, signedIn: false, email: null, error: null };
       this._emit();
@@ -554,6 +612,7 @@
 
   Editor.makeCore = makeCore; // exposed for tests
   Editor.signInMessage = signInMessage;
+  Editor.signInShort = signInShort;
   Editor.makeDrive = makeDrive;
   root.Editor = Editor;
 })(typeof window !== "undefined" ? window : globalThis);

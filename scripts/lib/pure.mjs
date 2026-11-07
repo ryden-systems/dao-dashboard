@@ -52,6 +52,13 @@ export function quarterOf(ts) {
   return `${d.getUTCFullYear()}-Q${Math.floor(d.getUTCMonth() / 3) + 1}`;
 }
 
+// An ISO date `k` months later; the day is capped at the month's last day (2026-01-31 + 1 = 2026-02-28).
+export function addMonths(iso, k) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const last = new Date(Date.UTC(y, m + k, 0)).getUTCDate();
+  return new Date(Date.UTC(y, m - 1 + k, Math.min(d, last))).toISOString().slice(0, 10);
+}
+
 // Unix timestamp of the first instant of a quarter key ("2026-Q3").
 export function quarterStart(key) {
   const [y, q] = key.split("-Q").map(Number);

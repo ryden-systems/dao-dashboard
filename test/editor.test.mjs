@@ -45,6 +45,9 @@ async function fakeFetch(url, opts = {}) {
   if (!rest && u.search.includes("fields=properties.title")) return json(200, { properties: { title: "Tracker sheet" } });
   if (!rest && u.search.includes("sheets.properties")) return json(200, { sheets: Object.keys(book).map((t, i) => ({ properties: { title: t, sheetId: i } })) });
   if (rest === ":batchUpdate" || u.pathname.endsWith(":batchUpdate")) {
+    // Like Google: an update without any request is refused.
+    if (!body.requests?.length) return json(400, { error: { message: "Invalid requests: must specify at least one request." } });
+    for (const rq of body.requests) if (rq.updateSpreadsheetProperties && rq.updateSpreadsheetProperties.properties.title !== "Tracker sheet") return json(500, { error: { message: "the check must not rename the sheet" } });
     for (const rq of body.requests) if (rq.addSheet) { const t = rq.addSheet.properties.title; if (book[t]) return json(400, { error: { message: "exists" } }); book[t] = []; }
     for (const rq of body.requests) if (rq.deleteDimension) { const g = rq.deleteDimension.range; book[Object.keys(book)[g.sheetId]].splice(g.startIndex, g.endIndex - g.startIndex); }
     return json(200, {});
@@ -308,6 +311,36 @@ ok(docList.length === 2 && docList[1].link === "https://drive/2" && docList[0].b
   const dec = (b) => b.projection.find((s) => s.date === "2026-12-31").treasuryUSDC;
   ok(dec(without) - dec(withInv) === 12000, "the projection takes it off the Treasury's USDC by its due date");
   ok(budgetOf({ ...base, upcoming: [{ ...inv, paidBy: SIG }] }).upcoming.length === 0, "a paid entry leaves the upcoming list");
+
+  // Repeating payments: saved with Repeats and Until, each Mark paid adds one transaction and moves the next due date.
+  ok((await core.addUpcoming({ due: "2026-12-01", account: "treasury", for: "Council expenses", amount: "1000", until: "2027-03-01" })).error, "Until without Repeats is refused");
+  ok((await core.addUpcoming({ due: "2026-12-01", account: "treasury", for: "Council expenses", amount: "1000", repeats: "Monthly", until: "2026-11-01" })).error, "Until before Due is refused");
+  const rp = await core.addUpcoming({ due: "2026-11-30", account: "treasury", for: "Council expenses", fiscalYear: "2026", amount: "1000", repeats: "Monthly", until: "2027-02-28" });
+  const findR = () => parseUpcomingTab(book["Upcoming payments"]).find((x) => x.id === rp.id);
+  let r1 = findR();
+  ok(rp.saved && r1.every === 1 && r1.repeats === "monthly" && r1.until === "2027-02-28" && r1.next === "2026-11-30" && !r1.fiscalYear && !r1.paidBy, "a monthly payment reads back with its end date and no fixed fiscal year: " + JSON.stringify(r1));
+  const SIG2 = "6".repeat(88), SIG3 = "7".repeat(88);
+  ok((await core.markUpcomingPaid(rp.id, SIG2)).count === 1 && findR().next === "2026-12-30", "the first payment moves the next due date on by a month");
+  ok((await core.markUpcomingPaid(rp.id, SIG2)).error, "the same payout cannot be recorded twice");
+  ok((await core.markUpcomingPaid(rp.id, SIG3)).count === 2 && findR().paid.join() === [SIG2, SIG3].join() && findR().paidYears.join() === "2026,2026", "a second payment is added, each with the year it was due");
+  // A tab made before Repeats and Until existed gets the columns on the next save.
+  const old = SM.UPCOMING_HEADERS.slice(0, 9);
+  book["Upcoming payments"] = [old, ["U1", "'2026-12-01", "DAO Treasury", "Hosting", "", "50", "USDC", "", ""]];
+  ok((await core.updateUpcoming("U1", { due: "2026-12-01", account: "treasury", for: "Hosting", amount: "50", repeats: "Yearly" })).updated && book["Upcoming payments"][0].slice(9).join() === "Repeats,Until" && parseUpcomingTab(book["Upcoming payments"])[0].repeats === "yearly", "missing Repeats/Until columns are added before saving: " + JSON.stringify(book["Upcoming payments"][0]));
+
+  // Budget: every monthly due date comes off the Treasury; done once the next date passes Until; Foundation years per due date.
+  const mo = { id: "R1", due: "2026-12-15", every: 1, repeats: "monthly", until: null, next: "2026-12-15", paid: [], account: "treasury", for: "Operating costs", amount: 1000, currency: "USDC", description: "", paidBy: null };
+  const withMo = budgetOf({ ...base, upcoming: [mo] });
+  ok(dec(without) - dec(withMo) === 1000, "by 2026-12-31 one monthly payment is taken");
+  const mar = (b) => b.projection.find((s) => s.date === "2027-03-31").treasuryUSDC;
+  ok(mar(without) - mar(withMo) === 4000, "by 2027-03-31 four monthly payments are taken");
+  ok(mar(without) - mar(budgetOf({ ...base, upcoming: [{ ...mo, until: "2027-01-31" }] })) === 2000, "it stops after its end date");
+  ok(withMo.upcoming.length === 1 && withMo.upcoming[0].due === "2026-12-15" && withMo.recurringMonthly === 1000, "it is listed once, at its next due date");
+  ok(withMo.foundation.years.find((y) => y.year === "2026")?.upcomingCount === 1 && withMo.foundation.years.find((y) => y.year === "2027")?.upcomingCount === 10, "Foundation budget: each due date counts in its own year (12 months ahead)");
+  // Its category's past average is replaced, not added to.
+  const paid12 = Array.from({ length: 12 }, (_, i) => ({ sig: "p" + i, t: Date.UTC(2025, 10 + i, 10) / 1000, account: "treasury", direction: "out", symbol: "USDC", amount: 500, category: "Operating costs", confidence: "labelled" }));
+  const hist = budgetOf({ ...base, payments: paid12 }), histMo = budgetOf({ ...base, payments: paid12, upcoming: [mo] });
+  ok(hist.rate.tU === -500 && histMo.rate.tU === 0 && histMo.replaced.categories.join() === "Operating costs", "a repeating payment replaces its category's average in the projection: " + hist.rate.tU + " / " + histMo.rate.tU);
 }
 
 // ---------- sign-in problems in plain words ----------
@@ -321,7 +354,9 @@ ok(docList.length === 2 && docList[1].link === "https://drive/2" && docList[0].b
   ok(/can view the Council's sheet but not edit it/.test(m("view-only: The caller does not have permission", "x@y.org")), "view-only sign-in explained");
   ok(/tick the box for Google Sheets/.test(m("Request had insufficient authentication scopes.")), "missing Sheets permission explained");
   ok(/tick the box for Google Sheets/.test(m("The Google Sheets permission was not granted.")), "unticked Sheets box explained");
-  ok(/window was closed/.test(m("popup_closed")) && /Allow pop-ups/.test(m("popup_failed_to_open")), "closed and blocked popups explained");
+  ok(/window was closed/.test(m("popup_closed")) && /window was closed/.test(m("Popup window closed")) && /Allow pop-ups/.test(m("popup_failed_to_open")), "closed and blocked popups explained");
+  const sh = ctx.Editor.signInShort;
+  ok(sh("Popup window closed") === "Sign-in cancelled" && sh("view-only: x") === "No edit rights" && sh("popup_failed_to_open") === "Pop-up blocked" && sh("new thing") === "Sign-in failed", "short header texts match the cases");
   ok(/registered as a tester/.test(m("access_denied")), "access denied explained");
   ok(/x@y\.org\) cannot edit the Council's sheet/.test(m("403: The caller does not have permission", "x@y.org")) && /\(Google: 403/.test(m("403: The caller does not have permission")), "no edit access explained, with Google's own text kept");
   ok(/^Sign-in failed\. \(Google: something new\)$/.test(m("something new")), "unknown errors keep Google's text");

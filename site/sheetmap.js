@@ -15,7 +15,7 @@
   const MEMBER_HEADERS = ["Name", "Role", "Term", "Start", "End", "Elected (PIP)", "Wallet", "Discord", "X", "Image", "Show"];
   const MINUTES_HEADERS = ["Date", "Title", "Minutes", "Show"];
   // Payments the DAO knows are coming (e.g. an invoice). "Paid by (tx)" is filled in once it is paid.
-  const UPCOMING_HEADERS = ["ID", "Due", "Paid from", "For", "Fiscal year", "Amount", "Currency", "Description", "Paid by (tx)"];
+  const UPCOMING_HEADERS = ["ID", "Due", "Paid from", "For", "Fiscal year", "Amount", "Currency", "Description", "Paid by (tx)", "Repeats", "Until"];
   // Google Sheets holds at most 50,000 characters in one cell.
   const MINUTES_MAX = 50000;
   // Minutes keep their line breaks, so they are compared without collapsing whitespace.

@@ -8,6 +8,7 @@
 // The projection assumes the averages hold and applies the Fund refill rule at each refill date.
 // It is an estimate from past months, not a plan.
 import { ruleAt } from "./limit.mjs";
+import { addMonths } from "./pure.mjs";
 
 const DAY = 86400, MONTH = 30.44 * DAY;
 const round = (n) => Math.round(n);
@@ -76,14 +77,29 @@ export function budgetOf({ payments = [], income = {}, accounts = {}, pips = [],
     years.set(y, r);
   }
   // Known upcoming payments (not paid yet) in the Foundation's categories count in their fiscal year.
+  // A repeating one counts once per due date (up to 12 months ahead), in the year it falls due.
   const open = upcoming.filter((u) => !u.paidBy);
+  const today = new Date(nowTs * 1000).toISOString().slice(0, 10), horizon = addMonths(today, 12);
+  const occurrences = (u, to) => {
+    const start = u.next ?? u.due;
+    if (!u.every || !start) return [{ ...u, due: start }];
+    const out = [];
+    for (let i = 0; i < 600; i++) {
+      const d = addMonths(start, i * u.every);
+      if (d > to || (u.until && d > u.until)) break;
+      out.push({ ...u, due: d });
+    }
+    return out;
+  };
   for (const u of open) {
     if (!u.for || !foundationCats.has(u.for.toLowerCase()) || u.currency !== "USDC") continue;
-    const y = u.fiscalYear ?? String(u.due ?? "").slice(0, 4);
-    if (!y) continue;
-    const r = years.get(y) ?? { year: y, USDC: 0, ATLAS: 0, payouts: 0, noFiscalYear: 0, upcoming: 0, upcomingCount: 0 };
-    r.upcoming += u.amount; r.upcomingCount++;
-    years.set(y, r);
+    for (const o of occurrences(u, horizon)) {
+      const y = u.every ? String(o.due).slice(0, 4) : (u.fiscalYear ?? String(o.due ?? "").slice(0, 4));
+      if (!y) continue;
+      const r = years.get(y) ?? { year: y, USDC: 0, ATLAS: 0, payouts: 0, noFiscalYear: 0, upcoming: 0, upcomingCount: 0 };
+      r.upcoming += u.amount; r.upcomingCount++;
+      years.set(y, r);
+    }
   }
   const foundation = {
     rule: fRule,
@@ -124,14 +140,21 @@ export function budgetOf({ payments = [], income = {}, accounts = {}, pips = [],
 
   // Projection to the next refill dates.
   const now = { tA: accounts.treasury?.now?.ATLAS ?? 0, tU: accounts.treasury?.now?.USDC ?? 0, fA: accounts.fund?.now?.ATLAS ?? 0 };
+  // A cost category with a repeating upcoming payment is projected from that payment, not from its
+  // past average (both would count the same cost twice).
+  const replaced = { ATLAS: 0, USDC: 0, categories: [] };
+  for (const c of Object.values(byCategory)) {
+    if (!open.some((u) => u.every && u.account === "treasury" && u.for && u.for.toLowerCase() === c.category.toLowerCase())) continue;
+    replaced.ATLAS += c.ATLAS / n; replaced.USDC += c.USDC / n; replaced.categories.push(c.category);
+  }
   const rate = {
-    tA: income12.atlas - spend.treasury.running.ATLAS.perMonth,
-    tU: income12.usdc - spend.treasury.running.USDC.perMonth,
+    tA: income12.atlas - (spend.treasury.running.ATLAS.perMonth - replaced.ATLAS),
+    tU: income12.usdc - (spend.treasury.running.USDC.perMonth - replaced.USDC),
     fA: -(spend.fund.pip.ATLAS.perMonth + spend.fund.running.ATLAS.perMonth + spend.fund.unlabelled.ATLAS.perMonth),
   };
   const fundRules = rules.fund ?? [];
   const dates = [];
-  const y0 = new Date(nowTs * 1000).getUTCFullYear(), today = new Date(nowTs * 1000).toISOString().slice(0, 10);
+  const y0 = new Date(nowTs * 1000).getUTCFullYear();
   for (const y of [y0, y0 + 1, y0 + 2]) for (const d of ruleAt(fundRules, nowTs)?.refillDates ?? []) if (`${y}-${d}` > today) dates.push(`${y}-${d}`);
   dates.sort();
   let { tA, tU, fA } = now, at = nowTs;
@@ -141,13 +164,18 @@ export function budgetOf({ payments = [], income = {}, accounts = {}, pips = [],
   // taken off here. Amounts it owes in USDC, GBP or EUR are converted when paid and stay out (listed).
   const paysNow = { tA: owed.treasury?.ATLAS ?? 0, tU: owed.treasury?.USDC ?? 0, fA: owed.fund?.ATLAS ?? 0 };
   const notProjected = Object.fromEntries(Object.entries(owed.fund ?? {}).filter(([c]) => c !== "ATLAS"));
-  // Known upcoming payments come off their account on their due date (those already due: now).
+  // Known upcoming payments come off their account on their due date (those already due: now). The
+  // list shows one row each (a repeating one at its next due date, `start` its first); the projection
+  // takes every due date of a repeating one.
   const slot = (u) => (u.account === "treasury" && u.currency === "USDC" ? "tU" : u.account === "treasury" && u.currency === "ATLAS" ? "tA" : u.account === "fund" && u.currency === "ATLAS" ? "fA" : null);
-  const upcomingList = open.map((u) => ({ ...u, projected: Boolean(slot(u) && u.due), overdue: Boolean(u.due && u.due <= today) })).sort((a, b) => String(a.due).localeCompare(String(b.due)));
+  const mark = (u) => ({ ...u, projected: Boolean(slot(u) && u.due), overdue: Boolean(u.due && u.due <= today) });
+  const upcomingList = open.map((u) => mark({ ...u, start: u.due, due: u.next ?? u.due })).sort((a, b) => String(a.due).localeCompare(String(b.due)));
+  const lastDate = dates.slice(0, settings.projectRefills ?? 4).at(-1) ?? today;
+  const occ = open.flatMap((u) => occurrences(u, lastDate > horizon ? lastDate : horizon)).map(mark);
   const take = (from, to) => {
-    for (const u of upcomingList) if (u.projected && u.due > from && u.due <= to) { const k = slot(u); if (k === "tU") tU -= u.amount; else if (k === "tA") tA -= u.amount; else fA = Math.max(0, fA - u.amount); }
+    for (const u of occ) if (u.projected && u.due > from && u.due <= to) { const k = slot(u); if (k === "tU") tU -= u.amount; else if (k === "tA") tA -= u.amount; else fA = Math.max(0, fA - u.amount); }
   };
-  const dueNow = upcomingList.filter((u) => u.projected && u.overdue);
+  const dueNow = occ.filter((u) => u.projected && u.overdue);
   for (const u of dueNow) paysNow[slot(u)] += u.amount;
   if (paysNow.tA || paysNow.tU || paysNow.fA) {
     tA -= paysNow.tA; tU -= paysNow.tU; fA = Math.max(0, fA - paysNow.fA);
@@ -168,11 +196,15 @@ export function budgetOf({ payments = [], income = {}, accounts = {}, pips = [],
   // Months until the Treasury's USDC runs out at the current pace (null when it is not shrinking),
   // and the same after paying the USDC it still owes on approved PIPs.
   const usdcRunwayMonths = rate.tU < 0 ? now.tU / -rate.tU : null;
-  // Runway after paying everything outstanding: what approved PIPs are owed and every known upcoming USDC payment.
-  const upcomingUsdc = upcomingList.filter((u) => slot(u) === "tU").reduce((s, u) => s + u.amount, 0) - dueNow.filter((u) => slot(u) === "tU").reduce((s, u) => s + u.amount, 0);
-  const usdcRunwayAfterOwed = rate.tU < 0 ? Math.max(0, now.tU - paysNow.tU - upcomingUsdc) / -rate.tU : null;
+  // Runway after paying everything outstanding: what approved PIPs are owed and every known one-off
+  // upcoming USDC payment; repeating ones add their monthly share to the outflow instead.
+  const upcomingUsdc = occ.filter((u) => !u.every && slot(u) === "tU" && !u.overdue).reduce((s, u) => s + u.amount, 0);
+  const recurringMonthly = open.filter((u) => u.every && slot(u) === "tU" && !(u.until && u.until < today)).reduce((s, u) => s + u.amount / u.every, 0);
+  const runwayRate = rate.tU - recurringMonthly;
+  const usdcRunwayAfterOwed = runwayRate < 0 ? Math.max(0, now.tU - paysNow.tU - upcomingUsdc) / -runwayRate : null;
+  // Totals: every one-off, and a repeating one's payments in the next 12 months.
   const upcomingTotals = {};
-  for (const u of upcomingList) ((upcomingTotals[u.account ?? "unknown"] ??= {})[u.currency] = (upcomingTotals[u.account ?? "unknown"]?.[u.currency] ?? 0) + u.amount);
+  for (const u of open.flatMap((x) => occurrences(x, horizon))) ((upcomingTotals[u.account ?? "unknown"] ??= {})[u.currency] = (upcomingTotals[u.account ?? "unknown"]?.[u.currency] ?? 0) + u.amount);
 
-  return { window: { months: n, from: months[0], to: months.at(-1) }, income: income12, spend, unlabelled, foundation, commitments, owed, paysNow, notProjected, upcoming: upcomingList, upcomingTotals, rate, usdcRunwayMonths, usdcRunwayAfterOwed, projection: steps };
+  return { window: { months: n, from: months[0], to: months.at(-1) }, income: income12, spend, unlabelled, foundation, commitments, owed, paysNow, notProjected, upcoming: upcomingList, upcomingTotals, rate, runwayRate, recurringMonthly: round(recurringMonthly), replaced: { ATLAS: round(replaced.ATLAS), USDC: round(replaced.USDC), categories: replaced.categories }, usdcRunwayMonths, usdcRunwayAfterOwed, projection: steps };
 }

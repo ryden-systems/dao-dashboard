@@ -274,9 +274,16 @@ Payments the DAO knows are coming, such as an invoice that is due, so the Budget
 averages alone. Signed-in editors add them on the Budget page (**Add upcoming payment**); the tab is created on the
 first save:
 
-| ID | Due | Paid from | For | Fiscal year | Amount | Currency | Description | Paid by (tx) |
-|---|---|---|---|---|---|---|---|---|
-| set by the dashboard | YYYY-MM-DD | DAO Treasury or Ecosystem Fund | a cost category (e.g. `Foundation`, `Hosting`) or `PIP-36` | the budget year it belongs to | e.g. `12446.95` | `USDC` or `ATLAS` | short text | the payout's transaction, once paid |
+| ID | Due | Paid from | For | Fiscal year | Amount | Currency | Description | Paid by (tx) | Repeats | Until |
+|---|---|---|---|---|---|---|---|---|---|---|
+| set by the dashboard | YYYY-MM-DD | DAO Treasury or Ecosystem Fund | a cost category (e.g. `Foundation`, `Hosting`) or `PIP-36` | the budget year it belongs to | e.g. `12446.95` | `USDC` or `ATLAS` | short text | the payout's transaction, once paid | `Monthly`, `Quarterly`, `Yearly` or empty (once) | last due date of a repeating payment, empty = no end |
+
+- **Repeating payments** (e.g. a monthly expense account, a yearly fee): Due is the first due date. Each **Mark
+  paid** adds that payout's transaction to "Paid by (tx)" (separated by spaces), which moves the next due date on
+  by one period; the entry leaves the list once the next date passes Until. Every due date in the projection comes
+  off its account, the fiscal year of each payment is the year it falls due, and a cost category with a repeating
+  payment is projected from it instead of from its past average. Tabs made before these columns existed get them
+  added on the next save.
 
 - **Documents:** attach the invoice with the entry's **Documents** button (same owner account and Drive folder as
   payout documents). Once the entry is marked paid, its documents also show on that payout.

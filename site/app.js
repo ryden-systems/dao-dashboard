@@ -237,11 +237,16 @@
     if (!ED || !ED.state.available) return "";
     const s = ED.state;
     if (s.preview) return `<button class="btn" data-act="ed-preview" aria-expanded="${ed.previewInfo ? "true" : "false"}">Editor sign-in</button>`;
+    // A short message in a slot of fixed width left of the buttons, reserved even when empty, so the
+    // date and the buttons never move; the full explanation is its tooltip.
+    const slot = (m, cls = "") => `<span class="ed-note${cls}"${m ? ` title="${esc(m.long)}"` : ""}>${m ? `${esc(m.short)} ${INFO_ICON}` : ""}</span>`;
+    const upd = ed.updateMsg ? { short: ed.updateMsg.short ?? (ed.updateMsg.err ? "Update failed" : "Update requested"), long: ed.updateMsg.err || ed.updateMsg.ok } : null;
     // While a rebuild runs, the buttons are hidden and only the slowly pulsing status stays.
-    if (s.signedIn && ed.updating) return `<span class="ed-zone"><span class="sub">Editing as ${esc(s.email ?? "signed-in editor")}</span><span class="sub pulse">${esc(ed.updateMsg?.ok ?? "Updating...")}</span></span>`;
-    if (s.signedIn) return `<span class="ed-zone"><span class="sub">Editing as ${esc(s.email ?? "signed-in editor")}</span><button class="btn ed-btn" data-act="ed-update" title="Rebuild the dashboard from the sheet now">Update now</button><button class="btn ed-btn" data-act="ed-signout">Sign out</button>${ed.updateMsg ? `<span class="${ed.updateMsg.err ? "ed-err" : "sub"}">${esc(ed.updateMsg.err || ed.updateMsg.ok)}</span>` : ""}</span>`;
-    return `<button class="btn" data-act="ed-signin">Editor sign-in</button>${s.error ? `<span class="ed-err">${esc(s.error)}</span>` : ""}`;
+    if (s.signedIn && ed.updating) return `<span class="ed-zone">${slot(upd, " pulse")}<span class="sub">Editing as ${esc(s.email ?? "signed-in editor")}</span></span>`;
+    if (s.signedIn) return `<span class="ed-zone">${slot(upd, ed.updateMsg?.err ? " err" : "")}<span class="sub">Editing as ${esc(s.email ?? "signed-in editor")}</span><button class="btn ed-btn" data-act="ed-update" title="Rebuild the dashboard from the sheet now">Update now</button><button class="btn ed-btn" data-act="ed-signout">Sign out</button></span>`;
+    return `${slot(s.error ? { short: s.errorShort ?? "Sign-in failed", long: s.error } : null, " err")}<button class="btn" data-act="ed-signin">Editor sign-in</button>`;
   }
+  const INFO_ICON = `<svg class="info-i" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 7v4.2M8 4.6v.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
   // Preview mode: what the sign-in does in the delivered dashboard, without signing anyone in.
   const previewInfo = () => (ED?.state.preview && ed.previewInfo ? `
     <section class="panel edpanel preview-info" aria-label="Editing in the delivered dashboard">
@@ -263,7 +268,7 @@
   // Documents on a payout, read live from the sheet's "Payment documents" tab (signed-in editors only).
   // A payout also shows the documents of the upcoming payment it settled (filed under "upcoming:<ID>").
   const docsOf = (p) => {
-    const ups = (D.upcoming ?? []).filter((u) => u.paidBy && u.paidBy === p.sig).map((u) => `upcoming:${u.id}`);
+    const ups = (D.upcoming ?? []).filter((u) => (u.paid ?? [u.paidBy]).includes(p.sig)).map((u) => `upcoming:${u.id}`);
     return (ed.docs ?? []).filter((d) => (d.signature === p.sig && (!d.recipient || d.recipient === (p.owner ?? ""))) || ups.includes(d.signature));
   };
   async function loadDocs() {
@@ -475,23 +480,23 @@
         el.disabled = true;
         // Local test copy (npm run serve): the local server runs the build itself, then the page reloads.
         if (["localhost", "127.0.0.1"].includes(location.hostname)) {
-          ed.updateMsg = { ok: "Rebuilding locally from the sheet, about 30 seconds..." };
+          ed.updateMsg = { ok: "Rebuilding locally from the sheet, about 30 seconds...", short: "Rebuilding locally…" };
           ed.updating = true;
           render();
           try {
             const res = await fetch("/__rebuild", { method: "POST" });
             const r = await res.json().catch(() => ({ error: `local server answered ${res.status}; restart it with npm run serve` }));
             if (r.ok) { location.reload(); return; }
-            ed.updateMsg = { err: `Local rebuild failed: ${r.error}` };
-          } catch (e) { ed.updateMsg = { err: `Local rebuild failed: ${e.message}` }; }
+            ed.updateMsg = { err: `Local rebuild failed: ${r.error}`, short: "Local rebuild failed" };
+          } catch (e) { ed.updateMsg = { err: `Local rebuild failed: ${e.message}`, short: "Local rebuild failed" }; }
           ed.updating = false;
           render();
           return;
         }
         try {
           const r = await ED.core.requestUpdate(ED.state.email);
-          ed.updateMsg = { ok: `Update requested at ${r.at.slice(11, 16)} UTC. The site refreshes in about five minutes.` };
-        } catch (e) { ed.updateMsg = { err: e.message }; }
+          ed.updateMsg = { ok: `Update requested at ${r.at.slice(11, 16)} UTC. The site refreshes in about five minutes (with the sheet's Instant updates script; otherwise at the next daily build).`, short: `Update requested ${r.at.slice(11, 16)}` };
+        } catch (e) { ed.updateMsg = { err: e.message, short: "Update failed" }; }
         render();
         return;
       }
@@ -647,12 +652,12 @@
         const u = (D.budget?.upcoming ?? []).find((x) => x.id === el.dataset.id);
         if (!u) return;
         ed.upcoming = true; ed.upEdit = u.id; ed.upDel = null; ed.upcomingMsg = null;
-        ed.upcomingDraft = { due: u.due ?? "", account: u.account ?? "treasury", for: u.for, fiscalYear: u.fiscalYear ?? "", amount: String(u.amount), currency: u.currency, description: u.description };
+        ed.upcomingDraft = { due: u.start ?? u.due ?? "", account: u.account ?? "treasury", for: u.for, fiscalYear: u.fiscalYear ?? "", amount: String(u.amount), currency: u.currency, description: u.description, repeats: u.repeats ? u.repeats[0].toUpperCase() + u.repeats.slice(1) : "", until: u.until ?? "" };
         render(); $("#up-due")?.scrollIntoView({ block: "center", behavior: "smooth" }); return;
       }
       case "up-cancel": ed.upcoming = false; ed.upEdit = null; ed.upPay = null; ed.upcomingDraft = null; render(); return;
       case "up-save": {
-        const u = { due: val("up-due").trim(), account: val("up-from"), for: val("up-for").trim(), fiscalYear: val("up-fy").trim(), amount: val("up-amount").trim(), currency: val("up-cur"), description: val("up-desc").trim() };
+        const u = { due: val("up-due").trim(), account: val("up-from"), for: val("up-for").trim(), fiscalYear: val("up-fy").trim(), amount: val("up-amount").trim(), currency: val("up-cur"), description: val("up-desc").trim(), repeats: val("up-rep"), until: val("up-until").trim() };
         ed.upcomingDraft = u;
         el.disabled = true;
         try {
@@ -680,7 +685,7 @@
         el.disabled = true;
         try {
           const r = await ED.core.markUpcomingPaid(el.dataset.id, sig);
-          ed.upcomingMsg = r.error ? { err: r.error } : { ok: "Marked as paid. The payout now carries this payment's category and fiscal year." };
+          ed.upcomingMsg = r.error ? { err: r.error } : { ok: r.count ? `Payment ${r.count} recorded. The payout now carries this payment's category and fiscal year; the next due date moves on by one period.` : "Marked as paid. The payout now carries this payment's category and fiscal year." };
           if (!r.error) { ed.upPay = null; liveRefresh(); }
         } catch (e) { ed.upcomingMsg = { err: e.message }; }
         render(); return;
@@ -746,7 +751,8 @@
   };
 
   views.payments = () => {
-    const funded = D.pips.filter((p) => p.funding);
+    // Newest PIPs first.
+    const funded = D.pips.filter((p) => p.funding).sort((a, b) => b.pip - a.pip);
     const sum = (sym) => funded.reduce((s, p) => s + netOf(p, sym), 0);
     const paidN = funded.filter((p) => p.funding.state === "paid").length;
     const needLabel = D.payments.filter((p) => p.direction === "out" && (p.confidence === "unlabelled" || p.confidence === "inferred"));
@@ -1264,7 +1270,7 @@
     if (!U.length && !editing()) return "";
     const accName = (a) => (a === "fund" ? "Ecosystem Fund" : a === "treasury" ? "DAO Treasury" : `<span class="chip warn">not set</span>`);
     const today = new Date().toISOString().slice(0, 10);
-    const cands = (u) => D.payments.filter((p) => p.direction === "out" && (p.onBehalfOf ?? p.account) === u.account && p.symbol === u.currency && day(p.t) >= (u.due ? new Date(Date.parse(u.due) - 120 * 86400000).toISOString().slice(0, 10) : "0") && !(D.upcoming ?? []).some((x) => x.paidBy === p.sig)).slice(0, 30);
+    const cands = (u) => D.payments.filter((p) => p.direction === "out" && (p.onBehalfOf ?? p.account) === u.account && p.symbol === u.currency && day(p.t) >= (u.due ? new Date(Date.parse(u.due) - 120 * 86400000).toISOString().slice(0, 10) : "0") && !(D.upcoming ?? []).some((x) => (x.paid ?? [x.paidBy]).includes(p.sig))).slice(0, 30);
     const rows = U.map((u) => {
       const key = `upcoming:${u.id}:`, docs = docsOf({ sig: `upcoming:${u.id}`, owner: "" }).length;
       const btns = editing() ? `<button class="btn sm ed-btn" data-act="up-edit" data-id="${esc(u.id)}">Edit</button><button class="btn sm ed-btn" data-act="doc-open" data-key="${esc(key)}">${docs ? `Documents (${docs})` : "Documents"}</button><button class="btn sm ed-btn" data-act="up-pay-open" data-id="${esc(u.id)}">Mark paid</button><button class="btn sm danger" data-act="up-del" data-id="${esc(u.id)}">Delete</button>` : "";
@@ -1275,12 +1281,15 @@
           <div class="edact wide"><button class="btn primary" data-act="up-pay-save" data-id="${esc(u.id)}">Mark as paid</button><button class="btn" data-act="up-pay-open" data-id="${esc(u.id)}">Cancel</button></div>
         </div></td></tr>` : "";
       const docRow = editing() && ed.docFor === key ? `<tr class="detail ed-only"><td colspan="7">${docPanel({ sig: `upcoming:${u.id}`, owner: "", prefix: `${u.due ?? ""} ${u.amount} ${u.currency}`.trim() })}</td></tr>` : "";
-      return `<tr><td class="mono">${esc(u.due ?? "—")}${u.overdue ? `<div><span class="chip warn">due</span></div>` : ""}</td><td>${accName(u.account)}</td><td>${/^PIP-\d+$/i.test(u.for) ? pipLink(Number(u.for.replace(/\D/g, ""))) : esc(u.for)}</td><td class="mono">${esc(u.fiscalYear ?? "—")}</td><td class="n">${num(u.amount, 2)} ${esc(u.currency)}${u.projected ? "" : `<div class="sub">not in the projection</div>`}</td><td>${esc(u.description)}</td>${editing() ? `<td class="r">${btns}</td>` : ""}</tr>${del}${pay}${docRow}`;
+      const rep = u.repeats ? `<div class="sub">${esc(u.repeats)}${u.until ? ` until ${esc(u.until)}` : ""}${u.paid?.length ? ` · ${u.paid.length} paid` : ""}</div>` : "";
+      return `<tr><td class="mono">${esc(u.due ?? "—")}${u.overdue ? `<div><span class="chip warn">due</span></div>` : ""}${rep}</td><td>${accName(u.account)}</td><td>${/^PIP-\d+$/i.test(u.for) ? pipLink(Number(u.for.replace(/\D/g, ""))) : esc(u.for)}</td><td class="mono">${u.repeats ? `<span class="sub">year due</span>` : esc(u.fiscalYear ?? "—")}</td><td class="n">${num(u.amount, 2)} ${esc(u.currency)}${u.projected ? "" : `<div class="sub">not in the projection</div>`}</td><td>${esc(u.description)}</td>${editing() ? `<td class="r">${btns}</td>` : ""}</tr>${del}${pay}${docRow}`;
     }).join("");
     const d = ed.upcomingDraft ?? {};
     const cats = [...new Set([...(D.budget?.foundation?.categories ?? []), ...D.payments.map((p) => p.category).filter(Boolean)])];
     const form = `<div class="edform">
       <label>Due *<input id="up-due" placeholder="YYYY-MM-DD" value="${esc(d.due ?? "")}"></label>
+      <label>Repeats<select id="up-rep">${["", "Monthly", "Quarterly", "Yearly"].map((r) => `<option value="${r}"${(d.repeats ?? "") === r ? " selected" : ""}>${r || "Once"}</option>`).join("")}</select></label>
+      <label>Until<input id="up-until" placeholder="last due date, empty = no end" value="${esc(d.until ?? "")}"></label>
       <label>Paid from *<select id="up-from"><option value="treasury"${d.account === "fund" ? "" : " selected"}>DAO Treasury</option><option value="fund"${d.account === "fund" ? " selected" : ""}>Ecosystem Fund</option></select></label>
       <label>For *<input id="up-for" list="up-for-list" placeholder="e.g. Operating costs or PIP-36" value="${esc(d.for ?? "")}"><datalist id="up-for-list">${cats.map((c) => `<option value="${esc(c)}">`).join("")}${D.pips.filter((x) => x.funding).map((x) => `<option value="PIP-${x.pip}">`).join("")}</datalist></label>
       <label>Fiscal year<input id="up-fy" placeholder="e.g. 2027" value="${esc(d.fiscalYear ?? "")}"></label>
@@ -1292,13 +1301,13 @@
     </div>`;
     const totals = Object.entries(B.upcomingTotals ?? {}).map(([a, o]) => `${a === "fund" ? "Ecosystem Fund" : a === "treasury" ? "DAO Treasury" : "not set"}: ${Object.entries(o).map(([c, v]) => `${num(v, 0)} ${esc(c)}`).join(" + ")}`).join(" · ");
     return `<section class="sec">
-      ${sub("Upcoming payments", `<span class="src">known, not paid yet${totals ? ` · ${totals}` : ""}</span>`)}
+      ${sub("Upcoming payments", `<span class="src">known, not paid yet${totals ? ` · ${totals}` : ""}${U.some((u) => u.repeats) ? " (repeating: next 12 months)" : ""}</span>`)}
       ${U.length ? `<div class="tbl"><table>
         <thead><tr><th>Due</th><th>Paid from</th><th>For</th><th>Fiscal year</th><th class="r">Amount</th><th>Description</th>${editing() ? "<th></th>" : ""}</tr></thead>
         <tbody>${rows}</tbody>
       </table></div>` : ""}
       ${editing() ? `<div class="ed-zone">${ed.upcoming ? form : `<p class="edact"><button class="btn ed-btn" data-act="up-open">Add upcoming payment</button></p>`}${okMsg(ed.upcomingMsg)}</div>` : ""}
-      <p class="src">Payments the DAO knows are coming, such as an invoice that is due, from the sheet's "Upcoming payments" tab. The projection takes each one off its account on its due date; Foundation costs also count in their fiscal year above. Marking one paid links it to its payout, which then carries its category and fiscal year, and it leaves this list.</p>
+      <p class="src">Payments the DAO knows are coming, such as an invoice that is due, from the sheet's "Upcoming payments" tab. The projection takes each one off its account on its due date; Foundation costs also count in their fiscal year above. Marking one paid links it to its payout, which then carries its category and fiscal year, and it leaves this list. A repeating payment (e.g. a monthly expense account) stays listed at its next due date: each Mark paid records one payment until its last due date. For its cost category it replaces the past average in the projection.</p>
     </section>`;
   }
 
@@ -1329,15 +1338,15 @@
       <div class="kpis">
         ${kpi("Income", compact(I.atlas), "ATLAS/month", `crafting fees ${compact(I.crafting)} · marketplace ${compact(I.atlasTransfers)}${I.trend != null ? ` · ${signed(I.trend)} recent half-year` : ""}`)}
         ${kpi("Income", num(I.usdc), "USDC/month", "marketplace fees")}
-        ${kpi("Running costs", num(S.treasury.running.USDC.perMonth), "USDC/month", `${num(S.treasury.running.USDC.total)} in ${B.window.months} months, averaged${S.treasury.running.ATLAS.perMonth ? ` · plus ${perMo(S.treasury.running.ATLAS.perMonth, "ATLAS")}` : ""}`)}
-        ${kpi("USDC runway", span(B.usdcRunwayAfterOwed ?? B.usdcRunwayMonths), "", `${num(Math.round(-B.rate.tU))} USDC/month net outflow`)}
+        ${kpi("Running costs", num(S.treasury.running.USDC.perMonth), "USDC/month", `${num(S.treasury.running.USDC.total)} in ${B.window.months} months, averaged${S.treasury.running.ATLAS.perMonth ? ` · plus ${perMo(S.treasury.running.ATLAS.perMonth, "ATLAS")}` : ""}${B.recurringMonthly ? ` · repeating payments ${num(B.recurringMonthly)} USDC/month` : ""}`)}
+        ${kpi("USDC runway", span(B.usdcRunwayAfterOwed ?? B.usdcRunwayMonths), "", `${num(Math.round(-(B.runwayRate ?? B.rate.tU)))} USDC/month net outflow`)}
       </div>
       <div class="tbl"><table>
         <thead><tr><th>Last ${B.window.months} months</th><th class="r">ATLAS</th><th class="r">USDC</th></tr></thead>
         <tbody>
           <tr><td>Income</td><td class="n">${num(Math.round(I.atlas * B.window.months))}</td><td class="n">${num(Math.round(I.usdc * B.window.months))}</td></tr>
           <tr><td>Running costs <div class="sub">payouts labelled with a cost category</div></td><td class="n">${num(S.treasury.running.ATLAS.total)}</td><td class="n">${num(S.treasury.running.USDC.total)}</td></tr>
-          ${(S.treasury.runningByCategory ?? []).map((c) => `<tr><td><span class="sub">· ${esc(c.category)}${c.foundation ? " (Foundation budget, PIP-2)" : ""}</span></td><td class="n sub">${num(c.ATLAS)}</td><td class="n sub">${num(c.USDC)}</td></tr>`).join("")}
+          ${(S.treasury.runningByCategory ?? []).map((c) => `<tr><td><span class="sub">· ${esc(c.category)}${c.foundation ? " (Foundation budget, PIP-2)" : ""}${(B.replaced?.categories ?? []).includes(c.category) ? " · projected from its repeating payment" : ""}</span></td><td class="n sub">${num(c.ATLAS)}</td><td class="n sub">${num(c.USDC)}</td></tr>`).join("")}
           ${B.unlabelled.payouts ? `<tr><td>Not labelled yet <div class="sub">${B.unlabelled.payouts} payout${B.unlabelled.payouts === 1 ? "" : "s"}; not projected until labelled · ${txLink("label them", { account: "treasury", match: "attention", dir: "out" })}</div></td><td class="n">${num(B.unlabelled.ATLAS)}</td><td class="n">${num(B.unlabelled.USDC)}</td></tr>` : ""}
           <tr><td>PIP payouts from the Treasury <div class="sub">one-off, by vote; not projected</div></td><td class="n">${num(S.treasury.pip.ATLAS.total)}</td><td class="n">${num(S.treasury.pip.USDC.total)}</td></tr>
           <tr><td><strong>Still owed</strong> on approved PIPs <div class="sub">see the list below</div></td><td class="n"><strong>${num(owedT.ATLAS ?? 0)}</strong></td><td class="n"><strong>${num(owedT.USDC ?? 0)}</strong></td></tr>

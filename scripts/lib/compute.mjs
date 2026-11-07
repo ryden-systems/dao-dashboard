@@ -19,8 +19,9 @@ export function compute({ config, sources, proposals, ledger, history, now, nowA
   // Sheet labels override seed labels for the same payout.
   // A paid upcoming payment labels the payout that settled it (what it was for, its fiscal year);
   // a Council label on that payout wins.
-  const upcomingLabels = (sources.upcoming ?? []).filter((u) => u.paidBy && u.for)
-    .map((u) => ({ signature: u.paidBy, recipient: "", label: u.for, confirmed: true, fiscalYear: u.fiscalYear }))
+  // A repeating payment labels each of its payouts.
+  const upcomingLabels = (sources.upcoming ?? []).filter((u) => u.for)
+    .flatMap((u) => (u.paid ?? (u.paidBy ? [u.paidBy] : [])).map((sig, i) => ({ signature: sig, recipient: "", label: u.for, confirmed: true, fiscalYear: u.paidYears?.[i] ?? u.fiscalYear })))
     .filter((u) => !sources.labels.some((l) => l.signature === u.signature));
   const labels = [...seedLabels.filter((s) => !sources.labels.some((l) => l.signature === s.signature)), ...upcomingLabels, ...sources.labels];
   const recon = reconcile({ pips: sources.pips, ledger, labels, wallets: sources.wallets ?? [], config });

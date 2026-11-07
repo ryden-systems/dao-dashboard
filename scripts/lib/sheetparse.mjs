@@ -1,6 +1,6 @@
 // Parsers for the Council's sheet tabs. Pure: used by the build and by the dashboard page,
 // which reads the sheet live. Columns are located by header text, so reordering columns is safe.
-import { parseCSV, clean, parseNum } from "./pure.mjs";
+import { parseCSV, clean, parseNum, addMonths } from "./pure.mjs";
 
 const CURRENCY = { usdc: "USDC", usd: "USDC", atlas: "ATLAS", pounds: "GBP", gbp: "GBP", euros: "EUR", eur: "EUR" };
 
@@ -211,26 +211,44 @@ export function parseMinutesTab(rows) {
 // Optional "Upcoming payments" tab: payments the DAO knows are coming (e.g. an invoice), one row each.
 // Headers: ID, Due (YYYY-MM-DD), Paid from (DAO Treasury or Ecosystem Fund), For (a cost category such
 // as Operating costs, or PIP-36), Fiscal year, Amount, Currency (USDC or ATLAS; USD reads as USDC),
-// Description, Paid by (tx) (the payout's transaction once it is paid). Rows without an amount are skipped.
+// Description, Paid by (tx) (the payout's transaction once it is paid), Repeats (Monthly, Quarterly or
+// Yearly; empty = once), Until (the last due date of a repeating payment; empty = no end).
+// A repeating payment is due on Due and every period after it; "Paid by" lists one transaction per
+// payment made, so the next due date is Due plus that many periods. It is done once that passes Until.
+// Rows without an amount are skipped.
 export function parseUpcomingTab(rows) {
   const hi = rows.findIndex((r) => r.some((c) => /^due$/i.test(clean(c))) && r.some((c) => /^amount$/i.test(clean(c))));
   if (hi < 0) return [];
   const h = rows[hi].map((c) => clean(c).toLowerCase());
   const at = (n) => h.findIndex((x) => x === n || x.startsWith(n));
-  const C = { id: at("id"), due: at("due"), from: at("paid from"), for: at("for"), fy: at("fiscal"), amount: at("amount"), cur: at("currency"), desc: at("description"), paid: at("paid by") };
+  const C = { id: at("id"), due: at("due"), from: at("paid from"), for: at("for"), fy: at("fiscal"), amount: at("amount"), cur: at("currency"), desc: at("description"), paid: at("paid by"), rep: at("repeat"), until: at("until") };
   const get = (r, k) => (C[k] >= 0 ? clean(r[C[k]]) : "");
   return rows.slice(hi + 1).map((r, i) => {
     const from = get(r, "from").toLowerCase(), amt = parseNum(get(r, "amount")), fy = get(r, "fy");
+    const rep = get(r, "rep"), due = dateCell(get(r, "due"));
+    const every = /month/i.test(rep) ? 1 : /quarter/i.test(rep) ? 3 : /year|annual/i.test(rep) ? 12 : null;
+    const paid = get(r, "paid").split(/[\s,;]+/).filter(Boolean);
+    const until = every ? dateCell(get(r, "until")) : null;
+    const next = every && due ? addMonths(due, paid.length * every) : due;
+    const done = every ? Boolean(until && next && next > until) : paid.length > 0;
     return {
       id: get(r, "id") || `row-${hi + 2 + i}`,
-      due: dateCell(get(r, "due")),
+      due,
+      repeats: every ? { 1: "monthly", 3: "quarterly", 12: "yearly" }[every] : null,
+      every,
+      until,
+      next,
+      paid,
+      // The fiscal year of each payment made: a repeating payment's is the year it was due.
+      paidYears: paid.map((_, k) => (every && due ? addMonths(due, k * every).slice(0, 4) : /^(19|20)\d{2}$/.test(fy) ? fy : null)),
       account: /fund/.test(from) ? "fund" : /treasury/.test(from) ? "treasury" : null,
       for: get(r, "for"),
       fiscalYear: /^(19|20)\d{2}$/.test(fy) ? fy : null,
       amount: amt.state === "ok" ? amt.value : null,
       currency: (get(r, "cur") || "USDC").toUpperCase().replace(/^USD$/, "USDC"),
       description: get(r, "desc"),
-      paidBy: get(r, "paid") || null,
+      // Set once nothing more is due: the transaction of the last payment.
+      paidBy: done ? paid.at(-1) : null,
     };
   }).filter((u) => u.amount > 0);
 }
