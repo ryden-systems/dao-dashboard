@@ -51,7 +51,7 @@
     if (/insufficient.*scope|scopes? (were|was) not granted|sheets permission/i.test(s)) return `The Google Sheets permission was not given. Click Editor sign-in again: Google shows its permission screen once more; tick the box for Google Sheets before Continue.${google}`;
     if (/popup[_ ](window[_ ])?closed|cancel/i.test(s)) return `The Google sign-in window was closed before it finished. Sign in again and complete every step in that window.${google}`;
     if (/popup_failed_to_open|popup.*block/i.test(s)) return `The browser blocked Google's sign-in window. Allow pop-ups for this page and sign in again.${google}`;
-    if (/access_denied|access blocked/i.test(s)) return `Google refused the sign-in. Use an account that is registered as a tester of the dashboard's Google app (see the README), and allow the Google Sheets permission.${google}`;
+    if (/access_denied|access blocked/i.test(s)) return `Google refused the sign-in. Use an account that is registered as a tester of the dashboard's Google app (MANUAL_MAINTAINER.md, section 3), and allow the Google Sheets permission.${google}`;
     if (/\b403\b/.test(s)) return `This Google account${email ? ` (${email})` : ""} cannot edit the Council's sheet. Sign in with an account the sheet is shared with for editing, or ask for edit access.${google}`;
     if (/\b404\b/.test(s)) return `The Council's sheet was not found with this account${email ? ` (${email})` : ""}. Check that the account can open the sheet.${google}`;
     return `Sign-in failed.${google}`;

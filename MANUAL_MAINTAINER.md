@@ -9,12 +9,14 @@ day to day is in [MANUAL_COUNCIL.md](MANUAL_COUNCIL.md), which signed-in editors
 3. [Google Cloud project: editor sign-in](#3-google-cloud-project-editor-sign-in)
 4. [Sheet sync script: instant updates](#4-sheet-sync-script-instant-updates)
 5. [RPC endpoints](#5-rpc-endpoints)
-6. Configuration (to be written)
-7. Hosting and domain (to be written)
-8. Recurring dependencies (to be written)
-9. Troubleshooting (to be written)
-10. Known limitations (to be written)
-11. Handover checklist (to be written)
+6. [Configuration](#6-configuration)
+7. [Hosting and domain](#7-hosting-and-domain)
+8. [Recurring dependencies](#8-recurring-dependencies)
+9. [Troubleshooting](#9-troubleshooting)
+10. [Known limitations](#10-known-limitations)
+11. [Handover checklist](#11-handover-checklist)
+12. [Reference: how the figures are calculated](#12-reference-how-the-figures-are-calculated)
+13. [Reference: the sheet's tabs](#13-reference-the-sheets-tabs)
 
 ---
 
@@ -170,6 +172,8 @@ An editor needs two things; one without the other is not enough.
 
 On their first sign-in Google shows an "unverified app" notice (continue), then asks for the spreadsheet permission:
 the box must be ticked, or the dashboard reports "Sheets permission missing" and asks again on the next sign-in.
+Google words that permission as access to all of the account's spreadsheets; the dashboard only ever addresses the
+sheet in its configuration, and the sign-in lasts only while the page is open (about an hour).
 
 Keeping the app in *Testing* is fine for the Council. Moving it to *In production* only matters beyond 100 users and
 needs Google's verification (a privacy policy, a verified domain and a review of several weeks).
@@ -284,3 +288,247 @@ Transactions are requested with `maxSupportedTransactionVersion: 1`, Solana's ne
 mainnet from November 2026); an endpoint must accept that setting. A transaction the endpoint cannot return never
 stops the build: it is read again on every update and shown on the Data health page ("could not be read") until it is.
 If such an entry stays for days, the endpoint is the likely cause.
+
+---
+
+## 6. Configuration
+
+Everything the dashboard needs to know that is not in the sheet lives in `config.json`. It changes rarely, and only
+through a commit (which also rebuilds the site). Keys starting with `_` are notes for the reader and are ignored.
+
+| Key | What it holds | When it changes |
+|---|---|---|
+| `accounts` | the DAO's accounts: `treasury`, `fund` (Ecosystem Fund), `oldTreasury` (before the multisig, retired 2023-05-16), each with its wallet and which token accounts the ledger reads (`indexTokens`) | a new DAO account |
+| `councilMultisigs` | the Council's Squads multisig accounts, for the Council's on-chain activity and the wallets' **Multisig** tag | a new or retired multisig |
+| `multisigs` | further addresses whose transactions the ledger reads (empty today) | rarely |
+| `knownWallets` | fixed names for wallets, e.g. the marketplace fee wallet as "Marketplace fees"; a known sender counts as an income stream from its first transfer | a new income source |
+| `income` | `recurringMinTransfers`: transfers from one sender before they are summed per month (20); `craftingTolerance`: the Data health threshold for the monthly SAGE fees (25%) | rarely |
+| `mints` | the tokens read (ATLAS, USDC, POLIS) | never |
+| `sheet` | `id` of the Council's sheet; `tabs`: each tab by name or number; `testNotice`: a banner for a test copy (remove for the real sheet) | moving to another sheet |
+| `editing` | `enabled`, `googleClientId` (section 3), `documents.owner` and `documents.folder` (the documents account and its Drive folder) | a new Google Cloud project or documents account |
+| `youtube` | the Council's channel for the meeting recordings | a new channel |
+| `governance` | the governance API and the proposals site | if Star Atlas moves them |
+| `rpc` | the default RPC endpoints; the repository secrets override them (section 5) | rarely |
+| `daoRules` | the rules set by PIPs: `fund` (Ecosystem Fund limit and refills), `foundation` (the Foundation's yearly budget) | a PIP that changes a rule (below) |
+| `budget` | the Budget page: averaging window (12 months), which cost categories count as Foundation, how many refills to project | rarely |
+| `reconcile` | payouts below these amounts are not listed as needing a label (100 USDC, 10,000 ATLAS) | rarely |
+
+### When a PIP changes a rule
+
+Add a new version to `daoRules.fund` (or `daoRules.foundation`) with `from` set to the day the PIP passed, its `pip`
+number and `title`, and every field: copy the previous version and change what the PIP changed. Keep the old versions:
+past figures are calculated with the rules of their time, and the Ecosystem Fund page lists every version under
+*Rules*.
+
+### A new income source
+
+A sender with only a few transfers is listed under Other income on its own; from 20 transfers on it is summed per month.
+For a fixed name or to count it as a stream from the first transfer, add it to `knownWallets`. A sender of thousands of
+transfers a day into the Treasury's ATLAS account cannot be read one by one (section 10).
+
+---
+
+## 7. Hosting and domain
+
+The site is served by GitHub Pages from the Council's repository: free, no server, and rebuilt by the workflow. The
+RFP has ATMTA hosting it; the suggested way is that ATMTA provides the address and GitHub keeps serving it, so ATMTA
+only adds DNS records and nothing runs on ATMTA's servers.
+
+1. **Repository first.** Publish from the Council's own GitHub organization (section 2), so the address points at the
+   Council, not at the developer's account.
+2. **ATMTA, DNS for `staratlas.com`:** a `CNAME` record `council` → `<org>.github.io` (the Council organization's
+   GitHub Pages host).
+3. **GitHub, the Council organization:** *Settings → Pages → Add a domain* to verify `council.staratlas.com`. GitHub
+   shows a `TXT` record for ATMTA to add. Verification stops anyone else from claiming the subdomain if the site is
+   ever unpublished.
+4. **GitHub, the repository:** *Settings → Pages → Custom domain* `council.staratlas.com`, then **Enforce HTTPS** once
+   the certificate is issued (GitHub issues and renews it; this can take up to an hour). The workflow publishes the
+   site, so no `CNAME` file is needed in the repository.
+5. **Editor sign-in:** add `https://council.staratlas.com` to the Google client's *Authorized JavaScript origins*
+   (section 3), or sign-in fails on the new address.
+6. **Check on the new address:** the pages load, live prices appear in the footer, an editor can sign in, and
+   **Update now** works. The old `<org>.github.io/<repository>` address forwards to the new one by itself.
+
+The daily build, the sheet sync script and the data are not affected by the address.
+
+---
+
+## 8. Recurring dependencies
+
+Nothing is paid. Every service runs on accounts the DAO owns, and each can be replaced.
+
+| Service | Used for | Cost | Owned by | Upkeep |
+|---|---|---|---|---|
+| GitHub (repository, Actions, Pages) | code, data history, the daily build, hosting | free for a public repository | the Council's organization | none |
+| Google Sheets | the Council's sheet, the data store | free | the DAO's Google account | keep it viewable by link |
+| Google Cloud project | editor sign-in, Sheets and Drive access | free | the DAO's Google account, with a second owner | add and remove editors as test users (section 3) |
+| Google Drive | payment documents | free (the account's storage) | the documents account | share its folder with members as needed |
+| Google Apps Script | the sheet sync script | free | the account that installed it | renew its GitHub token yearly (section 4) |
+| Solana RPC endpoint | chain data | free (public endpoint, or one provided by ATMTA) | the provider | none; check after a provider change (section 5) |
+| Star Atlas governance API | proposals and votes | free | Star Atlas | none |
+| YouTube | meeting recordings (public feed) | free | the Council's channel | none |
+| Jupiter price API | live token prices in visitors' browsers | free, no key | Jupiter | none |
+| A domain (optional) | e.g. `council.staratlas.com` | ATMTA's existing domain | ATMTA | none |
+
+There are no code packages to update: the build uses Node.js alone, and the site uses no libraries. The workflow uses
+GitHub's own actions (`checkout`, `setup-node`, `upload-pages-artifact`, `deploy-pages`), which GitHub maintains.
+
+---
+
+## 9. Troubleshooting
+
+| Symptom | Likely cause | What to do |
+|---|---|---|
+| The site does not update | the build failed (red run in *Actions*) | open the run's log; the failing step says why. A failed **Tests** step means a code change broke something: fix it, or revert the last commit. The last good site stays online meanwhile |
+| A build fails at **Build** with an RPC error | the RPC endpoint is down or rate-limiting | *Run workflow* again later; if it repeats, switch or remove the RPC secrets (section 5) |
+| A build fails at **Commit updated data** | the workflow may not push | workflow permissions: **Read and write** (section 2) |
+| Data health: "could not be read" (critical) | the RPC endpoint could not return a transaction | it is retried on every update; if it stays for days, test another endpoint (section 5) |
+| Data health: a balance differs from the ledger (critical) | a transaction is missing from the ledger, usually an incomplete signature list | check `SIGNATURES_RPC_URL` is archive-complete (section 5); deleting `data/ledger.json` and `data/cursors.json` rebuilds the ledger from scratch on the next run (a few minutes) |
+| Data health: SAGE fees of a month off by more than 25% | an inflow into the Treasury's ATLAS account that the ledger does not read | check that month's Treasury ATLAS transfers on Solscan; add a low-volume sender to the scan (section 6) |
+| Sheet edits do not show | the page reads the sheet live, so usually only a reload is needed; a newly created tab needs one build | reload; or **Update now** |
+| **Update now** does nothing | the sheet sync script is missing or its GitHub token expired | section 4 |
+| An editor cannot sign in | not a test user, no edit access, or the Sheets box not ticked | the sign-in messages in section 3 |
+| Sign-in fails on a new address | the address is not an authorized origin | section 3, step 4 |
+| Prices missing in the footer | the Jupiter price API did not answer | nothing; USD values show "—" until it answers again |
+
+To look at a problem without waiting for GitHub, build on your own computer (section 2): `npm run build` shows the
+same log, and `npm run serve` the result.
+
+---
+
+## 10. Known limitations
+
+- **SAGE fees are a remainder.** The SAGE program pays them in about 20,000 small transfers a day into the Treasury's
+  ATLAS account, too many to read one by one. They are therefore the account's balance change minus every recorded
+  movement, so any other inflow into that account counts as SAGE fees. A one-off transfer is flagged on Data health
+  (a month more than 25% off its neighbours). A second high-volume stream, such as a new SAGE fee, is flagged only in
+  the month it starts and then stays inside SAGE fees, because the months around it rise with it. Separating it needs
+  its own source, such as a fee account with a running total or an outside index.
+- **Treasury ATLAS history.** For the same reason, that account's balance history is one snapshot per build since the
+  dashboard's first run (2026-10-09), plus a one-time import of the earlier daily balance. Its payouts are still read
+  exactly: the Treasury wallet signs every one.
+- **Ledger checks start 2026-10-09.** Data health compares each daily balance snapshot with the ledger, and snapshots
+  exist from that day. Earlier history was read in full from the chain, but is not re-checked automatically.
+- **Elections.** Ranked Council elections allocate seats by single transferable vote. The dashboard shows first
+  preferences per candidate and does not recount the election.
+- **Matching needs labels where the chain is ambiguous,** most often when one wallet is paid for several PIPs.
+- **USD-denominated PIPs paid in ATLAS.** Remaining is shown only in the authorized currency; a PIP paid in another
+  token shows what was paid and relies on its milestones for completion.
+- **Sign-in in Testing.** While the Google app stays in *Testing*, at most 100 accounts can be editors, and each must be
+  added by hand (section 3).
+
+---
+
+## 11. Handover checklist
+
+1. **Repository:** transfer it to the Council's GitHub organization; workflow permissions **Read and write**; Pages
+   source **GitHub Actions** (section 2).
+2. **Sheet:** `sheet.id` in `config.json` is the Council's real sheet, `testNotice` removed, the sheet viewable by
+   link.
+3. **RPC:** the Council's own endpoint from ATMTA as both repository secrets, tested once (section 5), or the public
+   endpoint by default.
+4. **First run:** *Run workflow*, open the published address.
+5. **Google Cloud project:** set up on the DAO's account with a second owner; the new client ID in `config.json`;
+   every editor shared on the sheet and added as a test user (section 3).
+6. **Documents:** `editing.documents.owner` is the DAO's documents account, and the Drive API is enabled.
+7. **Sheet sync script:** installed on the real sheet from a DAO account, with a new token owned by the Council's
+   organization and the repository's new name in `GITHUB_REPO`; any earlier copy removed and its token revoked
+   (section 4).
+8. **Domain:** if a Star Atlas address is used, section 7.
+9. **On the dashboard, once, by an editor:** **Create the milestone lists** (top of the Payments page); enter the
+   Council's multisig vaults in the Wallets tab with balance tracking on.
+10. **In the sheet, once:** add "Completed" to the PIP Phase dropdown (the dashboard cannot change dropdowns).
+11. **Walkthrough:** go through MANUAL_COUNCIL.md with the editors.
+
+---
+
+## 12. Reference: how the figures are calculated
+
+### Payout matching
+
+Every payout from a DAO account is matched to a PIP or a cost category, with a confidence level:
+
+| Confidence | Meaning | Counts as paid |
+|---|---|---|
+| confirmed | a Council label says so | yes |
+| matches sheet | the payout, or all payouts to one recipient, equal the PIP's "paid" figure in the sheet | yes |
+| matches amount | the payout equals the PIP's authorized amount (PIPs sharing an amount in one transaction get one each) | yes |
+| inferred | same recipient as a payout already matched to exactly one PIP | no, shown as a suggestion |
+| internal | a transfer between DAO accounts, e.g. a Fund refill | n/a |
+| needs label | nothing matched | no |
+
+A wallet's payout label (Wallets tab) labels every payout to it, using the purpose in force at each payout's date. A
+Council label on a single payout always wins. Inflows from a known PIP recipient count as returns: paid stays the gross
+amount sent, and the return is shown separately.
+
+### The Ecosystem Fund rules
+
+From `daoRules.fund`, one version per PIP, each in force from the day its PIP passed:
+
+- **PIP limit** (PIP-23, since 2025-11-18): no single PIP may exceed 5% of the fund's ATLAS balance right after its
+  latest refill, until the next refill. Before that (PIP-4): 5% of the fund's initial funding. The fund's complete
+  history is in the ledger, so the balance after every refill is exact.
+- **Refills:** quarterly, the Treasury tops the fund up to 20% of the ATLAS in Treasury and fund together, plus 20% of
+  the Treasury's USDC above 500,000.
+
+### Income
+
+- **Marketplace fees:** the Galactic Marketplace's fee wallet forwards 33% of its fees, ATLAS and USDC, to the Treasury
+  every few days. These transfers are in the ledger and counted exactly.
+- **SAGE fees:** the SAGE program pays a small ATLAS fee into the Treasury for every crafting job, in the transaction
+  that claims the job's output. They are derived per month as a remainder (section 10). Before 2024-04-03 the account
+  was quiet enough to be read in full, so SAGE fees start in April 2024 and earlier inflows are listed one by one.
+- **Other income:** any other inflow, listed individually, or by its income label.
+
+### The Budget page (being built)
+
+Averages over the last 12 complete months. Income is SAGE fees plus income transfers; running costs are Treasury
+payouts with a cost category plus those not labelled yet; PIP payouts are shown but not projected. The Foundation
+budget (PIP-2) compares payouts and upcoming payments labelled Foundation per fiscal year with the yearly cap of
+100,000 USD. The projection runs Treasury and Fund forward to the next refill dates.
+
+### The data folder
+
+`data/` is the build's memory, committed by every run: `ledger.json` (every token movement of the DAO accounts) and
+`cursors.json` (where each address was last read), `balances.json` (daily snapshots since 2026-10-09),
+`balance_history_import.json` (the earlier Treasury ATLAS history, imported once), `wallet_kinds.json` (the multisig
+check), `multisig_activity.json` (the Council's multisig transactions), `votes/` (closed proposals' votes) and
+`sheet/` (every tab of the sheet as CSV, so its history survives even without Google; values only, no formulas or
+formatting). Deleting `ledger.json` and `cursors.json` makes the next run read the full history again.
+
+---
+
+## 13. Reference: the sheet's tabs
+
+The dashboard finds tabs by name and columns by their header text, so column order does not matter. It creates every
+tab and column it needs the first time a save needs it; editors normally never type into these tabs.
+
+| Tab | One row per | Columns |
+|---|---|---|
+| Tracker | PIP (or drafted PIP) | the Council's own columns, plus `Draft ID`, `Authorized USDC`, `Authorized ATLAS` (added when used) |
+| Payment labels | labelled payout | Signature, Recipient, PIP (a PIP, a cost category, `internal`, `refund`, `not a payout`), Confirmed, Fiscal year |
+| Wallets | wallet and purpose | Wallet, Name, Payout label, Track balance, Note, Since (a PIP or a date, for a reused wallet's later purposes) |
+| PIP milestones | milestone | ID, PIP, #, Milestone, Amount, Currency, Paid by (tx), Completed on, Completed by |
+| Checklists | checklist item | ID, PIP, Checklist, Milestone, Item, Done on, Done by, Evidence |
+| Upcoming payments | known payment | ID, Due, Paid from, For, Fiscal year, Amount, Currency, Description, Paid by (tx), Repeats, Until |
+| Council members | member and term | Name, Role, Term, Start, End, Elected (PIP), Wallet, Discord, X, Image, Show |
+| Meeting minutes | meeting day | Date, Title, Minutes (Discord formatting), Show |
+| Payment documents | uploaded file | Signature, Recipient, File, Link, Uploaded (UTC), By |
+| Dashboard | (one row) | the time of the last **Update now**, and who pressed it |
+| Accomplishment Numbers | (the Council's own) | read as history only |
+
+**Authorized USDC / Authorized ATLAS** are for a PIP paid in both currencies (e.g. PIP-33: 75% USDC, 25% ATLAS), as
+token amounts. When either is filled, that PIP's paid and remaining amounts are worked out per currency instead of from
+the single Amount. Where the ATLAS part is fixed in dollars and converted on payment day, enter the ATLAS actually paid
+per tranche once it is known. **Image** in Council members must be an `https://` link.
+
+**Before the Council members tab exists,** the Council page comes from `data/council_history.json`, a record of past
+terms in which every term cites its source (the official API result, the DAO Knowledge Base, or who provided it).
+Elections after the record are added automatically, but only when the result is certain: the governance API
+published it, or there were no more candidates than seats. A contested election without a published result shows as
+"result not published", never guessed. Once the tab exists (**Create the Council members tab**), the tab is the
+source.
+
+IDs are set by the dashboard and must not be changed or reused by hand. `Show = FALSE` hides a member or minutes
+without deleting them. Dates written by the dashboard are text (`'2026-11-07`), so the sheet's locale can never turn
+them into an ambiguous date.

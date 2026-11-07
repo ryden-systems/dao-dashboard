@@ -1508,6 +1508,8 @@
     const failedBy = termCats.map((t) => voted.filter((p) => inTerm(p, t) && p.outcome === "failed").length);
     const part = voted.filter((p) => p.daoPvpM && p.totalPvp).map((p) => ({ pip: p.pip, v: (p.totalPvp / (p.daoPvpM * 1e6)) * 100, wallets: p.totalVotes ?? null }));
     const avgPart = part.length ? part.reduce((s, x) => s + x.v, 0) / part.length : null;
+    const wv = part.map((x) => x.wallets).filter((x) => x > 0);
+    const avgWallets = wv.length ? Math.round(wv.reduce((a, b) => a + b, 0) / wv.length) : null;
     // Per voted PIP: ballots cast and PVP voted (the RFP's average votes and average PVP votes).
     const avgOf = (k) => { const v = voted.map((p) => p[k]).filter((x) => x > 0); return v.length ? { avg: v.reduce((a, b) => a + b, 0) / v.length, n: v.length } : null; };
     const avgVotes = avgOf("totalVotes"), avgPvp = avgOf("totalPvp");
@@ -1530,7 +1532,9 @@
       </section>
       <section class="sec panel">
         ${sub("Participation per PIP", `<span class="src">PVP voted ÷ DAO PVP</span>`)}
-        ${Charts.bar({ categories: part.map((x) => String(x.pip)), label: "Participation per PIP", yFmt: (v) => v + "%", line: { name: "Wallets voted", color: css("--series-3"), values: part.map((x) => x.wallets), yFmt: (v) => num(v) }, series: [{ name: "Participation", color: css("--series-1"), values: part.map((x) => Math.round(x.v * 10) / 10) }] })}
+        ${Charts.bar({ categories: part.map((x) => String(x.pip)), label: "Participation per PIP", yFmt: (v) => v + "%", line: { name: "Wallets voted", color: css("--series-3"), values: part.map((x) => x.wallets), yFmt: (v) => num(v) }, series: [{ name: "Participation", color: css("--series-1"), values: part.map((x) => Math.round(x.v * 10) / 10) }],
+          // The averages as dashed lines, their values on each series' axis.
+          refs: [{ value: avgPart == null ? null : Math.round(avgPart * 10) / 10, color: css("--series-1") }, { value: avgWallets, color: css("--series-3"), axis: "right" }] })}
       </section>
     </div>
     ${votersSection()}

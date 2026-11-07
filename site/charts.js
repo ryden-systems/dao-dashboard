@@ -99,6 +99,8 @@ window.Charts = (() => {
   // An array of such lines shares that right axis (its format comes from the first one).
   // spec.markers (optional): [{ at, label }] dashed vertical lines, at = category index (fractions
   // place it within that category, e.g. a term that began mid-month), labelled above the plot.
+  // spec.refs (optional): [{ value, color, axis: "left" | "right" }] dashed horizontal lines, e.g. an average, with
+  // their value on that axis in the line's colour ("right" is the line series' axis). Tick labels it would cover are left out.
   function drawBar(el, s) {
     const W = Math.max(280, el.clientWidth), H = s.height ?? 220;
     const m = { t: s.markers?.length ? 22 : 10, r: s.line ? 52 : 10, b: 30, l: s.yWidth ?? 56 };
@@ -114,7 +116,9 @@ window.Charts = (() => {
     const per = s.stacked ? groupW : groupW / s.series.length;
 
     let g = `<g class="grid">${yt.map((v) => `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}"/>`).join("")}</g>`;
-    g += `<g class="axis">${yt.map((v) => `<text x="${m.l - 8}" y="${Y(v) + 4}" text-anchor="end">${esc(fy(v))}</text>`).join("")}`;
+    const refs = (s.refs ?? []).filter((r) => r.value != null && Number.isFinite(r.value) && (r.axis !== "right" || s.line));
+    const near = (y, axis, at) => refs.some((r) => (r.axis === "right" ? "right" : "left") === axis && Math.abs(at(r.value) - y) < 11);
+    g += `<g class="axis">${yt.map((v) => (near(Y(v), "left", Y) ? "" : `<text x="${m.l - 8}" y="${Y(v) + 4}" text-anchor="end">${esc(fy(v))}</text>`)).join("")}`;
     const every = Math.ceil(cats.length / Math.max(1, Math.floor((W - m.l - m.r) / 54)));
     cats.forEach((c, i) => { if (i % every === 0) g += `<text x="${m.l + band * i + band / 2}" y="${H - 10}" text-anchor="middle">${esc(c)}</text>`; });
     // Right axis for the line(s): its own ticks, labels at the same heights as the left grid.
@@ -123,7 +127,7 @@ window.Charts = (() => {
     const ly1 = lt ? lt[lt.length - 1] : 1;
     const YL = (v) => H - m.b - (v / ly1) * (H - m.t - m.b);
     const fl = L?.yFmt ?? ((v) => v.toLocaleString("en-US"));
-    if (L) g += lt.map((v) => `<text x="${W - m.r + 8}" y="${YL(v) + 4}" text-anchor="start">${esc(fl(v))}</text>`).join("");
+    if (L) g += lt.map((v) => (near(YL(v), "right", YL) ? "" : `<text x="${W - m.r + 8}" y="${YL(v) + 4}" text-anchor="start">${esc(fl(v))}</text>`)).join("");
     g += `</g><line class="base" x1="${m.l}" x2="${W - m.r}" y1="${Y(0)}" y2="${Y(0)}"/>`;
 
     cats.forEach((c, i) => {
@@ -144,6 +148,11 @@ window.Charts = (() => {
       if (pts.length) {
         g += `<path d="${pts.map((p, j) => `${j ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join("")}" style="fill:none;stroke:${ln.color};stroke-width:${ln.width ?? 1};stroke-linejoin:round"/>`;
       }
+    }
+    for (const r of refs) {
+      const right = r.axis === "right", y = (right ? YL : Y)(r.value).toFixed(1);
+      g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" style="stroke:${r.color};stroke-width:1.5;stroke-dasharray:4 3"/>`;
+      g += `<text x="${right ? W - m.r + 8 : m.l - 8}" y="${Number(y) + 4}" text-anchor="${right ? "start" : "end"}" style="fill:${r.color};font-weight:600">${esc((right ? fl : fy)(r.value))}</text>`;
     }
     for (const mk of s.markers ?? []) {
       const x = (m.l + band * mk.at).toFixed(1);

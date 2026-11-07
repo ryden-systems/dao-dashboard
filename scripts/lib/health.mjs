@@ -75,7 +75,7 @@ export function healthChecks({ pips, missingColumns, proposals, recon, ledger, h
   const unread = ledger.unread ?? [];
   if (unread.length) {
     const first = unread[0];
-    add("critical", "ledger", `${unread.length} transaction${unread.length === 1 ? "" : "s"} of the DAO accounts could not be read in the last update (first: ${first.sig.slice(0, 12)}…, ${first.error}). ${unread.length === 1 ? "It is" : "They are"} read again on every update; until then payouts, balances and income may be incomplete. If this stays, check the RPC endpoint (README, RPC endpoints).`);
+    add("critical", "ledger", `${unread.length} transaction${unread.length === 1 ? "" : "s"} of the DAO accounts could not be read in the last update (first: ${first.sig.slice(0, 12)}…, ${first.error}). ${unread.length === 1 ? "It is" : "They are"} read again on every update; until then payouts, balances and income may be incomplete. If this stays, check the RPC endpoint (MANUAL_MAINTAINER.md, section 5).`);
   }
 
   const order = { critical: 0, warning: 1, info: 2 };

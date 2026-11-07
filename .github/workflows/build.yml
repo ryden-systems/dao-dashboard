@@ -8,7 +8,7 @@ on:
   workflow_dispatch:        # "Run workflow" button in the Actions tab
   push:
     branches: [main]
-    paths: ["site/**", "scripts/**", "config.json", "test/**", ".github/workflows/**"]
+    paths: ["site/**", "scripts/**", "config.json", "test/**", ".github/workflows/**", "MANUAL_COUNCIL.md"]
 
 permissions:
   contents: write   # commit the updated data/ folder
