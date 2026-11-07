@@ -57,8 +57,10 @@ export function makeRpc(url, { minIntervalMs = 120 } = {}) {
       return out;
     },
 
+    // Version 1 is Solana's newer transaction format (seen from 2026-11, e.g. Jupiter swaps). Asking for
+    // version 0 only makes the RPC refuse such a transaction with an error instead of returning it.
     getTransaction(sig) {
-      return call("getTransaction", [sig, { encoding: "jsonParsed", maxSupportedTransactionVersion: 0 }]);
+      return call("getTransaction", [sig, { encoding: "jsonParsed", maxSupportedTransactionVersion: 1 }]);
     },
 
     async tokenAccounts(owner, mint) {

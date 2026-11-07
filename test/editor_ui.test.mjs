@@ -228,6 +228,44 @@ await click("mem-save");
 const mc = calls.filter((c) => c[0] === "addMember").pop();
 ok(mc[1].name === "New Member" && mc[1].electedIn === 40 && mc[1].start === "2027-07-11", "member sent with parsed PIP number: " + JSON.stringify(mc[1]));
 ok(text().includes("Added New Member"), "member added message shown");
+// Existing members: listed live from the tab, edited (incl. hiding) and deleted after a confirm.
+{
+  let rows = [{ key: "Winston|Term 3|2025-10-01", name: "Winston", role: "Council member", term: "Term 3", start: "2025-10-01", end: "2026-10-01", pip: "25", x: "", discord: "", image: "", wallet: "", show: true }];
+  Object.assign(ctx.Editor.core, {
+    listMembers: async () => { calls.push(["listMembers"]); return rows; },
+    updateMember: async (key, m) => { calls.push(["updateMember", key, m]); return { saved: true, updated: true }; },
+    deleteMember: async (key) => { calls.push(["deleteMember", key]); rows = []; return { saved: true, deleted: true }; },
+  });
+  ok(nodes.view.innerHTML.includes('data-act="mem-list"'), "editors can open the existing members");
+  await click("mem-list");
+  ok(text().includes("Winston") && nodes.view.innerHTML.includes('data-act="mem-edit" data-key="Winston|Term 3|2025-10-01"'), "the members tab is listed with Edit and Delete");
+  await click("mem-edit", { key: "Winston|Term 3|2025-10-01" });
+  ok(nodes.view.innerHTML.includes("Save changes") && nodes.view.innerHTML.includes('id="mf-show"') && nodes.view.innerHTML.includes('value="Winston"'), "Edit opens the form filled, with Shown");
+  Object.assign(inputs, { "mf-name": "Winston", "mf-role": "Chair", "mf-term": "Term 3", "mf-start": "2025-10-01", "mf-end": "2026-10-01", "mf-pip": "25", "mf-x": "", "mf-discord": "", "mf-image": "", "mf-show": false });
+  await click("mem-save");
+  const um = calls.filter((c) => c[0] === "updateMember").pop();
+  ok(um && um[1] === "Winston|Term 3|2025-10-01" && um[2].role === "Chair" && um[2].show === false && um[2].electedIn === 25 && text().includes("Saved Winston"), "saving sends the row's key, the changes and Shown: " + JSON.stringify(um?.[2]));
+  await click("mem-del", { key: "Winston|Term 3|2025-10-01" });
+  ok(!calls.some((c) => c[0] === "deleteMember") && text().includes("Delete Winston (Term 3) from the sheet?"), "Delete asks first, in place");
+  await click("mem-del-yes", { key: "Winston|Term 3|2025-10-01" });
+  ok(calls.some((c) => c[0] === "deleteMember" && c[1] === "Winston|Term 3|2025-10-01") && text().includes("Deleted from the Council members tab") && !text().includes("Delete Winston"), "confirming deletes the row and reloads the list");
+}
+// Minutes: existing minutes can be deleted after a confirm; new ones have no Delete.
+{
+  const mt = (D.videos?.meetings ?? []).find((m) => m.minutes);
+  if (mt) {
+    ctx.Editor.core.deleteMinutes = async (day) => { calls.push(["deleteMinutes", day]); return { saved: true, deleted: 1 }; };
+    await click("min-open", { day: mt.day });
+    ok(nodes.view.innerHTML.includes('data-act="min-del"'), "existing minutes offer Delete minutes");
+    await click("min-del");
+    ok(!calls.some((c) => c[0] === "deleteMinutes") && text().includes(`Delete the minutes of ${mt.day} from the sheet?`), "Delete minutes asks first");
+    await click("min-del-yes");
+    ok(calls.some((c) => c[0] === "deleteMinutes" && c[1] === mt.day) && text().includes(`Deleted the minutes of ${mt.day}`), "confirming deletes that day's minutes");
+  }
+  await click("min-open");
+  ok(!nodes.view.innerHTML.includes('data-act="min-del"'), "new minutes have no Delete");
+  await click("min-cancel");
+}
 
 // ---------- data health for editors ----------
 await go("#health");
@@ -278,7 +316,7 @@ ok(calls.some((c) => c[0] === "requestUpdate" && c[1] === "editor@example.org") 
   ok(nodes.view.innerHTML.includes('data-act="wal-open">Add a wallet'), "editors can add another wallet");
   D.wallets[1] = { ...D.wallets[1], multisig: { program: "Squads v3", account: "X", label: "Iris Bounty Feast" }, since: "PIP-30", history: [{ name: "Arty", label: "PIP-24", since: null }, { name: "Untracked Wallet", label: "PIP-22", since: "PIP-30" }] };
   await go("#balance");
-  ok(text().includes("multisig") && text().includes("Arty (PIP-24) → PIP-30: Untracked Wallet (PIP-22)"), "a multisig wallet is tagged and a reused wallet shows its purposes");
+  ok(text().includes("Multisig") && text().includes("Arty (PIP-24) → PIP-30: Untracked Wallet (PIP-22)"), "a multisig wallet is tagged and a reused wallet shows its purposes");
   await click("wal-reuse", { wallet: D.wallets[1].wallet });
   ok(nodes.view.innerHTML.includes("New purpose for") && nodes.view.innerHTML.includes('id="wf-since"') && !nodes.view.innerHTML.includes('id="wf-wallet"'), "Reuse opens a form for the new purpose with its Since");
   Object.assign(inputs, { "wf-name": "Dashboard", "wf-label": "PIP-36", "wf-since": "PIP-36" });
@@ -287,6 +325,17 @@ ok(calls.some((c) => c[0] === "requestUpdate" && c[1] === "editor@example.org") 
   await click("wal-save");
   const rw = calls.filter((c) => c[0] === "saveWallet").pop();
   ok(rw && rw[1].reuse === true && rw[1].wallet === D.wallets[1].wallet && rw[1].since === "PIP-36" && text().includes("Added the new purpose Dashboard"), "saving a reuse sends the wallet with reuse and Since: " + JSON.stringify(rw?.[1]));
+  // Delete: the purpose being edited, after a confirm; a reused wallet keeps its other purposes.
+  ctx.Editor.core.deleteWallet = async (a) => { calls.push(["deleteWallet", a]); return { saved: true, deleted: 1 }; };
+  await click("wal-reuse", { wallet: D.wallets[1].wallet });
+  ok(!nodes.view.innerHTML.includes('data-act="wal-del"'), "a new purpose has no Delete");
+  await click("wal-cancel");
+  await click("wal-open", { wallet: D.wallets[1].wallet });
+  await click("wal-del");
+  ok(!calls.some((c) => c[0] === "deleteWallet") && text().includes("Delete this purpose (since PIP-30) from the sheet? The wallet's other purposes stay."), "Delete asks first and names the purpose");
+  await click("wal-del-yes");
+  const dw = calls.filter((c) => c[0] === "deleteWallet").pop();
+  ok(dw && dw[1].wallet === D.wallets[1].wallet && dw[1].at === "PIP-30" && text().includes("Deleted"), "confirming deletes that purpose: " + JSON.stringify(dw?.[1]));
 }
 
 // ---------- counterparty links show only transfers with the DAO account ----------
@@ -321,6 +370,13 @@ ok(nodes.view.innerHTML.includes("Documents (2)"), "the payout's button counts i
 docsInSheet.push({ signature: need.sig, recipient: need.owner ?? "", file: "evil.pdf", link: "javascript:alert(1)", at: "2026-11-04 10:00:00", by: "x@example.org" });
 await click("doc-open", { key: dkey });
 ok(nodes.view.innerHTML.includes("evil.pdf") && !nodes.view.innerHTML.includes("javascript:"), "a non-https document link from the sheet is shown as plain text, never as a link");
+// The owner can remove a document from the payout (the Drive file stays), after a confirm.
+ctx.Editor.core.deleteDoc = async (a) => { calls.push(["deleteDoc", a]); docsInSheet = docsInSheet.filter((d) => d.link !== a.link); return { saved: true, deleted: 1 }; };
+await click("doc-del", { key: dkey, i: "0" });
+ok(!calls.some((c) => c[0] === "deleteDoc") && text().includes("Remove this document from the payout?"), "Remove asks first");
+await click("doc-del-yes", { key: dkey });
+const dd = calls.filter((c) => c[0] === "deleteDoc").pop();
+ok(dd && dd[1].signature === need.sig && dd[1].link === "https://drive.example/a.pdf" && text().includes("Removed from the payout") && !nodes.view.innerHTML.includes("https://drive.example/a.pdf"), "confirming removes that document's row: " + JSON.stringify(dd?.[1]));
 await click("doc-close");
 
 // ---------- sign out ----------

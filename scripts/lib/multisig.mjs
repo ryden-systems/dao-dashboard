@@ -59,7 +59,8 @@ export async function updateMultisigActivity({ rpc, sigRpc }, config) {
     let n = 0, missed = 0;
     for (const s of [...sigs].reverse()) {
       if (acc.txs[s.signature]) continue;
-      const tx = await rpc.getTransaction(s.signature);
+      // Refused or not returned: counted as missed, so the cursor stays and it is read again next build.
+      const tx = await rpc.getTransaction(s.signature).catch(() => null);
       if (!tx) { missed++; continue; }
       const ins = instructionsOf(tx);
       const moved = movedFunds(tx);

@@ -132,9 +132,13 @@ export async function updateLedger({ rpc, sigRpc }, config) {
 
   const order = [...fresh.entries()].sort((a, b) => a[1] - b[1]);
   let added = 0, done = 0;
-  for (const [sig] of order) {
-    const tx = await rpc.getTransaction(sig);
-    if (!tx) { warn(`ledger: transaction ${sig.slice(0, 10)}… not returned, will retry next run`); continue; }
+  // A transaction the RPC refuses or does not return never stops the build: it is listed in ledger.unread
+  // (shown on the Data health page) and retried on the next run through the cursor reset below.
+  const unread = [];
+  for (const [sig, t] of order) {
+    let tx = null, error = "not returned";
+    try { tx = await rpc.getTransaction(sig); } catch (e) { error = String(e.message).slice(0, 200); }
+    if (!tx) { unread.push({ sig, t, error }); warn(`ledger: transaction ${sig.slice(0, 10)}… could not be read (${error}), will retry next run`); continue; }
     const rows = parseTransaction(tx, sig, config);
     if (reparse.has(sig)) ledger.rows = ledger.rows.filter((r) => r.sig !== sig);
     ledger.rows.push(...rows);
@@ -162,6 +166,7 @@ export async function updateLedger({ rpc, sigRpc }, config) {
 
   ledger.rows.sort((a, b) => a.t - b.t || a.sig.localeCompare(b.sig));
   ledger.seen = [...seen];
+  ledger.unread = unread;
   ledger.updatedAt = new Date().toISOString();
   writeJSON(LEDGER, ledger, false);
   writeJSON(CURSORS, cursors);

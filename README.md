@@ -20,7 +20,7 @@ go straight into the same sheet.
 | Council activity on chain per month | Transactions on the Council's Squads multisigs (`councilMultisigs` in config.json) | Nobody | Yes, every build |
 | Council meetings (recordings) | The Council's YouTube channel (public feed, `youtube` in config.json) | You (by posting the recording) | Yes, every build |
 | Meeting minutes | The sheet's "Meeting minutes" tab (see below) | You, on the dashboard or in the sheet | Yes, live |
-| Current and incoming Council members | A "Council members" tab in the sheet | You | Create the tab and add members; changing or hiding a member is sheet only |
+| Current and incoming Council members | A "Council members" tab in the sheet | You | Create the tab, add, edit, hide and delete members |
 | Other wallets: names, automatic payout labels, tracked balances (optional tab) | A "Wallets" tab in the sheet | You | Yes, see *Wallets* |
 | Labels for payouts the dashboard could not match (optional tab) | A "Payment labels" tab in the sheet | You | Yes, see *Payment labels* |
 | Documents on payouts, e.g. invoices (optional tab) | A "Payment documents" tab in the sheet, files in the owner account's Google Drive | You | Upload by the owner account only, see *Payment documents* |
@@ -61,8 +61,8 @@ column headers (only **Name** is required; any order):
 - **Show = FALSE** hides a row without deleting it.
 
 The tab is found by its name automatically. With two-way editing switched on, an editor can create it from the
-dashboard in one click, pre-filled with the full Council history, and add members there. Changing or hiding an
-existing member is done in the sheet.
+dashboard in one click, pre-filled with the full Council history, and add members there. **Edit existing members**
+lists every row of the tab, read live: an entry can be edited, hidden (untick Shown; the row stays) or deleted.
 
 Until that tab exists, the lists come from `data/council_history.json`, a record of past terms in which every term
 cites its source (official API result, the DAO Knowledge Base, or who provided it), with names and portraits taken from
@@ -112,7 +112,8 @@ a multisig vault and is tagged *multisig* (with the Council multisig it belongs 
 Tabs created before November 2026 call the Payout label column "Label"; both are read. A label on a single
 payout or inflow (see *Payment labels*) overrides the wallet's label. An inflow is labelled on its own, e.g.
 `Initial funding`; it then appears under that name in Other income on Balances. Signed-in editors can add and change
-wallets on the Balances page (**Add a wallet**, **Edit**); the tab is created on the first save.
+wallets on the Balances page (**Add a wallet**, **Edit**, **Delete**); the tab is created on the first save. Deleting a
+reused wallet removes only the purpose being edited.
 
 ### Payment documents (optional)
 
@@ -121,7 +122,8 @@ Invoices, receipts and other PDF files can be attached to any payout, several pe
 
 - **Who uploads.** Only the account named in `config.json` (`editing.documents.owner`) can upload. Everyone else
   sees the upload button disabled, with that account's name next to it. This keeps every file owned by the DAO's own
-  account instead of by whichever member happened to upload it.
+  account instead of by whichever member happened to upload it. The same account can **Remove** a document from its
+  payout: its row goes, the file stays in the Drive folder.
 - **Where the files go.** Into a folder named "Payment documents" in that account's Google Drive, created on the first
   upload. On that first upload Google asks the owner once for permission to create files; the dashboard can only see
   the files it created itself, never the rest of the Drive.
@@ -146,6 +148,7 @@ saved in a "Meeting minutes" tab, created on the first save:
   links, spoilers), so it looks the same on Discord and on the dashboard. The form has a formatting toolbar, a preview,
   and **Copy for Discord**. A Discord post holds 2,000 characters; the form says when the minutes are longer. To bring a
   Discord post over, copy it from *Edit message* (plain copying drops the formatting).
+- **Deleting.** Existing minutes have **Delete minutes** in their form; a recording of that day stays listed.
 - **Where they show.** Minutes attach to the recording of the same day (a grey **See minutes** link in its row).
   Minutes for a day without a recording are listed as a meeting of their own, marked "no recording". A PIP named in
   the minutes (PIP-36) lists the meeting on that proposal's page.
@@ -397,6 +400,15 @@ The daily build, the sheet sync script and the data are not affected by the addr
 | `SIGNATURES_RPC_URL` | listing each address's transaction history | **must be archive-complete** |
 
 Both default to the public endpoint `https://api.mainnet-beta.solana.com`, which is sufficient for a daily run.
+
+**Recommended: the Council's own endpoint from ATMTA.** The public endpoint is shared and rate-limited, and it gives no
+guarantees. An endpoint provided to the Council by ATMTA, set as the `RPC_URL` and `SIGNATURES_RPC_URL` secrets of
+the Council's repository, makes the daily build independent of public limits. Ask
+for an archive-complete endpoint (see below) and test it once with a local build before switching.
+
+**Transaction format.** Transactions are requested with `maxSupportedTransactionVersion: 1`, Solana's newer format
+(seen on mainnet from November 2026). An endpoint must accept that setting. A transaction the endpoint cannot return
+never stops the build: it is read again on every update and listed on the Data health page until it is.
 
 > **Why the second one matters.** While building this, one commercial RPC returned 34 of the Treasury wallet's 277 signatures
 > (a gap from February 2025 to May 2026) with no error. The public endpoint returned all 277. A ledger built from an

@@ -291,8 +291,12 @@
   }
   function docPanel(p) {
     const key = legKey(p), docs = docsOf(p), owner = D.editing?.documents?.owner;
+    // Remove buttons point at a document by its place in this list, so no link from the sheet goes into an attribute.
+    (ed.docList ??= {})[key] = docs;
     const list = docs.length
-      ? `<ul class="clean">${docs.map((d) => `<li>${extLink(d.link, esc(d.file || "document"))} <span class="sub">${esc(d.at)}${d.by ? " · " + esc(d.by) : ""}</span></li>`).join("")}</ul>`
+      ? `<ul class="clean">${docs.map((d, i) => `<li>${extLink(d.link, esc(d.file || "document"))} <span class="sub">${esc(d.at)}${d.by ? " · " + esc(d.by) : ""}</span>${ED.canUpload() ? (ed.docDel?.key === key && ed.docDel.i === i
+          ? `<div class="edact"><span>Remove this document from the payout? The file stays in the Drive folder.</span><button class="btn danger" data-act="doc-del-yes" data-key="${esc(key)}">Yes, remove</button><button class="btn" data-act="doc-del-no">Keep it</button></div>`
+          : `<button class="btn sm danger" data-act="doc-del" data-key="${esc(key)}" data-i="${i}">Remove</button>`) : ""}</li>`).join("")}</ul>`
       : `<p class="muted">${ed.docsErr ? esc(ed.docsErr) : ed.docs ? "No documents yet." : "Loading documents…"}</p>`;
     const close = `<button class="btn" data-act="doc-close">Close</button>`;
     const upload = !owner ? `<div class="edact wide">${close}</div>`
@@ -413,24 +417,41 @@
     </section>`;
   }
 
+  // Editors: every row of the Council members tab, read live (hidden rows too), with Edit and Delete.
+  async function loadMembers() {
+    ed.memberRows = null;
+    render();
+    try { ed.memberRows = await ED.core.listMembers(); } catch (e) { ed.memberRows = []; ed.memberMsg = { err: e.message }; }
+    render();
+  }
   function membersEditor() {
     if (!editing()) return "";
     const tabExists = D.councilTerms?.source === "sheet" || ed.seeded;
-    const f = (id, label, ph = "", cls = "") => `<label class="${cls}">${label}<input id="mf-${id}" placeholder="${esc(ph)}" value="${esc(ed.memberDraft?.[id] ?? "")}"></label>`;
+    const d = ed.memberDraft ?? {};
+    const f = (id, label, ph = "", cls = "") => `<label class="${cls}">${label}<input id="mf-${id}" placeholder="${esc(ph)}" value="${esc(d[id] ?? "")}"></label>`;
     const form = `<div class="edform">
+      ${ed.memberEdit ? `<p class="wide"><strong>Edit ${esc(d.name ?? "")}</strong></p>` : ""}
       ${f("name", "Name *", "as shown on the site", "wide")}${f("role", "Role", "Council member")}${f("term", "Term", "Term 5")}
       ${f("start", "Start", "YYYY-MM-DD")}${f("end", "End", "YYYY-MM-DD")}${f("pip", "Elected in PIP", "e.g. 40")}
       ${f("x", "X handle", "@handle")}${f("discord", "Discord", "name or https://discord.com/users/…")}${f("image", "Image link", "https://…", "wide")}
-      <div class="edact wide"><button class="btn primary" data-act="mem-save">Add member</button><button class="btn" data-act="mem-cancel">Cancel</button></div>
+      ${ed.memberEdit ? `<label class="chk wide"><input type="checkbox" id="mf-show" ${d.show === false ? "" : "checked"}> Shown on the site</label>` : ""}
+      <div class="edact wide"><button class="btn primary" data-act="mem-save">${ed.memberEdit ? "Save changes" : "Add member"}</button><button class="btn" data-act="mem-cancel">Cancel</button></div>
     </div>`;
+    const R = ed.memberRows;
+    const list = R === undefined ? ""
+      : R === null ? `<p class="muted">Reading the Council members tab…</p>`
+      : `<div class="tbl"><table><thead><tr><th>Name</th><th>Term</th><th>Role</th><th>Start</th><th>End</th><th></th></tr></thead><tbody>${R.map((m) => `
+          <tr${m.show ? "" : ` class="ed-only"`}><td><strong>${esc(m.name)}</strong>${m.show ? "" : `<div class="sub">hidden on the site</div>`}</td><td>${esc(m.term)}</td><td>${esc(m.role || "Council member")}</td><td class="mono">${esc(m.start)}</td><td class="mono">${esc(m.end)}</td>
+          <td class="r"><button class="btn sm ed-btn" data-act="mem-edit" data-key="${esc(m.key)}">Edit</button><button class="btn sm danger" data-act="mem-del" data-key="${esc(m.key)}">Delete</button></td></tr>
+          ${ed.memberDel === m.key ? `<tr class="detail ed-only"><td colspan="6"><div class="edact"><span>Delete ${esc(m.name)} (${esc(m.term || "no term")}) from the sheet? To keep the row but not show it, use Edit and untick Shown.</span><button class="btn danger" data-act="mem-del-yes" data-key="${esc(m.key)}">Yes, delete</button><button class="btn" data-act="mem-del-no">Keep</button></div></td></tr>` : ""}`).join("")}</tbody></table></div>`;
     return `<section class="sec panel edpanel">
       ${sub("Edit the Council list")}
       ${tabExists
-        ? (ed.member ? form : `<p class="edact"><button class="btn ed-btn" data-act="mem-open">Add a member</button></p>`)
+        ? `${ed.member ? form : `<p class="edact"><button class="btn ed-btn" data-act="mem-open">Add a member</button>${R === undefined ? `<button class="btn ed-btn" data-act="mem-list">Edit existing members</button>` : ""}</p>`}${list}`
         : `<p class="lede">The list above comes from the dashboard's record. Create the sheet's "Council members" tab from it (all ${(D.councilTerms?.terms ?? []).reduce((s, t) => s + t.members.length, 0)} entries across every term), then keep it up to date there or here.</p>
            <p class="edact"><button class="btn primary" data-act="mem-seed">Create the Council members tab</button></p>`}
       ${okMsg(ed.memberMsg)}
-      <p class="src">To change or remove existing entries, edit the tab in the sheet; set Show to FALSE to hide a row without deleting it.</p>
+      <p class="src">Every change is saved in the sheet's "Council members" tab. Untick Shown to hide an entry without deleting it.</p>
     </section>`;
   }
 
@@ -507,7 +528,8 @@
       ${d.reuse ? `<p class="wide"><strong>New purpose for ${esc(short(d.wallet))}</strong> <span class="sub">Payouts before Since keep the current name and label.</span></p>` : f("wallet", "Wallet address *", "Solana address", "wide")}${f("name", "Name *", "e.g. Star Atlas Foundation")}${f("label", "Payout label", "e.g. Foundation or PIP-36")}
       ${f("since", d.reuse ? "Since *" : "Since", "PIP-36 or YYYY-MM-DD")}${f("note", "Note", "optional", "wide")}
       <label class="chk wide"><input type="checkbox" id="wf-track" ${d.track ? "checked" : ""}> Track its balances on this page</label>
-      <div class="edact wide"><button class="btn primary" data-act="wal-save">Save wallet</button><button class="btn" data-act="wal-cancel">Cancel</button></div>
+      <div class="edact wide"><button class="btn primary" data-act="wal-save">Save wallet</button><button class="btn" data-act="wal-cancel">Cancel</button>${!d.reuse && d.at !== undefined ? `<button class="btn danger" data-act="wal-del">Delete</button>` : ""}</div>
+      ${ed.walletDel ? `<div class="edact wide"><span>${(D.wallets ?? []).find((x) => x.wallet === d.wallet)?.history?.length ? `Delete this purpose (${d.at ? `since ${esc(d.at)}` : "the first one"}) from the sheet? The wallet's other purposes stay.` : `Delete ${esc(d.name || short(d.wallet ?? ""))} from the Wallets tab? Payouts to it lose this name and label.`}</span><button class="btn danger" data-act="wal-del-yes">Yes, delete</button><button class="btn" data-act="wal-del-no">Keep it</button></div>` : ""}
     </div>`;
     return `<section class="sec">
       ${sub("Other wallets", `<span class="src">Council's sheet, "Wallets" tab${W.some((w) => w.track) ? " · balances from Solana mainnet" : ""}</span>`)}
@@ -538,7 +560,21 @@
       case "ed-signin": el.disabled = true; await ED.signIn(); return;
       case "ed-signout": ed.updateMsg = null; ed.docs = null; ed.docFor = null; ED.signOut(); return;
       case "doc-open": ed.docFor = ed.docFor === el.dataset.key ? null : el.dataset.key; ed.docMsg[el.dataset.key] = null; render(); return;
-      case "doc-close": ed.docFor = null; render(); return;
+      case "doc-close": ed.docFor = null; ed.docDel = null; render(); return;
+      // Removing a document asks once more in place; the file stays in the owner's Drive folder.
+      case "doc-del": ed.docDel = { key: el.dataset.key, i: Number(el.dataset.i) }; render(); return;
+      case "doc-del-no": ed.docDel = null; render(); return;
+      case "doc-del-yes": {
+        const key = el.dataset.key, doc = ed.docList?.[key]?.[ed.docDel?.i];
+        if (!doc) return;
+        el.disabled = true;
+        try {
+          const r = await ED.core.deleteDoc({ signature: doc.signature, link: doc.link });
+          ed.docMsg[key] = r.error ? { err: r.error } : { ok: "Removed from the payout. The file stays in the Drive folder." };
+          if (!r.error) { ed.docDel = null; ed.docs = await ED.core.listDocs(); }
+        } catch (e) { ed.docMsg[key] = { err: e.message }; }
+        render(); return;
+      }
       case "doc-upload": {
         const key = `${el.dataset.sig}:${el.dataset.owner}`;
         const files = [...($("#doc-files")?.files ?? [])];
@@ -733,7 +769,7 @@
       }
       case "wal-open": {
         const w = (D.wallets ?? []).find((x) => x.wallet === el.dataset.wallet);
-        ed.wallet = true; ed.walletDraft = w ? { wallet: w.wallet, name: w.name, label: w.label, note: w.note, track: w.track, since: w.since ?? "", at: w.since ?? "" } : {}; ed.walletMsg = null;
+        ed.walletDel = false; ed.wallet = true; ed.walletDraft = w ? { wallet: w.wallet, name: w.name, label: w.label, note: w.note, track: w.track, since: w.since ?? "", at: w.since ?? "" } : {}; ed.walletMsg = null;
         render(); return;
       }
       case "wal-reuse": {
@@ -742,7 +778,19 @@
         ed.wallet = true; ed.walletDraft = { wallet: w.wallet, track: w.track, since: "", reuse: true }; ed.walletMsg = null;
         render(); return;
       }
-      case "wal-cancel": ed.wallet = false; ed.walletDraft = null; render(); return;
+      case "wal-cancel": ed.wallet = false; ed.walletDraft = null; ed.walletDel = false; render(); return;
+      case "wal-del": ed.walletDel = true; render(); return;
+      case "wal-del-no": ed.walletDel = false; render(); return;
+      case "wal-del-yes": {
+        const d = ed.walletDraft ?? {};
+        el.disabled = true;
+        try {
+          const r = await ED.core.deleteWallet({ wallet: d.wallet, at: d.at ?? "" });
+          ed.walletMsg = r.error ? { err: r.error } : { ok: `Deleted ${d.name || short(d.wallet)}${d.at ? ` (since ${d.at})` : ""} from the Wallets tab.` };
+          if (!r.error) { ed.wallet = false; ed.walletDraft = null; ed.walletDel = false; liveRefresh(); }
+        } catch (e) { ed.walletMsg = { err: e.message }; }
+        render(); return;
+      }
       case "wal-save": {
         const keep = ed.walletDraft ?? {};
         ed.walletDraft = { ...keep, ...Object.fromEntries(["wallet", "name", "label", "note", "since"].map((k) => [k, val(`wf-${k}`).trim()]).filter(([k, v]) => !(k === "wallet" && keep.reuse && !v))), track: Boolean($("#wf-track")?.checked) };
@@ -805,6 +853,18 @@
         return;
       }
       case "min-preview": ed.minutes.preview = !ed.minutes.preview; render(); return;
+      case "min-del": ed.minutes.del = true; render(); return;
+      case "min-del-no": ed.minutes.del = false; render(); return;
+      case "min-del-yes": {
+        const day = ed.minutes.day;
+        el.disabled = true;
+        try {
+          const r = await ED.core.deleteMinutes(day);
+          if (r.error) ed.minutes.error = r.error;
+          else { ed.minutes = null; ui.openMinutes = null; ed.minutesMsg = { ok: `Deleted the minutes of ${day}.` }; liveRefresh(); }
+        } catch (e) { ed.minutes.error = e.message; }
+        render(); return;
+      }
       case "min-take": ed.minutes.text = ed.minutes.from = ed.minutes.conflict; ed.minutes.conflict = null; render(); return;
       case "min-save": case "min-overwrite": {
         const st = ed.minutes;
@@ -867,18 +927,41 @@
         } catch (e) { ed.upcomingMsg = { err: e.message }; }
         render(); return;
       }
-      case "mem-open": ed.member = true; ed.memberMsg = null; render(); return;
-      case "mem-cancel": ed.member = false; render(); return;
-      case "mem-save": {
-        ed.memberDraft = Object.fromEntries(["name", "role", "term", "start", "end", "pip", "x", "discord", "image"].map((k) => [k, val(`mf-${k}`)]));
-        const d = ed.memberDraft;
-        const m = { ...d, electedIn: Number(d.pip.replace(/\D/g, "")) || null };
+      case "mem-open": ed.member = true; ed.memberEdit = null; ed.memberDraft = null; ed.memberMsg = null; render(); return;
+      case "mem-cancel": ed.member = false; ed.memberEdit = null; ed.memberDraft = null; render(); return;
+      case "mem-list": ed.memberMsg = null; return loadMembers();
+      case "mem-edit": {
+        const m = (ed.memberRows ?? []).find((x) => x.key === el.dataset.key);
+        if (!m) return;
+        ed.member = true; ed.memberEdit = m.key; ed.memberDel = null; ed.memberMsg = null;
+        ed.memberDraft = { name: m.name, role: m.role, term: m.term, start: m.start, end: m.end, pip: m.pip, x: m.x, discord: m.discord, image: m.image, show: m.show };
+        render(); $("#mf-name")?.scrollIntoView?.({ block: "center", behavior: "smooth" }); return;
+      }
+      case "mem-del": ed.memberDel = el.dataset.key; ed.memberMsg = null; render(); return;
+      case "mem-del-no": ed.memberDel = null; render(); return;
+      case "mem-del-yes": {
         el.disabled = true;
         try {
-          const r = await ED.core.addMember(m);
-          ed.memberMsg = r.error ? { err: r.error } : { ok: `Added ${m.name}.` };
-          if (!r.error) liveRefresh();
-          if (!r.error) { ed.member = false; ed.memberDraft = null; }
+          const r = await ED.core.deleteMember(el.dataset.key);
+          ed.memberMsg = r.error ? { err: r.error } : { ok: "Deleted from the Council members tab." };
+          if (!r.error) { ed.memberDel = null; liveRefresh(); return loadMembers(); }
+        } catch (e) { ed.memberMsg = { err: e.message }; }
+        render(); return;
+      }
+      case "mem-save": {
+        ed.memberDraft = { ...Object.fromEntries(["name", "role", "term", "start", "end", "pip", "x", "discord", "image"].map((k) => [k, val(`mf-${k}`)])), show: ed.memberEdit ? Boolean($("#mf-show")?.checked) : true };
+        const d = ed.memberDraft;
+        const m = { ...d, electedIn: Number(String(d.pip).replace(/\D/g, "")) || null };
+        el.disabled = true;
+        try {
+          const r = ed.memberEdit ? await ED.core.updateMember(ed.memberEdit, m) : await ED.core.addMember(m);
+          ed.memberMsg = r.error ? { err: r.error } : { ok: `${ed.memberEdit ? "Saved" : "Added"} ${m.name}.` };
+          if (!r.error) {
+            liveRefresh();
+            const reload = ed.memberRows !== undefined;
+            ed.member = false; ed.memberEdit = null; ed.memberDraft = null;
+            if (reload) return loadMembers();
+          }
         } catch (e) { ed.memberMsg = { err: e.message }; }
         render(); return;
       }
@@ -1311,7 +1394,8 @@
         <p class="edact"><button class="btn primary" data-act="min-overwrite">Save mine anyway</button><button class="btn" data-act="min-take">Use the sheet's</button></p></div>` : ""}
       ${st.error ? `<p class="ed-err wide">${esc(st.error)}</p>` : ""}
       ${st.pending ? `<div class="edact wide" id="mn-warn"><span class="ed-err">These minutes are not saved. ${st.pending.cancel ? "Close the form" : st.pending.day ? `Open the minutes of ${esc(st.pending.day)}` : "Start new minutes"} and lose the changes?</span><button class="btn danger" data-act="min-discard">Discard changes</button><button class="btn" data-act="min-keep">Keep editing</button></div>` : ""}
-      <div class="edact wide"><button class="btn primary" data-act="min-save">Save minutes</button><button class="btn" data-act="min-preview">${st.preview ? "Hide preview" : "Preview"}</button><button class="btn" data-act="min-copy">Copy for Discord</button><button class="btn" data-act="min-cancel">Cancel</button></div>
+      <div class="edact wide"><button class="btn primary" data-act="min-save">Save minutes</button><button class="btn" data-act="min-preview">${st.preview ? "Hide preview" : "Preview"}</button><button class="btn" data-act="min-copy">Copy for Discord</button><button class="btn" data-act="min-cancel">Cancel</button>${st.fixed && st.from ? `<button class="btn danger" data-act="min-del">Delete minutes</button>` : ""}</div>
+      ${st.del ? `<div class="edact wide"><span>Delete the minutes of ${esc(st.day)} from the sheet? A recording of the meeting stays listed.</span><button class="btn danger" data-act="min-del-yes">Yes, delete</button><button class="btn" data-act="min-del-no">Keep them</button></div>` : ""}
     </div></div>`;
   }
   // Direct link to one meeting: #council/meeting-2026-11-03 opens its minutes and its player (not
@@ -2012,7 +2096,7 @@
     if (bar) bar.innerHTML = editBar();
   }
 
-  const EDIT_ACTIONS = new Set(["plan-cancel", "ms-add", "ms-edit", "ms-pay", "ms-del", "ms-done", "ms-import", "ms-import-all", "ms-save", "ms-pay-save", "ms-pay-clear", "ms-del-yes", "ck-add", "ck-edit", "ck-del", "ck-save", "ck-del-yes", "ck-tick", "up-edit", "up-del", "up-del-yes", "up-del-no", "up-open", "up-cancel", "up-save", "up-pay-open", "up-pay-save", "min-open", "min-cancel", "min-keep", "min-discard", "min-fmt", "min-copy", "min-preview", "min-take", "min-save", "min-overwrite", "ed-signin", "ed-signout", "ed-update", "doc-open", "doc-close", "doc-upload", "wal-open", "wal-reuse", "wal-cancel", "wal-save", "ed-preview", "lbl-open", "lbl-cancel", "lbl-save", "lbl-clear", "lbl-clear-yes", "lbl-clear-no", "pip-edit", "pip-new", "pip-new-cancel", "pip-add", "pip-reload", "pip-cancel", "pip-save", "pip-overwrite", "mem-seed", "mem-open", "mem-cancel", "mem-save"]);
+  const EDIT_ACTIONS = new Set(["plan-cancel", "ms-add", "ms-edit", "ms-pay", "ms-del", "ms-done", "ms-import", "ms-import-all", "ms-save", "ms-pay-save", "ms-pay-clear", "ms-del-yes", "ck-add", "ck-edit", "ck-del", "ck-save", "ck-del-yes", "ck-tick", "up-edit", "up-del", "up-del-yes", "up-del-no", "up-open", "up-cancel", "up-save", "up-pay-open", "up-pay-save", "min-open", "min-cancel", "min-keep", "min-discard", "min-fmt", "min-copy", "min-preview", "min-take", "min-save", "min-overwrite", "ed-signin", "ed-signout", "ed-update", "doc-open", "doc-close", "doc-upload", "wal-open", "wal-reuse", "wal-cancel", "wal-save", "ed-preview", "lbl-open", "lbl-cancel", "lbl-save", "lbl-clear", "lbl-clear-yes", "lbl-clear-no", "pip-edit", "pip-new", "pip-new-cancel", "pip-add", "pip-reload", "pip-cancel", "pip-save", "pip-overwrite", "mem-seed", "mem-open", "mem-cancel", "mem-save", "mem-list", "mem-edit", "mem-del", "mem-del-no", "mem-del-yes", "min-del", "min-del-no", "min-del-yes", "wal-del", "wal-del-no", "wal-del-yes", "doc-del", "doc-del-no", "doc-del-yes"]);
   function editClick(e) {
     const el = e.target.closest("[data-act]");
     if (!el || !EDIT_ACTIONS.has(el.dataset.act)) return false;

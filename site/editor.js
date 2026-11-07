@@ -291,6 +291,32 @@
         await core.appendRow(tabs.councilMembers, SM.memberRow(m));
         return { saved: true };
       },
+      // Council members: every row of the tab (hidden ones too), each with the key it is found by again
+      // (name, term and start), so an entry can be edited or deleted from the dashboard.
+      async listMembers() {
+        const tab = tabs.councilMembers;
+        if (!(await core.tabTitles()).includes(tab)) return [];
+        const rows = await core.readTab(tab);
+        const hi = SM.findHeaderRow(rows, ["Name"]);
+        if (hi < 0) return [];
+        const g = memberCols(rows[hi]);
+        return rows.slice(hi + 1).map((r) => memberOf(g, r)).filter((m) => m.name);
+      },
+      // Change a member's row (its wallet is left as it is). Hiding (show false) keeps the row.
+      async updateMember(key, m) {
+        const msg = memberCheck(m);
+        if (msg) return { error: msg };
+        const f = await findMember(key);
+        if (f.error) return f;
+        await core.writeCells(tabs.councilMembers, Object.entries(memberValues(m)).filter(([k]) => f.g[k] >= 0).map(([k, value]) => ({ row: f.row, col: f.g[k], value })));
+        return { saved: true, updated: true };
+      },
+      async deleteMember(key) {
+        const f = await findMember(key);
+        if (f.error) return f;
+        await core.deleteRows(tabs.councilMembers, [f.row]);
+        return { saved: true, deleted: true };
+      },
 
       // Payment documents: one row per file in their own tab, so a payout can have several.
       // The files themselves live in the owner account's Google Drive; the sheet holds their links.
@@ -311,6 +337,20 @@
         const at = new Date().toISOString().slice(0, 19).replace("T", " ");
         await core.appendRow(tab, [signature, recipient || "", file, link, "'" + at, by || ""]);
         return { saved: true, at };
+      },
+      // Remove a document from its payout: its row in the documents tab. The file itself stays in the
+      // owner's Drive folder.
+      async deleteDoc({ signature, link }) {
+        const tab = tabs.paymentDocuments || "Payment documents";
+        const rows = await core.readTab(tab);
+        const hi = SM.findHeaderRow(rows, ["Signature"]);
+        if (hi < 0) return { error: `The "${tab}" tab was not found.` };
+        const h = rows[hi], cS = SM.colIndex(h, "Signature"), cL = SM.colIndex(h, "Link");
+        const hits = [];
+        for (let i = hi + 1; i < rows.length; i++) if (same(rows[i][cS], signature) && same(rows[i][cL], link)) hits.push(i);
+        if (!hits.length) return { error: "This document's row was changed in the sheet. Reload the page." };
+        await core.deleteRows(tab, hits);
+        return { saved: true, deleted: hits.length };
       },
 
       // Wallets tab: one row per wallet and purpose. Saving updates the wallet's row for the purpose being
@@ -352,6 +392,21 @@
         await core.appendRow(tab, Array.from(row, (v) => v ?? ""));
         return { saved: true, added: reuse ? "purpose" : "wallet" };
       },
+      // Delete one of a wallet's rows: the purpose being edited (`at`: its Since as the editor saw it).
+      // A wallet reused for several purposes keeps its other rows.
+      async deleteWallet({ wallet, at = "" }) {
+        const tab = tabs.wallets || "Wallets";
+        const rows = await core.readTab(tab);
+        const hi = SM.findHeaderRow(rows, ["Wallet"]);
+        if (hi < 0) return { error: `The "${tab}" tab was not found.` };
+        const h = rows[hi], cW = SM.colIndex(h, "Wallet"), cS = SM.colIndex(h, "Since");
+        const sinceOf = (i) => (cS >= 0 ? SM.clean(rows[i][cS]).toUpperCase() : "");
+        const hits = [];
+        for (let i = hi + 1; i < rows.length; i++) if (same(rows[i][cW], wallet) && sinceOf(i) === SM.clean(at).toUpperCase()) hits.push(i);
+        if (!hits.length) return { error: "This wallet's row was changed in the sheet. Reload the page." };
+        await core.deleteRows(tab, hits);
+        return { saved: true, deleted: hits.length };
+      },
 
       // Meeting minutes: one row per meeting day. `from` is the text the editor started from (null for
       // new minutes). If the sheet's row for that day now holds something else, nothing is written and
@@ -385,6 +440,19 @@
         const j = await call("?fields=sheets.properties(title,sheetId)");
         const gid = (j.sheets || []).find((s) => s.properties.title === tab)?.properties.sheetId;
         return { saved: true, updated, tab, gid: gid == null ? null : String(gid) };
+      },
+      // Delete a meeting's minutes: every row for that day. A recording of the meeting stays listed.
+      async deleteMinutes(day) {
+        const tab = tabs.meetingMinutes || "Meeting minutes";
+        const rows = await core.readTab(tab);
+        const hi = SM.findHeaderRow(rows, ["Date", "Minutes"]);
+        if (hi < 0) return { error: `The "${tab}" tab was not found.` };
+        const cD = SM.colIndex(rows[hi], "Date");
+        const hits = [];
+        for (let i = hi + 1; i < rows.length; i++) if (SM.isoDate(rows[i][cD]) === day) hits.push(i);
+        if (!hits.length) return { error: `No minutes for ${day} in the sheet; they may have been changed there. Reload the page.` };
+        await core.deleteRows(tab, hits);
+        return { saved: true, deleted: hits.length };
       },
 
       // Upcoming payments (e.g. an invoice that is due): one row each, with an ID that its documents
@@ -551,6 +619,38 @@
       return h;
     }
     const txt = (s) => (SM.clean(s) ? "'" + SM.clean(s) : "");
+    // The Council members tab's columns; tabs made by hand may name some of them differently.
+    const memberCols = (h) => {
+      const c = (...names) => { for (const n of names) { const i = SM.colIndex(h, n); if (i >= 0) return i; } return -1; };
+      return { name: c("Name"), role: c("Role"), term: c("Term"), start: c("Start"), end: c("End"), pip: c("Elected", "PIP"), wallet: c("Wallet"), discord: c("Discord"), x: c("X", "Twitter"), image: c("Image", "Avatar", "Photo"), show: c("Show", "Active") };
+    };
+    const memberKey = (m) => [SM.clean(m.name), SM.clean(m.term), m.start].join("|");
+    const memberOf = (g, r) => {
+      const get = (k) => (g[k] >= 0 ? SM.clean(r[g[k]]) : "");
+      const m = { name: get("name"), role: get("role"), term: get("term"), start: SM.isoDate(get("start")) || get("start"), end: SM.isoDate(get("end")) || get("end"), pip: (get("pip").match(/\d+/) || [""])[0], wallet: get("wallet"), discord: get("discord"), x: get("x").replace(/^@/, ""), image: get("image"), show: !/^(false|no)$/i.test(get("show")) };
+      m.key = memberKey(m);
+      return m;
+    };
+    function memberCheck(m) {
+      for (const [k, kind] of [["name", "required"], ["start", "date"], ["end", "date"], ["image", "url"]]) {
+        const msg = SM.validate(kind, m[k]);
+        if (msg) return `${k}: ${msg}`;
+      }
+      return "";
+    }
+    // A member's sheet values by field (dates as text, like a new member's row).
+    const memberValues = (m) => ({ name: SM.clean(m.name), role: SM.clean(m.role) || "Council member", term: SM.clean(m.term), start: SM.textDate(SM.clean(m.start)), end: SM.textDate(SM.clean(m.end)), pip: m.electedIn ? `PIP-${m.electedIn}` : "", discord: SM.clean(m.discord), x: SM.clean(m.x).replace(/^@/, ""), image: SM.clean(m.image), show: m.show === false ? "FALSE" : "TRUE" });
+    async function findMember(key) {
+      const rows = await core.readTab(tabs.councilMembers);
+      const hi = SM.findHeaderRow(rows, ["Name"]);
+      if (hi < 0) return { error: `The "${tabs.councilMembers}" tab was not found.` };
+      const g = memberCols(rows[hi]);
+      const hits = [];
+      for (let i = hi + 1; i < rows.length; i++) if (memberOf(g, rows[i]).key === key) hits.push(i);
+      if (!hits.length) return { error: "This member's row was changed in the sheet. Reload the page." };
+      if (hits.length > 1) return { error: "This member is in the sheet twice with the same name, term and start; remove the duplicate there first." };
+      return { g, row: hits[0] };
+    }
     const newId = (prefix) => prefix + Date.now().toString(36).toUpperCase() + Math.floor(Math.random() * 1296).toString(36).toUpperCase().padStart(2, "0");
     // Another Tracker row already holds PIP-<n>.
     const takenPip = (rows, T, n) => rows.some((r, i) => i > T.headerRow && i !== T.row && SM.clean(r[T.cols.pipNo]).toUpperCase() === `PIP-${Number(n)}`);

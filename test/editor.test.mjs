@@ -286,6 +286,41 @@ ok(walletsBack.length === 1 && walletsBack[0].track === true && walletsBack[0].l
   book.Wallets = keep;
 }
 
+// ---------- deleting and editing from the dashboard: minutes, wallets, documents, Council members ----------
+{
+  const keep = { ...book };
+  const coreT = ctx.Editor.makeCore({ sheetId: "SHEET", tabs: { pips: "Tracker", councilMembers: "Council members", meetingMinutes: "Meeting minutes", wallets: "Wallets", paymentDocuments: "Payment documents" }, fetchFn: fakeFetch, getToken: async () => "token" });
+  book["Meeting minutes"] = [["Date", "Title", "Minutes", "Show"], ["2026-10-01", "", "first", "TRUE"], ["2026-10-08", "", "second", "TRUE"]];
+  ok((await coreT.deleteMinutes("2026-09-01")).error, "deleting minutes that are not there is refused");
+  let r = await coreT.deleteMinutes("2026-10-01");
+  ok(r.deleted === 1 && parseMinutesTab(book["Meeting minutes"]).map((m) => m.day).join() === "2026-10-08", "a meeting's minutes can be deleted, the others stay");
+
+  const W1 = "AGefCMwaVHvn6VhYMcWLLz2JTGa6DkmdpQbkv82eMyuK", W2 = "9q3ZZnezQyVXvBKYkKwjxpvVVPp7CFY9VYbaW5gBhX7Y";
+  book["Wallets"] = [["Wallet", "Name", "Payout label", "Track balance", "Note", "Since"], [W1, "Arty", "PIP-24", "TRUE", "", ""], [W1, "Atom", "PIP-30", "TRUE", "", "PIP-30"], [W2, "Iris", "", "TRUE", "", ""]];
+  ok((await coreT.deleteWallet({ wallet: W1, at: "PIP-99" })).error, "deleting a purpose that is not there is refused");
+  r = await coreT.deleteWallet({ wallet: W1, at: "PIP-30" });
+  ok(r.deleted === 1 && parseWalletsTab(book["Wallets"]).filter((w) => w.wallet === W1).map((w) => w.name).join() === "Arty", "deleting a reused wallet's purpose keeps its other purposes");
+  r = await coreT.deleteWallet({ wallet: W2, at: "" });
+  ok(r.deleted === 1 && !parseWalletsTab(book["Wallets"]).some((w) => w.wallet === W2), "a wallet can be deleted");
+
+  book["Payment documents"] = [SM.DOC_HEADERS, ["SIGD", "", "a.pdf", "https://drive.example/a", "2026-11-01 10:00:00", "o"], ["SIGD", "", "b.pdf", "https://drive.example/b", "2026-11-01 10:00:00", "o"]];
+  r = await coreT.deleteDoc({ signature: "SIGD", link: "https://drive.example/a" });
+  ok(r.deleted === 1 && (await coreT.listDocs()).map((d) => d.file).join() === "b.pdf", "a document can be removed from its payout, the other stays");
+
+  book["Council members"] = [SM.MEMBER_HEADERS, ["Winston", "Council member", "Term 3", "2025-10-01", "2026-10-01", "PIP-25", "WALLETW", "", "", "", "TRUE"], ["Earther", "Council member", "Term 4", "2026-10-01", "", "PIP-35", "", "", "", "", "TRUE"]];
+  const L = await coreT.listMembers();
+  ok(L.length === 2 && L[0].key === "Winston|Term 3|2025-10-01" && L[0].pip === "25" && L[0].show === true, "members are listed with a key: " + JSON.stringify(L[0]));
+  ok((await coreT.updateMember(L[0].key, { ...L[0], start: "1.10.25" })).error, "an edit with a bad date is refused");
+  r = await coreT.updateMember(L[0].key, { ...L[0], role: "Chair", electedIn: 25, show: false });
+  const back = parseMembersTab(book["Council members"]);
+  ok(r.updated && book["Council members"][1][1] === "Chair" && book["Council members"][1][10] === "FALSE" && book["Council members"][1][6] === "WALLETW" && back.length === 1 && back[0].name === "Earther", "a member can be edited and hidden; the wallet is kept and the build hides the row");
+  ok((await coreT.updateMember("Nobody|Term 9|", { name: "x" })).error?.includes("Reload"), "editing a row that changed in the sheet is refused");
+  r = await coreT.deleteMember((await coreT.listMembers())[1].key);
+  ok(r.deleted && book["Council members"].length === 2 && book["Council members"][1][0] === "Winston", "a member can be deleted");
+  for (const k of Object.keys(book)) if (!(k in keep)) delete book[k];
+  Object.assign(book, keep);
+}
+
 // ---------- multisig check: a Squads transaction in which the wallet SENDS ----------
 {
   const W = "9q3ZZnezQyVXvBKYkKwjxpvVVPp7CFY9VYbaW5gBhX7Y", SQ = "SMPLecH534NA9acpos4G6x7uf3LWbCAwZQE9e8ZekMu", MSA = "5hr6YecyRMFb3eb4SLL863TYb6nQUYYzGpCNsTwSoVZm";

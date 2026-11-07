@@ -136,7 +136,7 @@ function computePhase() {
     builtAt: out.generatedAt, sheetId: config.sheet.id,
     tabs: { ...Object.fromEntries(Object.entries(config.sheet.tabs).filter(([, ref]) => !/^\d+$/.test(String(ref))).map(([k, ref]) => [k, { name: ref, gid: null }])), ...(sources.tabs ?? {}) },
     // Ledger rows carry only what the calculation reads (no token accounts or slots), to keep the file small.
-    inputs: { config: pageConfig, proposals, ledger: { rows: ledger.rows.map((r) => ({ sig: r.sig, t: r.t, account: r.account, symbol: r.symbol, delta: r.delta, legs: r.legs.map((l) => ({ owner: l.owner, amount: l.amount, dao: l.dao })) })) }, history, now, nowAt, tracked, seedLabels, councilHistory, imported, walletKinds, youtube,
+    inputs: { config: pageConfig, proposals, ledger: { rows: ledger.rows.map((r) => ({ sig: r.sig, t: r.t, account: r.account, symbol: r.symbol, delta: r.delta, legs: r.legs.map((l) => ({ owner: l.owner, amount: l.amount, dao: l.dao })) })), unread: ledger.unread ?? [] }, history, now, nowAt, tracked, seedLabels, councilHistory, imported, walletKinds, youtube,
       // The page only needs each multisig's transactions per day, not the transaction records.
       multisigActivity: { accounts: Object.fromEntries(Object.entries(multisigActivity.accounts ?? {}).map(([k, v]) => [k, { days: v.days }])) } },
   }, false);
