@@ -2,9 +2,11 @@
  "pips": [
   {
    "pip": 1,
+   "draftId": null,
    "name": "Star Atlas DAO",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": null,
    "voteStart": "2024-07-10",
    "voteEnd": "2024-07-23",
@@ -68,9 +70,11 @@
   },
   {
    "pip": 2,
+   "draftId": null,
    "name": "Foundation",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": null,
    "voteStart": "2024-07-10",
    "voteEnd": "2024-07-23",
@@ -134,9 +138,11 @@
   },
   {
    "pip": 3,
+   "draftId": null,
    "name": "Star Atlas Council",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": null,
    "voteStart": "2024-07-24",
    "voteEnd": "2024-08-06",
@@ -200,9 +206,11 @@
   },
   {
    "pip": 4,
+   "draftId": null,
    "name": "Star Atlas Ecosystem Fund",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": null,
    "voteStart": "2024-07-24",
    "voteEnd": "2024-08-06",
@@ -266,9 +274,11 @@
   },
   {
    "pip": 5,
+   "draftId": null,
    "name": "Co-Sponsor the Naabathon",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": null,
    "voteStart": "2024-07-26",
    "voteEnd": "2024-08-09",
@@ -332,9 +342,11 @@
   },
   {
    "pip": 6,
+   "draftId": null,
    "name": "Council Election #1 - First Round",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": null,
    "voteStart": "2024-09-14",
    "voteEnd": "2024-09-21",
@@ -398,9 +410,11 @@
   },
   {
    "pip": 7,
+   "draftId": null,
    "name": "Council Election #1 - Second Round",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": null,
    "voteStart": "2024-09-27",
    "voteEnd": "2024-10-11",
@@ -464,9 +478,11 @@
   },
   {
    "pip": 8,
+   "draftId": null,
    "name": "Star Atlas Comet: Community Meetup at Gamescom 2025",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": null,
    "voteStart": "2025-02-20",
    "voteEnd": "2025-02-26",
@@ -530,9 +546,11 @@
   },
   {
    "pip": 9,
+   "draftId": null,
    "name": "Adjust STV Backup Vote Handling to Prevent Unintended Vote Redistribution",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": null,
    "voteStart": "2025-02-28",
    "voteEnd": "2025-03-06",
@@ -596,9 +614,11 @@
   },
   {
    "pip": 10,
+   "draftId": null,
    "name": "Star Atlas Council: Second Term & Beyond",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": null,
    "voteStart": "2025-02-28",
    "voteEnd": "2025-03-13",
@@ -662,9 +682,11 @@
   },
   {
    "pip": 11,
+   "draftId": null,
    "name": "Council Election #2",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": null,
    "voteStart": "2025-03-23",
    "voteEnd": "2025-04-06",
@@ -728,9 +750,11 @@
   },
   {
    "pip": 12,
+   "draftId": null,
    "name": "Iris’s Bounty: The Feast",
    "phase": "Closed",
    "status": "Actionable",
+   "step": "10",
    "draftDate": null,
    "voteStart": "2025-04-14",
    "voteEnd": "2025-04-27",
@@ -794,9 +818,11 @@
   },
   {
    "pip": 13,
+   "draftId": null,
    "name": "Implementing Term Limits for Star Atlas DAO Council Members",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "9b",
    "draftDate": null,
    "voteStart": "2025-04-15",
    "voteEnd": "2025-04-28",
@@ -860,9 +886,11 @@
   },
   {
    "pip": 14,
+   "draftId": null,
    "name": "Deepening THEO Integration into the Star Atlas Economy",
    "phase": "Closed",
    "status": "Actionable",
+   "step": "10",
    "draftDate": null,
    "voteStart": "2025-04-17",
    "voteEnd": "2025-04-30",
@@ -926,9 +954,11 @@
   },
   {
    "pip": 15,
+   "draftId": null,
    "name": "In-Person Community Meetups Platform",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "9b",
    "draftDate": null,
    "voteStart": "2025-05-09",
    "voteEnd": "2025-05-22",
@@ -992,9 +1022,11 @@
   },
   {
    "pip": 16,
+   "draftId": null,
    "name": "Ryden Systems",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": null,
    "voteStart": "2025-05-09",
    "voteEnd": "2025-05-22",
@@ -1058,9 +1090,11 @@
   },
   {
    "pip": 17,
+   "draftId": null,
    "name": "Star Atlas Ecosystem Media Expansion Proposal by Lord Raspy III",
    "phase": "Closed",
    "status": "Actionable",
+   "step": "10",
    "draftDate": null,
    "voteStart": "2025-05-30",
    "voteEnd": "2025-06-12",
@@ -1124,9 +1158,11 @@
   },
   {
    "pip": 18,
+   "draftId": null,
    "name": "Marketing & Merch Expansion for Gamescom 2025",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": null,
    "voteStart": "2025-07-04",
    "voteEnd": "2025-07-17",
@@ -1190,9 +1226,11 @@
   },
   {
    "pip": 19,
+   "draftId": null,
    "name": "Funding Independent Economic Research and Maintenance of Critical Data Resources [Comprehensive PIP]",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "9b",
    "draftDate": "2025-06-14",
    "voteStart": "2025-09-21",
    "voteEnd": "2025-10-05",
@@ -1256,9 +1294,11 @@
   },
   {
    "pip": 20,
+   "draftId": null,
    "name": "Creation of DAO Caster Role",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": "2025-04-02",
    "voteStart": "2025-10-01",
    "voteEnd": "2025-10-15",
@@ -1322,9 +1362,11 @@
   },
   {
    "pip": 21,
+   "draftId": null,
    "name": "Rogue Data Hub (RDH)",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": "2025-07-21",
    "voteStart": "2025-10-01",
    "voteEnd": "2025-10-15",
@@ -1388,9 +1430,11 @@
   },
   {
    "pip": 22,
+   "draftId": null,
    "name": "Iris Bounty - The Arena",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": "2025-09-29",
    "voteStart": "2025-11-05",
    "voteEnd": "2025-11-18",
@@ -1454,9 +1498,11 @@
   },
   {
    "pip": 23,
+   "draftId": null,
    "name": "Refresh of PIP-4 the Ecosystem Fund",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": "2025-10-11",
    "voteStart": "2025-11-05",
    "voteEnd": "2025-11-18",
@@ -1520,9 +1566,11 @@
   },
   {
    "pip": 24,
+   "draftId": null,
    "name": "DAO-Supported Hosting Service",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": "2025-10-07",
    "voteStart": "2025-11-09",
    "voteEnd": "2025-11-22",
@@ -1586,9 +1634,11 @@
   },
   {
    "pip": 25,
+   "draftId": null,
    "name": "Council Election #3",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": "2025-11-26",
    "voteStart": "2025-11-26",
    "voteEnd": "2025-12-10",
@@ -1652,9 +1702,11 @@
   },
   {
    "pip": 26,
+   "draftId": null,
    "name": "Star Atlas Crew Adventure Series – Season Production",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "9a",
    "draftDate": "2025-11-24",
    "voteStart": "2026-01-23",
    "voteEnd": "2026-02-06",
@@ -1718,9 +1770,11 @@
   },
   {
    "pip": 27,
+   "draftId": null,
    "name": "DAO Casters Election: Term 1",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": "2025-02-04",
    "voteStart": "2026-02-20",
    "voteEnd": "2026-03-06",
@@ -1784,9 +1838,11 @@
   },
   {
    "pip": 28,
+   "draftId": null,
    "name": "Temporary DAO Funding to Preserve Core Lore, Design, and Community Functions",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": "2026-02-02",
    "voteStart": "2026-02-20",
    "voteEnd": "2026-03-06",
@@ -1850,9 +1906,11 @@
   },
   {
    "pip": 29,
+   "draftId": null,
    "name": "Star Atlas Relay Program (Pilot)",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": "2026-01-28",
    "voteStart": "2026-03-18",
    "voteEnd": "2026-04-01",
@@ -1916,9 +1974,11 @@
   },
   {
    "pip": 30,
+   "draftId": null,
    "name": "ATOM Cloud Infrastructure Sustainability — DAO Funding Pilot",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": "2026-02-17",
    "voteStart": "2026-03-18",
    "voteEnd": "2026-04-01",
@@ -1982,9 +2042,11 @@
   },
   {
    "pip": 31,
+   "draftId": null,
    "name": "Star Seekers Ecosystem Expansion",
    "phase": "Withdrawn",
    "status": "Actionable",
+   "step": "10",
    "draftDate": "2025-11-03",
    "voteStart": "2026-04-18",
    "voteEnd": "2026-05-02",
@@ -2048,9 +2110,11 @@
   },
   {
    "pip": 32,
+   "draftId": null,
    "name": "Igniting the Star Atlas Triad Tournament - A Super Phoenix Sports Live Esports Event",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": "2026-04-14",
    "voteStart": "2026-05-26",
    "voteEnd": "2026-06-10",
@@ -2114,9 +2178,11 @@
   },
   {
    "pip": 33,
+   "draftId": null,
    "name": "ATMTA Historic Expense Reimbursement",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": "2026-06-17",
    "voteStart": "2026-06-26",
    "voteEnd": "2026-07-11",
@@ -2180,9 +2246,11 @@
   },
   {
    "pip": 34,
+   "draftId": null,
    "name": "Star Atlas Crew Adventure Series – Season Production",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "8",
    "draftDate": "2026-06-20",
    "voteStart": "2026-07-18",
    "voteEnd": "2026-08-01",
@@ -2246,9 +2314,11 @@
   },
   {
    "pip": 35,
+   "draftId": null,
    "name": "Council Election #4",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "10",
    "draftDate": "2026-08-02",
    "voteStart": "2026-08-30",
    "voteEnd": "2026-09-11",
@@ -2312,9 +2382,11 @@
   },
   {
    "pip": 36,
+   "draftId": null,
    "name": "Dashboard PIP",
    "phase": "Voting",
    "status": "Actionable",
+   "step": "6",
    "draftDate": "2026-05-12",
    "voteStart": "2026-09-20",
    "voteEnd": "2026-10-04",
@@ -2375,6 +2447,280 @@
    "sheetVotes": 69,
    "sheetPvpVotedM": 74,
    "sheetTotalPvpM": 749
+  }
+ ],
+ "drafts": [
+  {
+   "pip": null,
+   "draftId": null,
+   "name": "Establishing a Values List for the Star Atlas DAO",
+   "phase": "Withdrawn",
+   "status": "Actionable",
+   "step": "4b",
+   "draftDate": "2025-03-31",
+   "voteStart": null,
+   "voteEnd": null,
+   "pdfSent": false,
+   "markdownSent": false,
+   "amount": {
+    "value": 0,
+    "raw": "0",
+    "state": "ok"
+   },
+   "currency": "USDC",
+   "roi": "",
+   "ecosystemFund": false,
+   "voteResult": "",
+   "category": "",
+   "sacTerm": "",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesTotal": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "sheetVotes": null,
+   "sheetPvpVotedM": null,
+   "sheetTotalPvpM": null
+  },
+  {
+   "pip": null,
+   "draftId": null,
+   "name": "The Infinite Star Atlas IP Universe",
+   "phase": "Withdrawn",
+   "status": "Non-actionable",
+   "step": "3",
+   "draftDate": "2025-07-28",
+   "voteStart": null,
+   "voteEnd": null,
+   "pdfSent": false,
+   "markdownSent": false,
+   "amount": {
+    "value": 600000,
+    "raw": "600,000",
+    "state": "ok"
+   },
+   "currency": "USDC",
+   "roi": "",
+   "ecosystemFund": false,
+   "voteResult": "",
+   "category": "",
+   "sacTerm": "",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesTotal": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "sheetVotes": null,
+   "sheetPvpVotedM": null,
+   "sheetTotalPvpM": null
+  },
+  {
+   "pip": null,
+   "draftId": null,
+   "name": "DAO Working Groups",
+   "phase": "Withdrawn",
+   "status": "Actionable",
+   "step": "4b",
+   "draftDate": "2025-02-11",
+   "voteStart": null,
+   "voteEnd": null,
+   "pdfSent": false,
+   "markdownSent": false,
+   "amount": {
+    "value": 6000000,
+    "raw": "6,000,000",
+    "state": "ok"
+   },
+   "currency": "ATLAS",
+   "roi": "",
+   "ecosystemFund": true,
+   "voteResult": "",
+   "category": "",
+   "sacTerm": "",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesTotal": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "sheetVotes": null,
+   "sheetPvpVotedM": null,
+   "sheetTotalPvpM": null
+  },
+  {
+   "pip": null,
+   "draftId": null,
+   "name": "Payment for Term-3 Star Atlas DAO Council",
+   "phase": "Withdrawn",
+   "status": "Actionable",
+   "step": "4a",
+   "draftDate": "2026-11-29",
+   "voteStart": null,
+   "voteEnd": null,
+   "pdfSent": false,
+   "markdownSent": false,
+   "amount": {
+    "value": 10000000,
+    "raw": "10,000,000",
+    "state": "ok"
+   },
+   "currency": "ATLAS",
+   "roi": "",
+   "ecosystemFund": false,
+   "voteResult": "",
+   "category": "",
+   "sacTerm": "",
+   "note": "",
+   "paidUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "paidAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "leftAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedUsdc": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "authorizedAtlas": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesDone": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "milestonesTotal": {
+    "value": null,
+    "raw": "",
+    "state": "blank"
+   },
+   "sheetVotes": null,
+   "sheetPvpVotedM": null,
+   "sheetTotalPvpM": null
   }
  ],
  "missingColumns": [],
@@ -2510,6 +2856,8 @@
  "wallets": [],
  "minutes": [],
  "upcoming": [],
+ "milestones": [],
+ "checklists": [],
  "tabs": {
   "pips": {
    "gid": "0",
@@ -2542,7 +2890,15 @@
   "upcomingPayments": {
    "gid": null,
    "name": "Upcoming payments"
+  },
+  "pipMilestones": {
+   "gid": null,
+   "name": "PIP milestones"
+  },
+  "checklists": {
+   "gid": null,
+   "name": "Checklists"
   }
  },
- "fetchedAt": "2026-11-07T00:57:21.980Z"
+ "fetchedAt": "2026-11-07T09:42:50.621Z"
 }
