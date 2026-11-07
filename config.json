@@ -60,7 +60,9 @@
       "paymentDocuments": "Payment documents",
       "wallets": "Wallets",
       "meetingMinutes": "Meeting minutes",
-      "upcomingPayments": "Upcoming payments"
+      "upcomingPayments": "Upcoming payments",
+      "pipMilestones": "PIP milestones",
+      "checklists": "Checklists"
     },
     "_tabsNote": "Each tab is a gid (digits) or a tab name. Named tabs are found automatically once they exist, including tabs created from the dashboard's editor."
   },

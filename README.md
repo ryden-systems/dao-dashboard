@@ -96,9 +96,18 @@ suggested for the same category and only need confirming.
 
 Other wallets the DAO deals with, such as the Foundation's, can be listed in a "Wallets" tab:
 
-| Wallet | Name | Payout label | Track balance | Note |
-|---|---|---|---|---|
-| the Solana address | who owns the wallet, shown instead of the address everywhere; several wallets of one owner can share a name | optional: every payout to this wallet gets this label, e.g. `Foundation` or `PIP-36`; inflows from the wallet are not labelled by it | `TRUE` to show its ATLAS, USDC and SOL balances on the Balances page | optional |
+| Wallet | Name | Payout label | Track balance | Note | Since |
+|---|---|---|---|---|---|
+| the Solana address | who owns the wallet, shown instead of the address everywhere; several wallets of one owner can share a name | optional: every payout to this wallet gets this label, e.g. `Foundation` or `PIP-36`; inflows from the wallet are not labelled by it | `TRUE` to show its ATLAS, USDC and SOL balances on the Balances page | optional | optional: see *Reused wallets* |
+
+**Reused wallets.** A multisig that is reused for a new purpose gets one row per purpose. The first row leaves
+Since empty; each later row names the PIP it serves now (e.g. `PIP-36`, and the purpose starts when that PIP's vote
+ends) or the date it changed (`YYYY-MM-DD`). Every payout gets the name and label of the purpose in force at its
+time, so earlier payouts keep the earlier purpose. Editors use **Reuse** next to the wallet on the Balances page.
+
+**Multisig tag.** Each build checks the listed wallets on chain: a wallet that pays out through the Squads program is
+a multisig vault and is tagged *multisig* (with the Council multisig it belongs to, if it is one of those in
+`config.json`). A vault that has only received money so far is tagged after its first payout.
 
 Tabs created before November 2026 call the Payout label column "Label"; both are read. A label on a single
 payout or inflow (see *Payment labels*) overrides the wallet's label. An inflow is labelled on its own, e.g.
@@ -294,6 +303,34 @@ first save:
   the cautious side.
 - **Never** enter bank or wire details or a person's name: the sheet can be read by anyone with its link and every tab
   is backed up into this repository.
+
+### PIP milestones and checklists (optional)
+
+Named payment milestones per PIP, and any number of checklists (e.g. the KPIs a milestone has to meet before it is
+paid, deliverables, reporting). Signed-in editors manage both on the PIP's row on the Payments page and on its
+proposal page (**Add milestone**, **Add checklist item**, **Tick**, **Mark paid**); the tabs are created on the first save.
+
+| ID | PIP | # | Milestone | Amount | Currency | Paid by (tx) | Completed on | Completed by |
+|---|---|---|---|---|---|---|---|---|
+| set by the dashboard | `PIP-36` | `1` | e.g. Beta release | e.g. `5000000` | `ATLAS` or `USDC` | the payout that paid it | the day the Council signed it off | who did (`Tracker` for the import) |
+
+| ID | PIP | Checklist | Milestone | Item | Done on | Done by | Evidence |
+|---|---|---|---|---|---|---|---|
+| set by the dashboard | `PIP-36` | e.g. `KPIs` | the milestone `#` it is a condition for, or empty | e.g. 1,000 players onboarded | date ticked | who ticked it | a link |
+
+- **Milestones** have two steps: **Complete** (the Council signs the milestone off) and **Mark paid** (its payout is
+  linked; that payout is then labelled as the PIP's, though a Council label on the payout still wins). Either one
+  without the other is listed on the Data health page: completed but not paid is a reminder to pay (or to link the
+  payout that paid it), paid but not completed one to sign it off. Completing or paying a milestone whose checklist
+  still has open items is a warning.
+- **The Tracker's counts** ("Completed Milestones", "Total Payment Milestones") follow the list: every milestone save
+  writes them (completed = signed off or paid), so they are no longer edited by hand. **Create milestone lists from
+  the Tracker** (Payments page, once) turns the old counts into "Milestone 1...N" per PIP, the completed ones marked
+  completed per the Tracker and none of them paid, since the Tracker does not say which payout paid what.
+- **Checklists:** items with the same PIP, checklist name and milestone form one checklist. With a milestone it is that
+  milestone's condition: the milestone shows e.g. `KPIs 2/3`, and a milestone paid while its checklist still has open
+  items is listed on the Data health page. Without a milestone it is a plain to-do list for the PIP.
+- **Ticking** an item saves the date and the editor's Google account; Untick clears both.
 
 ### The Budget page
 

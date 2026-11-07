@@ -18,6 +18,7 @@ import { updateLedger } from "./lib/ledger.mjs";
 import { readBalances, readTracked, recordSnapshot } from "./lib/balances.mjs";
 import { compute } from "./lib/compute.mjs";
 import { updateMultisigActivity } from "./lib/multisig.mjs";
+import { updateWalletKinds } from "./lib/walletkinds.mjs";
 import { updateYoutube } from "./lib/youtube.mjs";
 
 // config.local.json (git-ignored, optional) is layered over config.json for local testing,
@@ -87,7 +88,9 @@ async function fetchPhase() {
   await updateMultisigActivity({ rpc, sigRpc }, config);
   await updateYoutube(config);
   const now = await readBalances(rpc, config);
-  const tracked = await readTracked(rpc, config, wallets.filter((w) => w.track).map((w) => w.wallet));
+  // A reused wallet has one Wallets row per purpose: each address is read once.
+  const tracked = await readTracked(rpc, config, [...new Set(wallets.filter((w) => w.track).map((w) => w.wallet))]);
+  await updateWalletKinds({ rpc, sigRpc }, config, wallets.map((w) => w.wallet));
   recordSnapshot({ ...now, tracked });
   writeJSON("data/now.json", { at: new Date().toISOString(), balances: now, tracked });
   log(`sheet: ${wallets.length} wallets, ${Object.keys(tracked).length} tracked`);
@@ -104,9 +107,11 @@ function computePhase() {
   const councilHistory = readJSON("data/council_history.json", { terms: [] });
   const imported = readJSON("data/balance_history_import.json", {});
   const multisigActivity = readJSON("data/multisig_activity.json", { accounts: {} });
+  // Only the answer per wallet; the read cursors stay in the file.
+  const walletKinds = { wallets: Object.fromEntries(Object.entries(readJSON("data/wallet_kinds.json", { wallets: {} }).wallets).map(([w, k]) => [w, { multisig: k.multisig, program: k.program ?? null, account: k.account ?? null }])) };
   const youtube = readJSON("data/youtube.json", { videos: {} });
   const { out, recon, flags } = compute({
-    config, sources, proposals, ledger, history, now, nowAt, tracked, seedLabels, councilHistory, imported, multisigActivity, youtube,
+    config, sources, proposals, ledger, history, now, nowAt, tracked, seedLabels, councilHistory, imported, multisigActivity, walletKinds, youtube,
     votesOf: (pip) => readJSON(`data/votes/${pip}.json`, null), editingPreview: Boolean(process.env.EDITING_PREVIEW),
   });
   const dist = path.join(ROOT, "dist");
@@ -131,7 +136,7 @@ function computePhase() {
     builtAt: out.generatedAt, sheetId: config.sheet.id,
     tabs: { ...Object.fromEntries(Object.entries(config.sheet.tabs).filter(([, ref]) => !/^\d+$/.test(String(ref))).map(([k, ref]) => [k, { name: ref, gid: null }])), ...(sources.tabs ?? {}) },
     // Ledger rows carry only what the calculation reads (no token accounts or slots), to keep the file small.
-    inputs: { config: pageConfig, proposals, ledger: { rows: ledger.rows.map((r) => ({ sig: r.sig, t: r.t, account: r.account, symbol: r.symbol, delta: r.delta, legs: r.legs.map((l) => ({ owner: l.owner, amount: l.amount, dao: l.dao })) })) }, history, now, nowAt, tracked, seedLabels, councilHistory, imported, youtube,
+    inputs: { config: pageConfig, proposals, ledger: { rows: ledger.rows.map((r) => ({ sig: r.sig, t: r.t, account: r.account, symbol: r.symbol, delta: r.delta, legs: r.legs.map((l) => ({ owner: l.owner, amount: l.amount, dao: l.dao })) })) }, history, now, nowAt, tracked, seedLabels, councilHistory, imported, walletKinds, youtube,
       // The page only needs each multisig's transactions per day, not the transaction records.
       multisigActivity: { accounts: Object.fromEntries(Object.entries(multisigActivity.accounts ?? {}).map(([k, v]) => [k, { days: v.days }])) } },
   }, false);
@@ -142,7 +147,7 @@ function computePhase() {
 }
 
 // The calculation and the sheet parsers, served to the page as ES modules (no other files: these import only each other).
-const LIVE_MODULES = ["compute.mjs", "reconcile.mjs", "limit.mjs", "budget.mjs", "health.mjs", "members.mjs", "series.mjs", "pure.mjs", "sheetparse.mjs", "videos.mjs"];
+const LIVE_MODULES = ["compute.mjs", "reconcile.mjs", "limit.mjs", "budget.mjs", "health.mjs", "members.mjs", "series.mjs", "pure.mjs", "sheetparse.mjs", "videos.mjs", "plans.mjs"];
 
 function copyDir(from, to) {
   if (!fs.existsSync(from)) return;

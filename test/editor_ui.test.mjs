@@ -67,12 +67,17 @@ let docsInSheet = [];
 ctx.Editor.core = {
   async addLabel(a) { calls.push(["addLabel", a]); return { saved: true }; },
   async requestUpdate(by) { calls.push(["requestUpdate", by]); return { saved: true, at: "2026-11-03 12:34:56" }; },
-  async readPip(n) { calls.push(["readPip", n]); return { values: { phase: "Voting", milestonesDone: "1", milestonesTotal: "1", roi: "ROI text", note: sheetNote }, missing: [] }; },
+  async readPip(n) {
+    calls.push(["readPip", n]);
+    const values = { pipNo: typeof n === "number" ? `PIP-${n}` : "", phase: "Voting", milestonesDone: "1", milestonesTotal: "1", roi: "ROI text", note: sheetNote };
+    return { values, form: { ...values, pipNo: typeof n === "number" ? String(n) : "" }, pip: typeof n === "number" ? n : null, missing: [] };
+  },
   async savePip(n, changes, opts) {
     calls.push(["savePip", n, changes, opts]);
     if (!opts?.force && changes.note && changes.note.from !== sheetNote) return { conflicts: [{ field: "note", label: "Note", yours: changes.note.to, sheet: sheetNote }] };
-    return { saved: true };
+    return { saved: true, key: changes.pipNo?.to ? Number(changes.pipNo.to) : n };
   },
+  async addPip(f) { calls.push(["addPip", f]); return f.name ? { saved: true, key: f.pipNo ? Number(f.pipNo) : "DTEST1" } : { error: "Name: a PIP needs a name." }; },
   async seedMembers(terms) { calls.push(["seedMembers", terms.length]); return { saved: true, rows: terms.reduce((s, t) => s + t.members.length, 0) }; },
   async addMember(m) { calls.push(["addMember", m]); return m.name ? { saved: true } : { error: "name: This field is required." }; },
   async listDocs() { calls.push(["listDocs"]); return docsInSheet; },
@@ -81,7 +86,6 @@ ctx.Editor.state = { available: true, signedIn: true, email: "editor@example.org
 ctx.dispatchEvent(new ctx.CustomEvent("editor:change"));
 await tick();
 ok(nodes.editbar.innerHTML.includes("editor@example.org") && nodes.editbar.innerHTML.includes("Sign out"), "header shows the signed-in editor");
-ok(text().includes("Editor mode"), "editor banner on the payments page");
 ok(nodes.view.innerHTML.includes('<div class="kpi ed-only"><span class="k">Payouts to label'), "Payouts to label shown to editors, with the editor tint");
 
 // ---------- label a payout ----------
@@ -140,7 +144,9 @@ const funded = D.pips.find((p) => p.pip === 16);
 for (const fn of viewClick) fn({ target: { closest: (s) => (s === "tr.click[data-pip]" ? { dataset: { pip: "16" } } : null) }, preventDefault() {} });
 await tick();
 ok(funded && nodes.view.innerHTML.includes('data-act="pip-edit"'), "PIP detail offers editing");
-await click("pip-edit", { pip: "16" });
+await click("pip-edit", { key: "16" });
+ok(!nodes.view.innerHTML.includes('id="pf-pipNo"') && !nodes.view.innerHTML.includes('id="pf-name"') && nodes.view.innerHTML.includes('id="pf-amount"') && nodes.view.innerHTML.includes('id="pf-pdfSent"'), "a numbered PIP's form has the funding and process fields, not its number and name");
+ok(!nodes.view.innerHTML.includes('id="pf-milestonesDone"') && !nodes.view.innerHTML.includes('id="pf-milestonesTotal"'), "the milestone counts are not edited by hand any more");
 ok(calls.some((c) => c[0] === "readPip" && c[1] === 16) && nodes.view.innerHTML.includes('id="pf-note"'), "edit form loads live values from the sheet");
 inputs["pf-milestonesDone"] = "1"; inputs["pf-milestonesTotal"] = "1"; inputs["pf-roi"] = "ROI text"; inputs["pf-note"] = "New note from the dashboard";
 sheetNote = "Someone changed this in the sheet";
@@ -151,6 +157,61 @@ ok(text().includes("Changed in the sheet since you opened this") && text().inclu
 await click("pip-overwrite");
 const oc = calls.filter((c) => c[0] === "savePip").pop();
 ok(oc[3]?.force === true && text().includes("Saved to the sheet"), "overwrite forces the save and confirms it");
+for (const k of Object.keys(inputs)) if (k.startsWith("pf-")) delete inputs[k];
+await click("pip-cancel");
+
+// ---------- Add PIP and PIPs without a number (editors only) ----------
+D.drafts = [{ draftId: null, name: "Old withdrawn idea", phase: "Withdrawn", status: "Actionable", step: "3", draftDate: "2025-07-28", amount: 600000, currency: "USDC" }];
+await go("#votes");
+ok(text().includes("Not numbered yet") && text().includes("Old withdrawn idea") && nodes.view.innerHTML.includes('data-act="pip-new"'), "editors see the PIPs without a number, and Add PIP");
+await click("pip-new");
+ok(nodes.view.innerHTML.includes('id="np-name"') && nodes.view.innerHTML.includes('id="np-pdfSent"') && nodes.view.innerHTML.includes('id="np-authUsdc"') && nodes.view.innerHTML.includes('id="np-pipNo"'), "the Add PIP form has the process and funding fields");
+inputs["np-name"] = "Council expense wallet"; inputs["np-amount"] = "50000"; inputs["np-currency"] = "USDC";
+await click("pip-add");
+const ap = calls.filter((c) => c[0] === "addPip").pop();
+ok(ap && ap[1].name === "Council expense wallet" && ap[1].phase === "Draft" && ap[1].amount === "50000" && !("pipNo" in ap[1]) && text().includes("without a number yet"), "Add PIP sends the form, as a draft by default: " + JSON.stringify(ap?.[1]));
+await click("pip-edit", { key: "name:Old withdrawn idea" });
+ok(calls.some((c) => c[0] === "readPip" && c[1] === "name:Old withdrawn idea") && nodes.view.innerHTML.includes('id="pf-pipNo"') && nodes.view.innerHTML.includes('id="pf-name"'), "a PIP without a number opens by its name and offers its number");
+inputs["pf-pipNo"] = "99";
+await click("pip-save");
+const an = calls.filter((c) => c[0] === "savePip").pop();
+ok(an && an[1] === "name:Old withdrawn idea" && Object.keys(an[2]).join() === "pipNo" && an[2].pipNo.to === "99" && text().includes("PIP-99 now"), "assigning the number saves only the number: " + JSON.stringify(an?.[2]));
+delete inputs["pf-pipNo"];
+ctx.Editor.state = { available: true, signedIn: false, email: null, error: null };
+ctx.dispatchEvent(new ctx.CustomEvent("editor:change"));
+await go("#votes");
+ok(!text().includes("Not numbered yet") && !text().includes("Old withdrawn idea"), "visitors do not see PIPs without a number");
+ctx.Editor.state = { available: true, signedIn: true, email: "editor@example.org", error: null };
+ctx.dispatchEvent(new ctx.CustomEvent("editor:change"));
+await tick();
+
+// ---------- milestones: Complete, and the one-time lists from the Tracker ----------
+{
+  ctx.Editor.core.completeMilestone = async (id, done, by) => { calls.push(["completeMilestone", id, done, by]); return { saved: true, updated: true, pip: 36 }; };
+  ctx.Editor.core.importMilestones = async (list) => { calls.push(["importMilestones", list]); return { saved: true, rows: list.reduce((s, x) => s + x.total, 0), pips: list.map((x) => x.pip) }; };
+  const p36 = D.pips.find((p) => p.pip === 36);
+  if (p36?.milestones?.length) {
+    await go("#votes/36");
+    const m = p36.milestones[0];
+    ok(nodes.view.innerHTML.includes(`data-act="ms-done" data-id="${m.id}"`) && /\d+ completed · \d+ paid of \d+/.test(text()), "a milestone has Complete; the list counts completed and paid");
+    await click("ms-done", { id: m.id, pip: "36", done: "1" });
+    const cm = calls.find((c) => c[0] === "completeMilestone");
+    ok(cm && cm[1] === m.id && cm[2] === true && cm[3] === "editor@example.org" && text().includes("Marked completed"), "Complete saves who signed the milestone off");
+  }
+  // Two funded PIPs with Tracker counts and no list yet (whatever the test sheet holds now).
+  const [imp, imp2] = D.pips.filter((p) => p.funding && p.pip !== 36).slice(0, 2);
+  for (const [x, done, total] of [[imp, 1, 2], [imp2, 0, 1]]) { x.milestones = []; x.funding = { ...x.funding, milestones: { done, total } }; }
+  await go(`#votes/${imp.pip}`);
+  ok(nodes.view.innerHTML.includes(`data-act="ms-import" data-pip="${imp.pip}"`) && text().includes(`The Tracker counts ${imp.funding.milestones.done ?? 0} of ${imp.funding.milestones.total} completed`), "a PIP without a list offers to create it from the Tracker");
+  await click("ms-import", { pip: String(imp.pip) });
+  const im = calls.find((c) => c[0] === "importMilestones");
+  ok(im && im[1].length === 1 && im[1][0].pip === imp.pip && im[1][0].total === imp.funding.milestones.total && text().includes("Created"), "it sends that PIP's Tracker counts: " + JSON.stringify(im?.[1]));
+  await go("#payments");
+  ok(nodes.view.innerHTML.includes('data-act="ms-import-all"'), "Payments offers the one-time import for every PIP without a list");
+  await click("ms-import-all");
+  const ia = calls.filter((c) => c[0] === "importMilestones").pop();
+  ok(ia && ia[1].length > 1 && ia[1].every((x) => x.total > 0) && text().includes(`for ${ia[1].length} PIPs`), "the import sends every such PIP: " + ia?.[1].length);
+}
 
 // ---------- council: seed the tab, then add a member ----------
 await go("#council");
@@ -215,6 +276,17 @@ ok(calls.some((c) => c[0] === "requestUpdate" && c[1] === "editor@example.org") 
   const sw = calls.find((c) => c[0] === "saveWallet");
   ok(sw && sw[1].wallet === W && sw[1].track === true && sw[1].label === "Foundation" && nodes.view.innerHTML.includes("Updated Star Atlas Foundation"), "saving sends the wallet to the sheet and confirms");
   ok(nodes.view.innerHTML.includes('data-act="wal-open">Add a wallet'), "editors can add another wallet");
+  D.wallets[1] = { ...D.wallets[1], multisig: { program: "Squads v3", account: "X", label: "Iris Bounty Feast" }, since: "PIP-30", history: [{ name: "Arty", label: "PIP-24", since: null }, { name: "Untracked Wallet", label: "PIP-22", since: "PIP-30" }] };
+  await go("#balance");
+  ok(text().includes("multisig") && text().includes("Arty (PIP-24) → PIP-30: Untracked Wallet (PIP-22)"), "a multisig wallet is tagged and a reused wallet shows its purposes");
+  await click("wal-reuse", { wallet: D.wallets[1].wallet });
+  ok(nodes.view.innerHTML.includes("New purpose for") && nodes.view.innerHTML.includes('id="wf-since"') && !nodes.view.innerHTML.includes('id="wf-wallet"'), "Reuse opens a form for the new purpose with its Since");
+  Object.assign(inputs, { "wf-name": "Dashboard", "wf-label": "PIP-36", "wf-since": "PIP-36" });
+  delete inputs["wf-wallet"];
+  ctx.Editor.core.saveWallet = async (w) => { calls.push(["saveWallet", w]); return { saved: true, added: "purpose" }; };
+  await click("wal-save");
+  const rw = calls.filter((c) => c[0] === "saveWallet").pop();
+  ok(rw && rw[1].reuse === true && rw[1].wallet === D.wallets[1].wallet && rw[1].since === "PIP-36" && text().includes("Added the new purpose Dashboard"), "saving a reuse sends the wallet with reuse and Since: " + JSON.stringify(rw?.[1]));
 }
 
 // ---------- counterparty links show only transfers with the DAO account ----------

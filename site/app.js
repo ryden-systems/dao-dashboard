@@ -72,10 +72,23 @@
   // A page that is still being built: a red tag next to its title (public site, so said plainly).
   const DEV_TAG = `<span class="chip dev" title="Work in progress: the figures are not checked yet and should not be relied on.">Under development</span>`;
   const sub = (title, right = "") => `<div class="sec-head"><h3>${esc(title)}</h3>${right}</div>`;
+  // A table's Filter button (top right of its heading) opens a filter row under the heading. Closing it
+  // clears the filters, so nothing stays hidden behind a closed row.
+  const filterBtn = (key) => `<button class="btn sm${ui.flt[key] ? " on" : ""}" data-act="flt" data-key="${key}" aria-expanded="${ui.flt[key] ? "true" : "false"}">Filter</button>`;
+  const headRight = (src, key) => `<span class="controls"><span class="src">${src}</span>${filterBtn(key)}</span>`;
+  // Every word typed must appear in one of the parts.
+  const hits = (q, parts) => {
+    const hay = parts.filter((x) => x != null && x !== "").join(" ").toLowerCase();
+    return q.toLowerCase().split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
+  };
+  const FLT_RESET = { prop: { propQ: "", propRes: "all", propPhase: "all" }, fund: { fundQ: "", fundState: "all" } };
+  // The Tracker's PIP Phase (Idea, Draft, Voting, Withdrawn, Closed, Completed), filtered by editors only.
+  const phaseOk = (ph) => ui.propPhase === "all" || String(ph ?? "").toLowerCase() === ui.propPhase.toLowerCase();
 
   let D = null;
   const voteCache = new Map();
-  const ui = { payAccount: "all", payConf: "all", payDir: "all", payQuery: "", openPip: null, openVideo: null, openMinutes: null, healthSev: "all" };
+  const ui = { payAccount: "all", payConf: "all", payDir: "all", payQuery: "", openPip: null, openVideo: null, openMinutes: null, healthSev: "all",
+    flt: {}, propQ: "", propRes: "all", propPhase: "all", fundQ: "", fundState: "all" };
 
   // ---------- links into the Transactions page ----------
   // The one way in: every filter starts from its default and takes only what the link sets, so a
@@ -263,8 +276,6 @@
       <p class="src">Sign-in is switched off in this preview, because the preview is not connected to the Council's sheet.</p>
     </section>` : "");
 
-  const editBanner = () => (editing() ?`<div class="note ed-note">Editor mode. Saves go straight into the Council's sheet, and the page reads the sheet live, so everyone sees them on their next page load. The sheet's version history records every change.</div>` : "");
-
   // Documents on a payout, read live from the sheet's "Payment documents" tab (signed-in editors only).
   // A payout also shows the documents of the upcoming payment it settled (filed under "upcoming:<ID>").
   const docsOf = (p) => {
@@ -316,28 +327,90 @@
     </div>`;
   }
 
+  // The Tracker fields of the PIP forms, in groups.
+  const PIP_GROUPS = [
+    ["Process", ["pipNo", "name", "phase", "status", "draftDate", "step", "pdfSent", "mdSent"]],
+    ["Funding", ["amount", "currency", "authUsdc", "authAtlas", "eco", "category", "sacTerm"]],
+    // The milestone counts are not here: they follow the PIP's milestone list (Payments page).
+    ["Results", ["roi", "note"]],
+  ];
+  // One Tracker field in a form; its input's id is <pre><field>.
+  function pipField(k, v, pre) {
+    const f = SMap.PIP_FIELDS[k], id = `${pre}${k}`;
+    if (f.type === "bool") return `<label class="chk"><input type="checkbox" id="${id}" ${v === true ? "checked" : ""}> ${esc(f.label)}</label>`;
+    if (f.type === "choice") {
+      const opts = [...new Set(["", ...f.opts, ...(v ? [v] : [])])];
+      return `<label>${esc(f.label)}<select id="${id}">${opts.map((o) => `<option value="${esc(o)}"${o === (v ?? "") ? " selected" : ""}>${esc(o || "—")}</option>`).join("")}</select></label>`;
+    }
+    if (f.type === "text") return `<label class="wide">${esc(f.label)}<textarea id="${id}" rows="2">${esc(v ?? "")}</textarea></label>`;
+    const ph = { date: "YYYY-MM-DD", num: "e.g. 600000", pipno: "e.g. 37" }[f.type] ?? "";
+    const numeric = ["num", "pipno", "int"].includes(f.type) ? ` inputmode="numeric"` : "";
+    return `<label${k === "name" ? ` class="wide"` : ""}>${esc(f.label)}<input id="${id}"${numeric} placeholder="${ph}" value="${esc(v ?? "")}"></label>`;
+  }
+  const pipFields = (vals, pre, skip = []) => PIP_GROUPS.map(([g, ks]) => {
+    const show = ks.filter((k) => !skip.includes(k));
+    return show.length ? `<p class="wide"><strong>${g}</strong></p>${show.map((k) => pipField(k, vals[k], pre)).join("")}` : "";
+  }).join("");
+  // The values typed into a PIP form (fields not shown are left out).
+  const readFields = (keys, pre) => Object.fromEntries(keys.map((k) => [k, $(`#${pre}${k}`)]).filter(([, el]) => el).map(([k, el]) => [k, el.type === "checkbox" ? el.checked : el.value]));
+  // How a PIP is found in the Tracker: its number, else its Draft ID, else (an old row) its name.
+  const pipKey = (p) => p.pip ?? p.draftId ?? `name:${p.name}`;
+
   function pipEditor(p) {
     if (!editing()) return "";
-    const st = ed.pip && ed.pip.pip === p.pip ? ed.pip : null;
-    if (!st) return `<p class="edact"><button class="btn ed-btn" data-act="pip-edit" data-pip="${p.pip}">Edit milestones, ROI and note</button></p>`;
+    const key = pipKey(p);
+    const st = ed.pip && ed.pip.key === key ? ed.pip : null;
+    // Closed: its Edit PIP button is in the PIP's editor bar (pipPlan).
+    if (!st) return "";
     if (st.loading) return `<p class="muted">Reading the current values from the sheet…</p>`;
     if (!st.values) return `${okMsg({ err: st.error })}<p class="edact"><button class="btn" data-act="pip-cancel">Close</button></p>`;
-    const F = SMap.PIP_FIELDS;
-    const field = (k) => {
-      if (st.missing?.includes(k)) return "";
-      const v = esc(st.draft[k] ?? "");
-      return F[k].type === "text"
-        ? `<label class="wide">${esc(F[k].label)}<textarea id="pf-${k}" rows="2">${v}</textarea></label>`
-        : `<label>${esc(F[k].label)}<input id="pf-${k}" inputmode="numeric" value="${v}"></label>`;
-    };
+    // A numbered PIP keeps its number and name: the name cell is usually a link to the proposal.
+    const skip = [...(st.missing ?? []), ...(st.numbered ? ["pipNo", "name"] : [])];
     return `<div class="ed-zone"><div class="edform">
-      ${["milestonesDone", "milestonesTotal", "roi", "note"].map(field).join("")}
+      ${pipFields(st.draft, "pf-", skip)}
+      ${st.numbered ? "" : `<span class="sub wide">Enter the PIP number once the vote is up; the governance API's data joins in from then.</span>`}
       ${st.conflicts ? `<div class="ed-conflict wide"><strong>Changed in the sheet since you opened this:</strong>${st.conflicts.map((c) => `<div>${esc(c.label)}: the sheet now says “${esc(c.sheet)}”, you entered “${esc(c.yours)}”.</div>`).join("")}
         <div class="edact"><button class="btn danger" data-act="pip-overwrite">Overwrite with mine</button><button class="btn" data-act="pip-reload">Use the sheet's values</button></div></div>` : ""}
       ${st.error ? `<p class="ed-err wide">${esc(st.error)}</p>` : ""}
       ${st.saved ? `<p class="ed-ok wide">Saved to the sheet. Visible to everyone now.</p>` : ""}
       <div class="edact wide"><button class="btn primary" data-act="pip-save">Save to sheet</button><button class="btn" data-act="pip-cancel">Close</button></div>
     </div></div>`;
+  }
+
+  // Add PIP: a new Tracker row, with or without a number (a PIP is often added while it is drafted).
+  function newPipForm() {
+    const st = ed.newPip;
+    if (!st) return `<p class="edact"><button class="btn ed-btn" data-act="pip-new">Add PIP</button></p>${okMsg(ed.newPipMsg)}`;
+    return `<div class="edform">
+      ${pipFields(st.draft, "np-", ["milestonesDone", "milestonesTotal", "roi"])}
+      <span class="sub wide">Leave the number empty for a PIP that is still drafted, and enter it once the vote is up.</span>
+      ${st.error ? `<p class="ed-err wide">${esc(st.error)}</p>` : ""}
+      <div class="edact wide"><button class="btn primary" data-act="pip-add">Add to the Tracker</button><button class="btn" data-act="pip-new-cancel">Cancel</button></div>
+    </div>`;
+  }
+  // Editors only (owner 11-07: not public for now): Tracker rows without a PIP number yet (ideas, drafts,
+  // or withdrawn before a vote), and Add PIP.
+  function draftsSection() {
+    if (!editing()) return "";
+    const all = D.drafts ?? [];
+    const L = all.filter((d) => phaseOk(d.phase) && hits(ui.propQ, [d.name, d.phase, d.status, d.category]));
+    const rows = L.map((d) => {
+      const k = pipKey(d), open = ed.pip?.key === k;
+      return `<tr class="ed-only"><td><strong>${esc(d.name)}</strong>${d.note ? `<div class="sub">${esc(d.note)}</div>` : ""}</td>
+        <td>${d.phase ? `<span class="chip">${esc(d.phase)}</span>` : `<span class="blank">—</span>`}</td><td>${esc(d.status ?? "")}</td>
+        <td class="mono">${esc(d.draftDate ?? "")}</td><td>${esc(d.step ?? "")}</td>
+        <td class="n">${d.amount ? `${num(d.amount)} ${esc(d.currency ?? "")}` : `<span class="blank">—</span>`}</td>
+        <td class="r"><button class="btn sm ed-btn" data-act="pip-edit" data-key="${esc(String(k))}">${open ? "Close" : "Edit"}</button></td></tr>
+        ${open ? `<tr class="detail ed-only"><td colspan="7">${pipEditor(d)}</td></tr>` : ""}`;
+    }).join("");
+    return `<section class="sec">
+      ${sub("Not numbered yet", `<span class="src">Tracker rows without a PIP number · editors only</span>`)}
+      ${L.length ? `<div class="tbl"><table>
+        <thead><tr><th>Name</th><th>Phase</th><th>Status</th><th>Draft date</th><th>Step</th><th class="r">Amount</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>` : `<p class="muted">${all.length ? "Nothing matches these filters." : "None."}</p>`}
+      <div class="ed-zone">${newPipForm()}</div>
+    </section>`;
   }
 
   function membersEditor() {
@@ -418,18 +491,21 @@
     // Visitors see tracked wallets only; untracked ones (names and labels) are listed for editors, tinted.
     const W = (D.wallets ?? []).filter((w) => w.track || editing());
     if (!W.length && !editing()) return "";
+    const msName = (w) => w.multisig?.label;
+    // A reused wallet: its earlier purposes, oldest first, each with the PIP or date it started.
+    const story = (w) => w.history?.length ? `<div class="sub">${w.history.map((h) => `${h.since ? `${esc(h.since)}: ` : ""}${esc(h.name || "unnamed")}${h.label ? ` (${esc(h.label)})` : ""}`).join(" → ")}</div>` : "";
     const rows = W.map((w) => `<tr${w.track ? "" : ` class="ed-only"`}>
-      <td><strong>${esc(w.name || short(w.wallet))}</strong>${w.note ? `<div class="sub">${esc(w.note)}</div>` : ""}</td>
+      <td><strong>${esc(w.name || short(w.wallet))}</strong>${w.multisig ? ` <span class="chip acc" title="Pays out through a ${esc(w.multisig.program ?? "Squads")} multisig${msName(w) ? `: ${esc(msName(w))}` : ""}, found on chain">multisig</span>` : ""}${w.note ? `<div class="sub">${esc(w.note)}</div>` : ""}${story(w)}</td>
       <td>${solAcc(w.wallet)}</td>
       <td>${w.label ? `<span class="chip">${esc(w.label)}</span>` : `<span class="blank">—</span>`}</td>
       ${w.now ? `<td class="n">${num(w.now.ATLAS)}</td><td class="n">${num(w.now.USDC, 2)}</td><td class="n">${num(w.now.SOL, 2)}</td>${usdCell(w.now)}` : `<td colspan="4" class="sub">${w.track ? "balances appear after the next update" : "balance not tracked"}</td>`}
-      ${editing() ? `<td><button class="btn sm ed-btn" data-act="wal-open" data-wallet="${esc(w.wallet)}">Edit</button></td>` : ""}
+      ${editing() ? `<td class="r"><button class="btn sm ed-btn" data-act="wal-open" data-wallet="${esc(w.wallet)}">Edit</button><button class="btn sm ed-btn" data-act="wal-reuse" data-wallet="${esc(w.wallet)}" title="The wallet now serves another purpose: earlier payouts keep the current one">Reuse</button></td>` : ""}
     </tr>`).join("");
     const d = ed.walletDraft ?? {};
     const f = (id, label, ph = "", cls = "") => `<label class="${cls}">${label}<input id="wf-${id}" placeholder="${esc(ph)}" value="${esc(d[id] ?? "")}"></label>`;
     const form = `<div class="edform">
-      ${f("wallet", "Wallet address *", "Solana address", "wide")}${f("name", "Name *", "e.g. Star Atlas Foundation")}${f("label", "Payout label", "e.g. Foundation or PIP-36")}
-      ${f("note", "Note", "optional", "wide")}
+      ${d.reuse ? `<p class="wide"><strong>New purpose for ${esc(short(d.wallet))}</strong> <span class="sub">Payouts before Since keep the current name and label.</span></p>` : f("wallet", "Wallet address *", "Solana address", "wide")}${f("name", "Name *", "e.g. Star Atlas Foundation")}${f("label", "Payout label", "e.g. Foundation or PIP-36")}
+      ${f("since", d.reuse ? "Since *" : "Since", "PIP-36 or YYYY-MM-DD")}${f("note", "Note", "optional", "wide")}
       <label class="chk wide"><input type="checkbox" id="wf-track" ${d.track ? "checked" : ""}> Track its balances on this page</label>
       <div class="edact wide"><button class="btn primary" data-act="wal-save">Save wallet</button><button class="btn" data-act="wal-cancel">Cancel</button></div>
     </div>`;
@@ -445,13 +521,14 @@
     </section>`;
   }
 
-  async function loadPip(n) {
-    ed.pip = { pip: n, loading: true };
+  // `values`: the sheet's cells (for the conflict check), `form`: the same as the form shows them.
+  async function loadPip(key, saved = false) {
+    ed.pip = { key, loading: true };
     render();
     try {
-      const r = await ED.core.readPip(n);
-      ed.pip = r.error ? { pip: n, error: r.error } : { pip: n, values: r.values, draft: { ...r.values }, missing: r.missing };
-    } catch (e) { ed.pip = { pip: n, error: e.message }; }
+      const r = await ED.core.readPip(key);
+      ed.pip = r.error ? { key, error: r.error } : { key, values: r.values, form: r.form, draft: { ...r.form }, missing: r.missing, numbered: r.pip != null, saved };
+    } catch (e) { ed.pip = { key, error: e.message }; }
     render();
   }
 
@@ -529,25 +606,118 @@
         } catch (e) { ed.msgs[key] = { err: e.message }; }
         render(); return;
       }
-      case "pip-edit": return loadPip(Number(el.dataset.pip));
-      case "pip-reload": return loadPip(ed.pip.pip);
+      case "pip-edit": {
+        const k = /^\d+$/.test(el.dataset.key) ? Number(el.dataset.key) : el.dataset.key;
+        if (ed.pip?.key === k) { ed.pip = null; render(); return; }
+        return loadPip(k);
+      }
+      case "pip-new": ed.newPip = { draft: { phase: "Draft", draftDate: new Date().toISOString().slice(0, 10), pdfSent: false, mdSent: false } }; ed.newPipMsg = null; render(); return;
+      case "pip-new-cancel": ed.newPip = null; render(); return;
+      case "pip-add": {
+        const st = ed.newPip;
+        Object.assign(st.draft, readFields(PIP_GROUPS.flatMap(([, ks]) => ks), "np-"));
+        const form = Object.fromEntries(Object.entries(st.draft).filter(([, v]) => v !== "" && v != null));
+        el.disabled = true;
+        try {
+          const r = await ED.core.addPip(form);
+          if (r.error) st.error = r.error;
+          else {
+            ed.newPip = null;
+            ed.newPipMsg = { ok: typeof r.key === "number" ? `Added PIP-${r.key} to the Tracker.` : `Added "${SMap.clean(form.name)}" to the Tracker, without a number yet.` };
+            liveRefresh();
+          }
+        } catch (e) { st.error = e.message; }
+        render(); return;
+      }
+      // Milestones and checklists: one open form or confirmation at a time (ed.plan).
+      case "plan-cancel": ed.plan = null; render(); return;
+      case "ms-add": {
+        const M = D.pips.find((x) => x.pip === Number(el.dataset.pip))?.milestones ?? [];
+        ed.plan = { pip: Number(el.dataset.pip), kind: "ms", id: null, draft: { n: String(Math.max(0, ...M.map((m) => m.n ?? 0)) + 1) } }; ed.planMsg = null; render(); return;
+      }
+      case "ms-edit": case "ms-pay": case "ms-del": {
+        const m = (D.pips.find((x) => x.pip === Number(el.dataset.pip))?.milestones ?? []).find((x) => x.id === el.dataset.id);
+        if (!m) return;
+        const kind = act === "ms-edit" ? "ms" : act;
+        ed.plan = ed.plan?.id === m.id && ed.plan.kind === kind ? null : { pip: m.pip, kind, id: m.id, draft: { n: m.n ?? "", name: m.name, amount: m.amount ?? "", currency: m.currency ?? "" } };
+        ed.planMsg = null; render(); return;
+      }
+      case "ck-add": ed.plan = { pip: Number(el.dataset.pip), kind: "ck", id: null, draft: { list: "KPIs" } }; ed.planMsg = null; render(); return;
+      case "ck-edit": case "ck-del": {
+        const L = D.pips.find((x) => x.pip === Number(el.dataset.pip))?.checklists ?? [];
+        const l = L.find((x) => x.items.some((i) => i.id === el.dataset.id)), it = l?.items.find((i) => i.id === el.dataset.id);
+        if (!it) return;
+        const kind = act === "ck-edit" ? "ck" : act;
+        ed.plan = ed.plan?.id === it.id && ed.plan.kind === kind ? null : { pip: Number(el.dataset.pip), kind, id: it.id, draft: { list: l.name, milestone: l.milestone ?? "", item: it.item, evidence: it.evidence ?? "" } };
+        ed.planMsg = null; render(); return;
+      }
+      case "ms-import-all": {
+        const list = importable().map((p) => ({ pip: p.pip, done: trackerMs(p).done ?? 0, total: trackerMs(p).total }));
+        el.disabled = true;
+        try {
+          const r = await ED.core.importMilestones(list);
+          ed.importMsg = r.error ? { err: r.error } : { ok: `Created ${r.rows} milestones for ${r.pips.length} PIPs.` };
+          if (!r.error) { if (r.tab) window.DashLive?.addTab?.("pipMilestones", r.tab, r.gid); liveRefresh(); }
+        } catch (e) { ed.importMsg = { err: e.message }; }
+        render(); return;
+      }
+      case "ms-save": case "ck-save": case "ms-pay-save": case "ms-pay-clear": case "ms-del-yes": case "ck-del-yes": case "ck-tick": case "ms-done": case "ms-import": {
+        const pip = Number(el.dataset.pip), st = ed.plan;
+        let r, ok;
+        el.disabled = true;
+        try {
+          if (act === "ms-save") {
+            const m = { pip, n: val("ms-n").trim(), name: val("ms-name").trim(), amount: val("ms-amount").trim(), currency: val("ms-cur") };
+            st.draft = m;
+            r = st.id ? await ED.core.updateMilestone(st.id, m) : await ED.core.addMilestone(m);
+            ok = st.id ? `Saved milestone ${m.n}.` : `Added milestone ${m.n}: ${m.name}.`;
+          } else if (act === "ck-save") {
+            const c = { pip, list: val("ck-list").trim(), milestone: val("ck-ms"), item: val("ck-item").trim(), evidence: val("ck-ev").trim() };
+            st.draft = c;
+            r = st.id ? await ED.core.updateCheckItem(st.id, c) : await ED.core.addCheckItem(c);
+            ok = st.id ? "Saved the item." : `Added to ${c.list}: ${c.item}.`;
+          } else if (act === "ms-pay-save") {
+            r = await ED.core.setMilestonePayout(el.dataset.id, (val("ms-pay-tx").trim() || val("ms-pay-pick")).trim());
+            ok = "Payout linked. It now counts as this PIP's payout.";
+          } else if (act === "ms-pay-clear") { r = await ED.core.setMilestonePayout(el.dataset.id, ""); ok = "Payout link removed."; }
+          else if (act === "ms-del-yes") { r = await ED.core.deleteMilestone(el.dataset.id); ok = "Milestone deleted."; }
+          else if (act === "ck-del-yes") { r = await ED.core.deleteCheckItem(el.dataset.id); ok = "Item deleted."; }
+          else if (act === "ms-done") { const done = el.dataset.done === "1"; r = await ED.core.completeMilestone(el.dataset.id, done, ED.state.email); ok = done ? "Marked completed." : "Reopened."; }
+          else if (act === "ms-import") {
+            const tr = trackerMs(D.pips.find((x) => x.pip === pip));
+            r = await ED.core.importMilestones([{ pip, done: tr?.done ?? 0, total: tr?.total ?? 0 }]);
+            ok = `Created ${r.rows ?? 0} milestones from the Tracker. Rename them and link their payouts.`;
+          }
+          else { const done = el.dataset.done === "1"; r = await ED.core.tickCheckItem(el.dataset.id, done, ED.state.email); ok = done ? "Ticked." : "Unticked."; }
+          if (r.trackerError) ok += ` The Tracker's milestone counts could not be updated (${r.trackerError}).`;
+          ed.planMsg = r.error ? { pip, err: r.error } : { pip, ok };
+          if (!r.error) {
+            if (act !== "ck-tick" && act !== "ms-done") ed.plan = null;
+            if (r.tab) window.DashLive?.addTab?.(act.startsWith("ms") ? "pipMilestones" : "checklists", r.tab, r.gid);
+            liveRefresh();
+          }
+        } catch (e) { ed.planMsg = { pip, err: e.message }; }
+        render(); return;
+      }
+      case "pip-reload": return loadPip(ed.pip.key);
       case "pip-cancel": ed.pip = null; render(); return;
       case "pip-save": case "pip-overwrite": {
         const st = ed.pip;
-        for (const k of Object.keys(st.draft)) { const input = $(`#pf-${k}`); if (input) st.draft[k] = input.value; }
+        Object.assign(st.draft, readFields(Object.keys(st.draft), "pf-"));
         const changes = {};
-        for (const [k, v] of Object.entries(st.draft)) if (!st.missing?.includes(k) && SMap.clean(v) !== SMap.clean(st.values[k])) changes[k] = { from: st.values[k], to: v };
+        for (const [k, v] of Object.entries(st.draft)) if (!st.missing?.includes(k) && String(v) !== String(st.form[k])) changes[k] = { from: st.values[k], to: v };
         st.saved = false;
         if (!Object.keys(changes).length) { st.error = "Nothing has changed."; render(); return; }
         el.disabled = true;
         try {
-          const r = await ED.core.savePip(st.pip, changes, { force: act === "pip-overwrite" });
+          const r = await ED.core.savePip(st.key, changes, { force: act === "pip-overwrite" });
           if (r.error) { st.error = r.error; st.conflicts = null; }
           else if (r.conflicts) { st.conflicts = r.conflicts; st.error = null; }
           else {
-            st.saved = true; st.error = null; st.conflicts = null;
             liveRefresh();
-            for (const [k, c] of Object.entries(changes)) st.values[k] = c.to;
+            // A draft that got its number moves to the proposals list.
+            if (typeof r.key === "number" && !st.numbered) { ed.pip = null; ed.newPipMsg = { ok: `Saved: it is PIP-${r.key} now, listed with the proposals.` }; render(); return; }
+            return loadPip(r.key, true);
           }
         } catch (e) { st.error = e.message; }
         render(); return;
@@ -563,16 +733,23 @@
       }
       case "wal-open": {
         const w = (D.wallets ?? []).find((x) => x.wallet === el.dataset.wallet);
-        ed.wallet = true; ed.walletDraft = w ? { ...w } : {}; ed.walletMsg = null;
+        ed.wallet = true; ed.walletDraft = w ? { wallet: w.wallet, name: w.name, label: w.label, note: w.note, track: w.track, since: w.since ?? "", at: w.since ?? "" } : {}; ed.walletMsg = null;
+        render(); return;
+      }
+      case "wal-reuse": {
+        const w = (D.wallets ?? []).find((x) => x.wallet === el.dataset.wallet);
+        if (!w) return;
+        ed.wallet = true; ed.walletDraft = { wallet: w.wallet, track: w.track, since: "", reuse: true }; ed.walletMsg = null;
         render(); return;
       }
       case "wal-cancel": ed.wallet = false; ed.walletDraft = null; render(); return;
       case "wal-save": {
-        ed.walletDraft = { ...Object.fromEntries(["wallet", "name", "label", "note"].map((k) => [k, val(`wf-${k}`).trim()])), track: Boolean($("#wf-track")?.checked) };
+        const keep = ed.walletDraft ?? {};
+        ed.walletDraft = { ...keep, ...Object.fromEntries(["wallet", "name", "label", "note", "since"].map((k) => [k, val(`wf-${k}`).trim()]).filter(([k, v]) => !(k === "wallet" && keep.reuse && !v))), track: Boolean($("#wf-track")?.checked) };
         el.disabled = true;
         try {
           const r = await ED.core.saveWallet(ed.walletDraft);
-          ed.walletMsg = r.error ? { err: r.error } : { ok: `${r.updated ? "Updated" : "Added"} ${ed.walletDraft.name}.${r.updated ? "" : " A new wallet's name shows right away; a tracked balance after the next update."}` };
+          ed.walletMsg = r.error ? { err: r.error } : { ok: r.added === "purpose" ? `Added the new purpose ${ed.walletDraft.name} since ${ed.walletDraft.since}; earlier payouts keep the earlier one.` : `${r.updated ? "Updated" : "Added"} ${ed.walletDraft.name}.${r.updated ? "" : " A new wallet's name shows right away; a tracked balance after the next update."}` };
           if (!r.error) liveRefresh();
           if (!r.error) { ed.wallet = false; ed.walletDraft = null; }
         } catch (e) { ed.walletMsg = { err: e.message }; }
@@ -772,7 +949,8 @@
     const costAtlas = byPurpose.filter((g) => g.key.startsWith("cat:")).reduce((s, g) => s + g.ATLAS, 0);
     const catNames = [...new Set(byPurpose.filter((g) => g.key.startsWith("cat:")).map((g) => g.key.slice(4)))];
 
-    const rows = funded.map((p) => {
+    const shown = funded.filter((p) => (ui.fundState === "all" || p.funding.state === ui.fundState) && hits(ui.fundQ, [`pip-${p.pip}`, p.name, p.title, p.category, p.sacTerm]));
+    const rows = shown.map((p) => {
       const open = ui.openPip === p.pip;
       const detail = open ? `<tr class="detail"><td colspan="7">${paymentDetail(p)}</td></tr>` : "";
       return fundedRows(p, { click: true, open }) + detail;
@@ -788,6 +966,7 @@
         ${kpi("Fully paid", `${paidN}/${funded.length}`, "PIPs")}
         ${maintOpen() ? kpi("Payouts to label", String(needLabel.length), "", txLink("show them", { match: "attention", dir: "out" }), maintCls()) : ""}
       </div>
+      ${editing() && (importable().length || ed.importMsg) ? `<div class="ed-zone">${importable().length ? `<p><strong>One-time setup:</strong> ${importable().length} funded PIPs have milestone counts in the Tracker but no milestone list yet. Creating the lists makes "Milestone 1...N" per PIP, the completed ones marked completed per the Tracker and none paid (the Tracker does not say which payout paid what). Rename them and link their payouts afterwards.</p><p class="edact"><button class="btn ed-btn" data-act="ms-import-all">Create the milestone lists</button></p>` : ""}${okMsg(ed.importMsg)}</div>` : ""}
     </section>
     <section class="sec">
       ${sub("By purpose", `<span class="src">Transfers between DAO accounts and returns are left out</span>`)}
@@ -799,10 +978,14 @@
     </section>
     ${D.budget ? upcomingSection(D.budget) : ""}
     <section class="sec">
-      ${sub("Funded PIPs", `<span class="src">Click a row for its payouts</span>`)}
+      ${sub("Funded PIPs", headRight("Click a row for its payouts", "fund"))}
+      ${ui.flt.fund ? `<div class="controls">
+        <input type="search" class="grow" id="f-fq" aria-label="Filter funded PIPs" placeholder="PIP number, name, category..." value="${esc(ui.fundQ)}">
+        <select id="f-fstate" aria-label="Status">${[["all", "Any status"], ...Object.entries(STATE).map(([k, [, l]]) => [k, l])].map(([k, l]) => `<option value="${k}" ${ui.fundState === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
+      </div>` : ""}
       <div class="tbl"><table>
         ${FUNDED_HEAD}
-        <tbody>${rows}</tbody>
+        <tbody>${rows || `<tr><td colspan="7" class="muted">Nothing matches these filters.</td></tr>`}</tbody>
       </table></div>
     </section>`;
   };
@@ -863,7 +1046,8 @@
     const paidCell = Object.entries(f.paid).filter(([, v]) => v > 0).map(([s, v]) => `${num(v, s === "USDC" ? 2 : 0)} ${s}${f.returned?.[s] ? `<div class="sub">${num(f.returned[s], 0)} returned</div>` : ""}`).join("<br>") || `<span class="blank">none found</span>`;
     const inferred = Object.entries(f.inferred).filter(([, v]) => v > 0).map(([s, v]) => `+${num(v, 0)} ${s} inferred`).join("<br>");
     const sheet = [f.sheet.paidAtlas, f.sheet.paidUsdc].map((c, i) => c.state === "ok" ? `${num(c.value, i ? 2 : 0)} ${i ? "USDC" : "ATLAS"}` : c.state === "unknown" ? `<span class="chip warn">? ${i ? "USDC" : "ATLAS"}</span>` : "").filter(Boolean).join("<br>") || `<span class="blank">blank</span>`;
-    const ms = f.milestones.total != null ? `${f.milestones.done ?? "?"}/${f.milestones.total}` : "—";
+    const openChecks = (p.checklists ?? []).reduce((s, l) => s + l.total - l.done, 0);
+    const ms = `${f.milestones.total != null ? `${f.milestones.done ?? "?"}/${f.milestones.total}` : "—"}${f.milestones.fromList ? `<div class="sub">${f.milestones.paid} paid</div>` : ""}${openChecks ? `<div class="sub">${openChecks} open check${openChecks === 1 ? "" : "s"}</div>` : ""}`;
     const pct = f.milestones.total ? Math.min(100, ((f.milestones.done ?? 0) / f.milestones.total) * 100) : 0;
     const tr = (lead) => (click ? `<tr class="click${lead ? " lead" : ""}" data-pip="${p.pip}"${lead ? ` aria-expanded="${open}"` : ""}>` : `<tr${lead ? ` class="lead"` : ""}>`);
     return `${tr(true)}
@@ -892,8 +1076,93 @@
     const roi = p.roi ? `<p style="margin-bottom:10px"><strong>DAO ROI:</strong> ${esc(p.roi)}</p>` : "";
     const note = p.note ? `<p class="sub" style="margin-bottom:10px">Note: ${esc(p.note)}</p>` : "";
     const tbl = pipLegsTable(p.pip) || `<p class="muted">No on-chain payout has been matched to this PIP yet.</p>`;
-    return `${roi}${note}${tbl}${p.url ? `<p class="src" style="margin-top:10px">${extLink(p.url, "Read the proposal →")}</p>` : ""}${pipEditor(p)}`;
+    return `${roi}${note}${pipPlan(p)}${tbl}${p.url ? `<p class="src" style="margin-top:10px">${extLink(p.url, "Read the proposal →")}</p>` : ""}`;
   }
+
+  // A PIP's named milestones and its checklists (e.g. KPIs a milestone needs before it is paid), from
+  // the sheet's "PIP milestones" and "Checklists" tabs. Editors add, change, tick and delete them here.
+  function pipPlan(p, { page = false } = {}) {
+    const M = p.milestones ?? [], L = p.checklists ?? [];
+    if (!M.length && !L.length && !editing()) return "";
+    const E = editing(), cols = E ? 7 : 6;
+    // The Tracker's own counts, for a PIP whose milestone list is not made yet.
+    const tr = trackerMs(p);
+    const msg = ed.planMsg?.pip === p.pip ? okMsg(ed.planMsg) : "";
+    const confirmRow = (what, yes, id, n) => `<tr class="detail ed-only"><td colspan="${n}"><div class="edact"><span>Delete ${what}?</span><button class="btn danger" data-act="${yes}" data-id="${esc(id)}" data-pip="${p.pip}">Yes, delete</button><button class="btn" data-act="plan-cancel">Keep it</button></div></td></tr>`;
+
+    const msForm = (st) => `<div class="edform">
+      <label>#<input id="ms-n" inputmode="numeric" value="${esc(st.draft.n ?? "")}"></label>
+      <label class="wide">Milestone *<input id="ms-name" placeholder="e.g. Beta release" value="${esc(st.draft.name ?? "")}"></label>
+      <label>Amount<input id="ms-amount" placeholder="e.g. 5000000" value="${esc(st.draft.amount ?? "")}"></label>
+      <label>Currency<select id="ms-cur">${["ATLAS", "USDC"].map((c) => `<option${(st.draft.currency || p.funding?.currency || "ATLAS") === c ? " selected" : ""}>${c}</option>`).join("")}</select></label>
+      <div class="edact wide"><button class="btn primary" data-act="ms-save" data-pip="${p.pip}">${st.id ? "Save changes" : "Add milestone"}</button><button class="btn" data-act="plan-cancel">Cancel</button></div>
+    </div>`;
+    const payCands = () => D.payments.filter((x) => x.direction === "out" && x.confidence !== "internal" && !x.isReturn && (x.pip === p.pip || (x.pip == null && !x.category)) && !M.some((m) => m.paidBy === x.sig));
+    const payForm = (m) => `<div class="edform">
+      <label class="wide">Paid by this payout<select id="ms-pay-pick"><option value="">Choose a payout…</option>${payCands().map((x) => `<option value="${esc(x.sig)}">${esc(day(x.t))} · ${esc(num(x.amount, x.symbol === "USDC" ? 2 : 0))} ${esc(x.symbol)} · ${esc(ownerLabel(x.owner) || short(x.owner))}${x.pip ? ` · now: PIP-${x.pip}` : ""}</option>`).join("")}</select></label>
+      <label class="wide">Or paste its transaction<input id="ms-pay-tx" placeholder="transaction signature"></label>
+      <div class="edact wide"><button class="btn primary" data-act="ms-pay-save" data-id="${esc(m.id)}" data-pip="${p.pip}">Link payout</button>${m.paidBy ? `<button class="btn danger" data-act="ms-pay-clear" data-id="${esc(m.id)}" data-pip="${p.pip}">Remove link</button>` : ""}<button class="btn" data-act="plan-cancel">Cancel</button></div>
+    </div>`;
+    const ckForm = (st) => `<div class="edform">
+      <label>Checklist *<input id="ck-list" list="ck-list-names" placeholder="e.g. KPIs" value="${esc(st.draft.list ?? "")}"><datalist id="ck-list-names">${[...new Set(["KPIs", "Deliverables", ...L.map((l) => l.name)])].map((n) => `<option value="${esc(n)}">`).join("")}</datalist></label>
+      <label>For milestone<select id="ck-ms"><option value="">none</option>${M.filter((m) => m.n != null).map((m) => `<option value="${m.n}"${String(st.draft.milestone ?? "") === String(m.n) ? " selected" : ""}>${m.n}: ${esc(m.name)}</option>`).join("")}</select></label>
+      <label class="wide">Item *<input id="ck-item" placeholder="e.g. 1,000 players onboarded" value="${esc(st.draft.item ?? "")}"></label>
+      <label class="wide">Evidence<input id="ck-ev" placeholder="https://… (optional)" value="${esc(st.draft.evidence ?? "")}"></label>
+      <div class="edact wide"><button class="btn primary" data-act="ck-save" data-pip="${p.pip}">${st.id ? "Save changes" : "Add item"}</button><button class="btn" data-act="plan-cancel">Cancel</button></div>
+    </div>`;
+    const formRow = (html, n) => `<tr class="detail ed-only"><td colspan="${n}">${html}</td></tr>`;
+
+    const msRows = M.map((m) => {
+      const checks = m.checks.map((c) => `<span class="chip ${c.done === c.total ? "good" : "warn"}">${esc(c.name)} ${c.done}/${c.total}</span>`).join(" ");
+      const paid = m.paidBy ? `${m.paidAt ? `${esc(day(m.paidAt))} · ` : ""}${solTx(m.paidBy)}` : `<span class="blank">not paid</span>`;
+      const done = m.completed
+        ? `<span class="chip good">${m.completedOn ? `done ${esc(m.completedOn)}` : "done"}</span>${m.completedBy ? `<div class="sub">${m.completedBy === "Tracker" ? "per the Tracker" : esc(m.completedBy)}</div>` : ""}${m.open ? ` <span class="chip warn">open checklist items</span>` : ""}`
+        : `<span class="chip">open</span>`;
+      const btns = E ? `<td class="r"><button class="btn sm ed-btn" data-act="ms-done" data-id="${esc(m.id)}" data-pip="${p.pip}" data-done="${m.completed ? "0" : "1"}">${m.completed ? "Reopen" : "Complete"}</button><button class="btn sm ed-btn" data-act="ms-edit" data-id="${esc(m.id)}" data-pip="${p.pip}">Edit</button><button class="btn sm ed-btn" data-act="ms-pay" data-id="${esc(m.id)}" data-pip="${p.pip}">${m.paidBy ? "Payout" : "Mark paid"}</button><button class="btn sm danger" data-act="ms-del" data-id="${esc(m.id)}" data-pip="${p.pip}">Delete</button></td>` : "";
+      const st = ed.plan;
+      const extra = !E || !st || st.pip !== p.pip || st.id !== m.id ? ""
+        : st.kind === "ms" ? formRow(msForm(st), cols) : st.kind === "ms-pay" ? formRow(payForm(m), cols) : st.kind === "ms-del" ? confirmRow(`milestone ${m.n ?? ""} (${esc(m.name)})${m.checks.length ? "; its checklist items stay" : ""}`, "ms-del-yes", m.id, cols) : "";
+      return `<tr><td class="mono">${m.n ?? "—"}</td><td>${esc(m.name)}</td><td class="n">${m.amount != null ? `${num(m.amount, m.currency === "USDC" ? 2 : 0)} ${esc(m.currency ?? "")}` : "—"}</td><td>${checks || `<span class="blank">—</span>`}</td><td>${done}</td><td>${paid}</td>${btns}</tr>${extra}`;
+    }).join("");
+
+    const ckCols = E ? 5 : 4;
+    const ckRows = L.map((l) => l.items.map((it, i) => {
+      const head = i === 0 ? `<strong>${esc(l.name)}</strong><div class="sub">${l.milestone != null ? `milestone ${l.milestone} · ` : ""}${l.done}/${l.total} done</div>` : "";
+      const done = it.doneOn ? `<span class="chip good">done ${esc(it.doneOn)}</span>${it.doneBy ? `<div class="sub">${esc(it.doneBy)}</div>` : ""}` : `<span class="chip">open</span>`;
+      const btns = E ? `<td class="r"><button class="btn sm ed-btn" data-act="ck-tick" data-id="${esc(it.id)}" data-pip="${p.pip}" data-done="${it.doneOn ? "0" : "1"}">${it.doneOn ? "Untick" : "Tick"}</button><button class="btn sm ed-btn" data-act="ck-edit" data-id="${esc(it.id)}" data-pip="${p.pip}">Edit</button><button class="btn sm danger" data-act="ck-del" data-id="${esc(it.id)}" data-pip="${p.pip}">Delete</button></td>` : "";
+      const st = ed.plan;
+      const extra = !E || !st || st.pip !== p.pip || st.id !== it.id ? ""
+        : st.kind === "ck" ? formRow(ckForm(st), ckCols) : st.kind === "ck-del" ? confirmRow(`this item (${esc(it.item)})`, "ck-del-yes", it.id, ckCols) : "";
+      return `<tr><td>${head}</td><td>${esc(it.item)}</td><td>${done}</td><td>${it.evidence ? extLink(it.evidence, "link ↗") : `<span class="blank">—</span>`}</td>${btns}</tr>${extra}`;
+    }).join("")).join("");
+
+    const adding = E && ed.plan?.pip === p.pip && !ed.plan.id ? (ed.plan.kind === "ms" ? msForm(ed.plan) : ed.plan.kind === "ck" ? ckForm(ed.plan) : "") : "";
+    const summary = M.length ? `${M.filter((m) => m.completed).length} completed · ${M.filter((m) => m.paidBy).length} paid of ${M.length}` : "";
+    const msTable = M.length ? `<table><thead><tr><th>#</th><th>Milestone</th><th class="r">Amount</th><th>Checklists</th><th>Completed</th><th>Paid</th>${E ? "<th></th>" : ""}</tr></thead><tbody>${msRows}</tbody></table>` : "";
+    const none = `<p class="muted">No named milestones yet.${tr?.total ? ` The Tracker counts ${tr.done ?? 0} of ${tr.total} completed.` : ""}</p>`;
+    const ckTable = L.length ? `<table><thead><tr><th>Checklist</th><th>Item</th><th>Done</th><th>Evidence</th>${E ? "<th></th>" : ""}</tr></thead><tbody>${ckRows}</tbody></table>` : "";
+    // Every editor action for the PIP in one place (its Tracker row, milestones, checklists); a form opens below.
+    const key = pipKey(p);
+    const tools = E ? `<div class="ed-zone"><p class="edact">${ed.pip?.key === key ? "" : `<button class="btn ed-btn" data-act="pip-edit" data-key="${esc(String(key))}">Edit PIP</button>`}<button class="btn ed-btn" data-act="ms-add" data-pip="${p.pip}">Add milestone</button><button class="btn ed-btn" data-act="ck-add" data-pip="${p.pip}">Add checklist item</button>${!M.length && tr?.total ? `<button class="btn ed-btn" data-act="ms-import" data-pip="${p.pip}">Create the list from the Tracker (${tr.done ?? 0}/${tr.total})</button>` : ""}</p>${adding}${msg}${pipEditor(p)}</div>` : "";
+    // The proposal page: sections like the rest of that page. The Payments row: compact, inside the row.
+    if (page) return `<section class="sec">
+      ${sub("Milestones", summary ? `<span class="src">${summary}</span>` : "")}
+      ${msTable ? `<div class="tbl">${msTable}</div>` : none}
+      ${ckTable ? "" : tools}
+    </section>
+    ${ckTable ? `<section class="sec">${sub("Checklists")}<div class="tbl">${ckTable}</div>${tools}</section>` : ""}`;
+    return `<div style="margin-bottom:12px">
+      <p style="margin-bottom:6px"><strong>Milestones</strong>${summary ? ` <span class="sub">${summary}</span>` : ""}</p>
+      ${msTable || none}
+      ${ckTable ? `<p style="margin:10px 0 6px"><strong>Checklists</strong></p>${ckTable}` : ""}
+      ${tools}
+    </div>`;
+  }
+
+  // The Tracker's milestone counts of a funded PIP (kept aside once it has a milestone list).
+  const trackerMs = (p) => (p.funding?.milestones?.fromList ? p.funding.milestones.tracker : p.funding?.milestones) ?? null;
+  // Funded PIPs whose milestone list can still be made from the Tracker's counts.
+  const importable = () => D.pips.filter((p) => p.funding && !(p.milestones ?? []).length && trackerMs(p)?.total > 0);
 
   const councilTerms = () => [...new Set(D.pips.map((p) => p.sacTerm).filter((t) => t && t !== "N/A"))].sort();
   // One colour per Council term number, the same in every chart.
@@ -1513,15 +1782,21 @@
 
   views.votes = (param) => {
     if (param) return voteDetail(Number(param));
-    const rows = [...D.pips].reverse();
+    const rows = [...D.pips].reverse().filter((p) => (ui.propRes === "all" || p.outcome === ui.propRes) && (!editing() || phaseOk(p.phase)) && hits(ui.propQ, [`pip-${p.pip}`, p.title]));
     return `
     <section class="sec">
-      ${head("Proposals", `<span class="src">Governance API</span>`)}
+      ${head("Proposals", headRight("Governance API", "prop"))}
+      ${ui.flt.prop ? `<div class="controls">
+        <input type="search" class="grow" id="f-pq" aria-label="Filter proposals" placeholder="PIP number or title..." value="${esc(ui.propQ)}">
+        <select id="f-pres" aria-label="Result">${[["all", "Any result"], ["passed", "Passed"], ["failed", "Failed"], ["open", "Voting"]].map(([k, l]) => `<option value="${k}" ${ui.propRes === k ? "selected" : ""}>${l}</option>`).join("")}</select>
+        ${editing() ? `<select id="f-pphase" class="ed-only" aria-label="PIP phase">${[["all", "Any phase"], ...[...new Set([...SMap.PHASES, ...D.pips.map((p) => p.phase), ...(D.drafts ?? []).map((d) => d.phase)].filter(Boolean))].map((x) => [x, x])].map(([k, l]) => `<option value="${esc(k)}" ${ui.propPhase === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : ""}
+      </div>` : ""}
       <div class="tbl"><table>
         <thead><tr><th>PIP</th><th>Title</th><th>Voting ended</th><th>Result</th><th class="r">Votes</th><th class="r">PVP voted</th><th>Split (PVP)</th><th class="r">Yes</th></tr></thead>
-        <tbody>${rows.map((p) => `<tr class="click" data-go="#votes/${p.pip}"><td class="pipc">${pipLink(p.pip)}</td><td><div class="t2"><a href="#votes/${p.pip}">${esc(p.title)}</a></div></td><td class="mono">${isoDay(p.votingEndsAt)}</td><td>${outcomeChip(p.outcome)}</td><td class="n">${num(p.totalVotes)}</td><td class="n">${compact(p.totalPvp)}</td><td>${splitBar(p)}</td><td class="n">${p.ranked ? "ranked" : yesShare(p) == null ? "—" : num(yesShare(p) * 100, 1) + "%"}</td></tr>`).join("")}</tbody>
+        <tbody>${rows.map((p) => `<tr class="click" data-go="#votes/${p.pip}"><td class="pipc">${pipLink(p.pip)}</td><td><div class="t2"><a href="#votes/${p.pip}">${esc(p.title)}</a></div>${editing() && p.phase ? `<div class="sub">${esc(p.phase)}</div>` : ""}</td><td class="mono">${isoDay(p.votingEndsAt)}</td><td>${outcomeChip(p.outcome)}</td><td class="n">${num(p.totalVotes)}</td><td class="n">${compact(p.totalPvp)}</td><td>${splitBar(p)}</td><td class="n">${p.ranked ? "ranked" : yesShare(p) == null ? "—" : num(yesShare(p) * 100, 1) + "%"}</td></tr>`).join("") || `<tr><td colspan="8" class="muted">Nothing matches these filters.</td></tr>`}</tbody>
       </table></div>
-    </section>`;
+    </section>
+    ${draftsSection()}`;
   };
 
   function voteDetail(n) {
@@ -1576,6 +1851,7 @@
       ${p.ranked ? `<p class="src">Ranked election for ${p.seats} seat${p.seats === 1 ? "" : "s"}, ${num(p.distinctBallots)} distinct ballot orders. Seats are allocated by single transferable vote; the figures above are first preferences only.</p>` : ""}
     </section>
     ${pipPaymentsSection(p)}
+    ${pipPlan(p, { page: true })}
     ${pipMeetingsSection(p)}
     ${detail}`;
   }
@@ -1721,7 +1997,7 @@
     });
     Charts.reset();
     const view = $("#view");
-    view.innerHTML = previewInfo() + (r === "payments" || r === "transactions" || r === "council" || r === "balance" ? editBanner() : "") + views[r](param);
+    view.innerHTML = previewInfo() + views[r](param);
     Charts.mount(view);
     fitTables();
     buildToc();
@@ -1731,7 +2007,7 @@
     if (bar) bar.innerHTML = editBar();
   }
 
-  const EDIT_ACTIONS = new Set(["up-edit", "up-del", "up-del-yes", "up-del-no", "up-open", "up-cancel", "up-save", "up-pay-open", "up-pay-save", "min-open", "min-cancel", "min-keep", "min-discard", "min-fmt", "min-copy", "min-preview", "min-take", "min-save", "min-overwrite", "ed-signin", "ed-signout", "ed-update", "doc-open", "doc-close", "doc-upload", "wal-open", "wal-cancel", "wal-save", "ed-preview", "lbl-open", "lbl-cancel", "lbl-save", "lbl-clear", "lbl-clear-yes", "lbl-clear-no", "pip-edit", "pip-reload", "pip-cancel", "pip-save", "pip-overwrite", "mem-seed", "mem-open", "mem-cancel", "mem-save"]);
+  const EDIT_ACTIONS = new Set(["plan-cancel", "ms-add", "ms-edit", "ms-pay", "ms-del", "ms-done", "ms-import", "ms-import-all", "ms-save", "ms-pay-save", "ms-pay-clear", "ms-del-yes", "ck-add", "ck-edit", "ck-del", "ck-save", "ck-del-yes", "ck-tick", "up-edit", "up-del", "up-del-yes", "up-del-no", "up-open", "up-cancel", "up-save", "up-pay-open", "up-pay-save", "min-open", "min-cancel", "min-keep", "min-discard", "min-fmt", "min-copy", "min-preview", "min-take", "min-save", "min-overwrite", "ed-signin", "ed-signout", "ed-update", "doc-open", "doc-close", "doc-upload", "wal-open", "wal-reuse", "wal-cancel", "wal-save", "ed-preview", "lbl-open", "lbl-cancel", "lbl-save", "lbl-clear", "lbl-clear-yes", "lbl-clear-no", "pip-edit", "pip-new", "pip-new-cancel", "pip-add", "pip-reload", "pip-cancel", "pip-save", "pip-overwrite", "mem-seed", "mem-open", "mem-cancel", "mem-save"]);
   function editClick(e) {
     const el = e.target.closest("[data-act]");
     if (!el || !EDIT_ACTIONS.has(el.dataset.act)) return false;
@@ -1751,6 +2027,7 @@
       const act = e.target.closest("[data-act]");
       if (act?.dataset.act === "tx") { const d = act.dataset; openTransactions({ account: d.txAccount, match: d.txMatch, dir: d.txDir, q: d.txQ }); return; }
 
+      if (act?.dataset.act === "flt") { const k = act.dataset.key; ui.flt[k] = !ui.flt[k]; if (!ui.flt[k]) Object.assign(ui, FLT_RESET[k]); render(); return; }
       if (act?.dataset.act === "minutes") { ui.openMinutes = ui.openMinutes === act.dataset.day ? null : act.dataset.day; render(); return; }
       // Share: copies the meeting's direct link. If the browser refuses, the page goes to that link
       // instead, so it stands in the address bar to copy from there.
@@ -1771,11 +2048,13 @@
       // The minutes form: kept as it is typed (no redraw), see "min-open".
       const mn = { "mn-day": "day", "mn-title": "title", "mn-text": "text" }[e.target.id];
       if (mn && ed.minutes) { ed.minutes[mn] = e.target.value; if (mn === "text") minutesCount(); return; }
-      if (e.target.id !== "f-q") return;
-      ui.payQuery = e.target.value;
+      const key = { "f-q": "payQuery", "f-pq": "propQ", "f-fq": "fundQ" }[e.target.id];
+      if (!key) return;
+      const id = e.target.id;
+      ui[key] = e.target.value;
       const at = e.target.selectionStart;
       render();
-      const q = $("#f-q");
+      const q = $("#" + id);
       if (q) { q.focus(); q.setSelectionRange(at, at); }
     });
     view.addEventListener("change", (e) => {
@@ -1784,6 +2063,9 @@
       else if (id === "f-conf") ui.payConf = e.target.value;
       else if (id === "f-dir") ui.payDir = e.target.value;
       else if (id === "f-sev") ui.healthSev = e.target.value;
+      else if (id === "f-pres") ui.propRes = e.target.value;
+      else if (id === "f-pphase") ui.propPhase = e.target.value;
+      else if (id === "f-fstate") ui.fundState = e.target.value;
       else return;
       render();
     });
@@ -1859,7 +2141,7 @@
     $("#stamp").innerHTML = `Data as of ${esc(t(D.dataAt))} UTC${liveAt ? ` · sheet live ${esc(t(liveAt).slice(11))} UTC` : ""}`;
   }
   let playerTouched = false;
-  const anyFormOpen = () => Boolean(ed.wallet || ed.labelFor || ed.docFor || ed.pip || ed.member || ed.clearFor || ed.minutes || ed.upcoming || ed.upPay || ed.upDel);
+  const anyFormOpen = () => Boolean(ed.newPip || ed.wallet || ed.labelFor || ed.docFor || ed.pip || ed.member || ed.clearFor || ed.minutes || ed.upcoming || ed.upPay || ed.upDel || ed.plan);
   // After a save: read the sheet again right away, so the change shows within seconds.
   const liveRefresh = () => window.DashLive?.refresh?.();
 

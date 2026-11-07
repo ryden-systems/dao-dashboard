@@ -8,12 +8,13 @@ import { healthChecks } from "./health.mjs";
 import { councilTerms } from "./members.mjs";
 import { rebuildSeries, fullyIndexed } from "./series.mjs";
 import { councilVideos } from "./videos.mjs";
+import { pipPlans, milestoneLabels } from "./plans.mjs";
 
 const round2 = (n) => Math.round(n * 100) / 100;
 
 // votesOf(pip) returns a proposal's per-voter file or null (the browser passes null: it keeps the
 // built largest-voters table, which does not depend on the sheet's editable tabs).
-export function compute({ config, sources, proposals, ledger, history, now, nowAt, tracked = {}, seedLabels = [], councilHistory = { terms: [] }, imported = {}, multisigActivity = { accounts: {} }, youtube = { videos: {} }, votesOf = () => null, editingPreview = false, generatedAt = new Date().toISOString() }) {
+export function compute({ config, sources, proposals, ledger, history, now, nowAt, tracked = {}, seedLabels = [], councilHistory = { terms: [] }, imported = {}, multisigActivity = { accounts: {} }, walletKinds = { wallets: {} }, youtube = { videos: {} }, votesOf = () => null, editingPreview = false, generatedAt = new Date().toISOString() }) {
   const nowTs = Date.parse(nowAt) / 1000;
 
   // Sheet labels override seed labels for the same payout.
@@ -23,10 +24,34 @@ export function compute({ config, sources, proposals, ledger, history, now, nowA
   const upcomingLabels = (sources.upcoming ?? []).filter((u) => u.for)
     .flatMap((u) => (u.paid ?? (u.paidBy ? [u.paidBy] : [])).map((sig, i) => ({ signature: sig, recipient: "", label: u.for, confirmed: true, fiscalYear: u.paidYears?.[i] ?? u.fiscalYear })))
     .filter((u) => !sources.labels.some((l) => l.signature === u.signature));
-  const labels = [...seedLabels.filter((s) => !sources.labels.some((l) => l.signature === s.signature)), ...upcomingLabels, ...sources.labels];
-  const recon = reconcile({ pips: sources.pips, ledger, labels, wallets: sources.wallets ?? [], config });
+  const msLabels = milestoneLabels(sources.milestones ?? []).filter((m) => !sources.labels.some((l) => l.signature === m.signature) && !upcomingLabels.some((u) => u.signature === m.signature));
+  const labels = [...seedLabels.filter((s) => !sources.labels.some((l) => l.signature === s.signature)), ...upcomingLabels, ...msLabels, ...sources.labels];
+  // A wallet reused for a new purpose has one row per purpose; its "Since" (a PIP, whose vote end starts
+  // the purpose, or a date) becomes the time the row applies from. The first purpose has none.
+  const voteEndTs = (n) => {
+    const d = proposals.find((p) => p.pip === n)?.votingEndsAt ?? sources.pips.find((p) => p.pip === n)?.voteEnd;
+    const t = d ? Date.parse(d) / 1000 : NaN;
+    return Number.isFinite(t) ? t : null;
+  };
+  const walletRows = (sources.wallets ?? []).map((w) => {
+    const m = /^PIP-(\d+)$/i.exec(w.since ?? "");
+    const from = m ? voteEndTs(Number(m[1])) : /^\d{4}-\d{2}-\d{2}$/.test(w.since ?? "") ? Date.parse(w.since) / 1000 : null;
+    return { ...w, from };
+  });
+  const recon = reconcile({ pips: sources.pips, ledger, labels, wallets: walletRows, config });
   const limit = fundLimits({ ledger, fundNow: now.fund.ATLAS, treasuryNow: now.treasury, rules: config.daoRules?.fund ?? [], nowTs });
   const flags = healthChecks({ pips: sources.pips, missingColumns: sources.missingColumns, proposals, recon, ledger, history, now, config, nowTs });
+  for (const w of walletRows) if (w.since && w.from == null) flags.push({ severity: "warning", area: "sheet", message: `Wallets tab: ${w.name || w.wallet} has Since "${w.since}", which is not a PIP with a vote end date or a date (YYYY-MM-DD), so that row counts from the wallet's first payout.` });
+  // Per wallet: its purposes in time order; the last one is the current one.
+  const byWallet = new Map();
+  for (const w of [...walletRows].sort((a, b) => (a.from ?? -1) - (b.from ?? -1))) { if (!byWallet.has(w.wallet)) byWallet.set(w.wallet, []); byWallet.get(w.wallet).push(w); }
+  // Named milestones and checklists per PIP; a PIP with named milestones counts them instead of the
+  // Tracker's two milestone columns (done = a payout is linked).
+  const plans = pipPlans({ milestones: sources.milestones ?? [], checklists: sources.checklists ?? [], legs: recon.legs });
+  flags.push(...plans.flags);
+  // A PIP with a milestone list counts it (done = completed or paid) instead of the Tracker's two columns,
+  // which the dashboard keeps in step on every milestone save. `tracker`: those columns' values.
+  const withPlan = (f, plan) => (f && plan?.milestones.length ? { ...f, milestones: { done: plan.milestones.filter((m) => m.completed || m.paidBy).length, paid: plan.milestones.filter((m) => m.paidBy).length, total: plan.milestones.length, fromList: true, tracker: f.milestones } } : f);
   // A payout labelled in more than one row: the last row is used, which is easy to miss in the sheet.
   const labelCount = new Map();
   for (const l of sources.labels) labelCount.set(`${l.signature}:${l.recipient}`, (labelCount.get(`${l.signature}:${l.recipient}`) ?? 0) + 1);
@@ -141,6 +166,10 @@ export function compute({ config, sources, proposals, ledger, history, now, nowA
       category: s?.category ?? null,
       sacTerm: s?.sacTerm ?? null,
       phase: s?.phase ?? null,
+      status: s?.status ?? null,
+      step: s?.step ?? null,
+      draftDate: s?.draftDate ?? null,
+      draftId: s?.draftId ?? null,
       outcome: a?.outcome ?? (s?.voteResult || "").toLowerCase(),
       votingStartsAt: a?.votingStartsAt ?? null,
       votingEndsAt: a?.votingEndsAt ?? null,
@@ -157,7 +186,9 @@ export function compute({ config, sources, proposals, ledger, history, now, nowA
       ecosystemFund: s?.ecosystemFund ?? null,
       roi: s?.roi ?? "",
       note: s?.note ?? "",
-      funding: pay.get(n) ?? null,
+      funding: withPlan(pay.get(n) ?? null, plans.byPip.get(n)),
+      milestones: plans.byPip.get(n)?.milestones ?? [],
+      checklists: plans.byPip.get(n)?.checklists ?? [],
     };
   });
 
@@ -277,10 +308,22 @@ export function compute({ config, sources, proposals, ledger, history, now, nowA
     },
     accounts: accountsOut,
     pips,
+    // Tracker rows without a PIP number yet (ideas, drafts, withdrawn before a vote).
+    drafts: (sources.drafts ?? []).map((d) => ({ draftId: d.draftId, name: d.name, phase: d.phase, status: d.status, step: d.step, draftDate: d.draftDate, pdfSent: d.pdfSent, markdownSent: d.markdownSent, amount: d.amount?.value ?? null, currency: d.currency, category: d.category, sacTerm: d.sacTerm, note: d.note })),
     knownWallets: known,
     // Names for counterparties: the Council's "Wallets" tab, plus known income sources from config.
-    walletNames: { ...known, ...Object.fromEntries((sources.wallets ?? []).filter((w) => w.name).map((w) => [w.wallet, w.name])) },
-    wallets: (sources.wallets ?? []).map((w) => ({ ...w, now: w.track ? tracked[w.wallet] ?? null : null })),
+    walletNames: { ...known, ...Object.fromEntries([...byWallet.values()].map((l) => [l[0].wallet, [...l].reverse().find((x) => x.name)?.name]).filter(([, n]) => n)) },
+    // One entry per wallet with its current purpose; `history` lists every purpose when it was reused.
+    // `multisig`: found on chain to pay out through a Squads multisig (see walletkinds.mjs).
+    wallets: [...byWallet.values()].map((l) => {
+      const cur = l[l.length - 1], track = l.some((x) => x.track), k = walletKinds.wallets?.[cur.wallet];
+      return {
+        wallet: cur.wallet, name: cur.name, label: cur.label, note: cur.note, since: cur.since || null, track,
+        now: track ? tracked[cur.wallet] ?? null : null,
+        history: l.length > 1 ? l.map((x) => ({ name: x.name, label: x.label, since: x.since || null })) : [],
+        multisig: k?.multisig ? { program: k.program ?? null, account: k.account ?? null, label: (config.councilMultisigs ?? []).find((m) => m.address === k.account)?.label ?? null } : null,
+      };
+    }),
     income,
     voters,
     payments: payoutsList,

@@ -116,6 +116,11 @@
       async writeCell(title, row0, col0, value) {
         await call(range(SM.a1(title, row0, col0)) + "?valueInputOption=USER_ENTERED", { method: "PUT", body: { values: [[value]] } });
       },
+      // Several single cells in one request.
+      async writeCells(title, cells) {
+        if (!cells.length) return;
+        await call("/values:batchUpdate", { method: "POST", body: { valueInputOption: "USER_ENTERED", data: cells.map((c) => ({ range: SM.a1(title, c.row, c.col), values: [[c.value]] })) } });
+      },
       async appendRow(title, values) {
         await call(range(SM.a1Tab(title)) + ":append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS", { method: "POST", body: { values: [values] } });
       },
@@ -136,42 +141,90 @@
         return true;
       },
 
-      // Current values of a PIP's editable fields, read live from the sheet.
-      async readPip(pip) {
+      // A PIP's Tracker fields, read live from the sheet: `values` as the sheet holds them, `form` as the
+      // form shows them. `missing`: fields whose column the sheet does not have (and the dashboard does not add).
+      async readPip(key) {
         const rows = await core.readTab(tabs.pips);
-        const loc = SM.locatePip(rows, pip);
+        const loc = SM.locatePip(rows, key);
         if (loc.error) return { error: loc.error };
-        const values = {};
-        for (const [k, c] of Object.entries(loc.cols)) values[k] = c >= 0 ? (rows[loc.row][c] ?? "") : null;
-        return { values, missing: Object.keys(loc.cols).filter((k) => loc.cols[k] < 0) };
+        const values = {}, form = {};
+        for (const [k, c] of Object.entries(loc.cols)) {
+          values[k] = c >= 0 ? (rows[loc.row][c] ?? "") : "";
+          form[k] = SM.pipFormValue(k, values[k]);
+        }
+        return { values, form, pip: loc.pip, missing: Object.keys(loc.cols).filter((k) => loc.cols[k] < 0 && !SM.PIP_FIELDS[k].add) };
       },
 
-      // Save changed PIP fields. `changes` = { field: { from, to } }, where `from` is the value the
-      // editor saw. If the sheet now holds something else, nothing is written and the conflicts
-      // are returned, unless `force` is set (the editor chose to overwrite).
-      async savePip(pip, changes, { force = false } = {}) {
+      // Save changed PIP fields. `key`: the PIP's number, or a draft's key (see SheetMap.locatePip).
+      // `changes` = { field: { from, to } }: `from` is the sheet value the editor saw, `to` the form value.
+      // If the sheet now holds something else, nothing is written and the conflicts are returned, unless
+      // `force` is set (the editor chose to overwrite). Returns the key the PIP is found by from now on.
+      async savePip(key, changes, { force = false } = {}) {
         for (const [k, ch] of Object.entries(changes)) {
           const f = SM.PIP_FIELDS[k];
-          if (!f) return { error: `Unknown field ${k}.` };
+          if (!f || f.type === "id") return { error: `Unknown field ${k}.` };
           const msg = SM.validate(f.type, ch.to);
           if (msg) return { error: `${f.label}: ${msg}` };
         }
+        if (changes.name && !SM.clean(changes.name.to)) return { error: "Name: a PIP needs a name." };
         const rows = await core.readTab(tabs.pips);
-        const loc = SM.locatePip(rows, pip);
+        const loc = SM.locatePip(rows, key);
         if (loc.error) return { error: loc.error };
+        const newNo = changes.pipNo ? SM.clean(changes.pipNo.to) : loc.pip == null ? "" : String(loc.pip);
+        if (newNo && Number(newNo) !== loc.pip && takenPip(rows, loc, newNo)) return { error: `PIP-${Number(newNo)} already has a row in the sheet.` };
         const conflicts = [];
         for (const [k, ch] of Object.entries(changes)) {
           const c = loc.cols[k];
-          if (c < 0) return { error: `The sheet has no "${SM.PIP_FIELDS[k].header}" column.` };
+          if (c < 0) { if (SM.PIP_FIELDS[k].add) continue; return { error: `The sheet has no "${SM.PIP_FIELDS[k].header}" column.` }; }
           const now = rows[loc.row][c] ?? "";
-          if (!force && !same(now, ch.from)) conflicts.push({ field: k, label: SM.PIP_FIELDS[k].label, yours: ch.to, sheet: now });
+          if (!force && !same(now, ch.from ?? "")) conflicts.push({ field: k, label: SM.PIP_FIELDS[k].label, yours: String(ch.to), sheet: now });
         }
         if (conflicts.length) return { conflicts };
+        // A PIP without a number gets a Draft ID, so it is found again after a rename.
+        let draftId = loc.cols.draftId >= 0 ? SM.clean(rows[loc.row][loc.cols.draftId]) : "";
+        const give = !newNo && !draftId;
+        if (give) draftId = newId("D");
+        await addPipColumns(rows, loc, [...Object.keys(changes).filter((k) => SM.clean(SM.pipSheetValue(k, changes[k].to))), ...(give ? ["draftId"] : [])]);
+        const cells = [];
         for (const [k, ch] of Object.entries(changes)) {
-          if (same(rows[loc.row][loc.cols[k]] ?? "", ch.to)) continue;
-          await core.writeCell(tabs.pips, loc.row, loc.cols[k], SM.clean(ch.to));
+          const c = loc.cols[k];
+          if (c < 0 || String(SM.pipFormValue(k, rows[loc.row][c] ?? "")) === String(ch.to)) continue;
+          cells.push({ row: loc.row, col: c, value: SM.pipSheetValue(k, ch.to) });
         }
-        return { saved: true };
+        if (give) cells.push({ row: loc.row, col: loc.cols.draftId, value: draftId });
+        await core.writeCells(tabs.pips, cells);
+        return { saved: true, key: newNo ? Number(newNo) : draftId };
+      },
+
+      // A new Tracker row. A PIP is often added while it is drafted, before it has a number: it then gets a
+      // Draft ID. The row goes into the first empty row under the table (the sheet keeps prepared rows with
+      // their checkboxes), otherwise after the last row. Returns the key the PIP is found by.
+      async addPip(form) {
+        for (const [k, v] of Object.entries(form)) {
+          const f = SM.PIP_FIELDS[k];
+          if (!f || f.type === "id") return { error: `Unknown field ${k}.` };
+          const msg = SM.validate(f.type, v);
+          if (msg) return { error: `${f.label}: ${msg}` };
+        }
+        if (!SM.clean(form.name)) return { error: "Name: a PIP needs a name." };
+        const rows = await core.readTab(tabs.pips);
+        const T = SM.trackerColumns(rows);
+        if (T.error) return T;
+        const no = SM.clean(form.pipNo);
+        if (no && takenPip(rows, T, no)) return { error: `PIP-${Number(no)} already has a row in the sheet.` };
+        const values = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, SM.pipSheetValue(k, v)]));
+        const draftId = no ? "" : newId("D");
+        if (draftId) values.draftId = draftId;
+        await addPipColumns(rows, T, Object.keys(values).filter((k) => values[k] !== ""));
+        const blank = rows.findIndex((r, i) => i > T.headerRow && r.every((c) => !SM.clean(c) || /^false$/i.test(SM.clean(c))));
+        if (blank >= 0) {
+          await core.writeCells(tabs.pips, Object.entries(values).filter(([k, v]) => T.cols[k] >= 0 && v !== "").map(([k, v]) => ({ row: blank, col: T.cols[k], value: v })));
+        } else {
+          const row = [];
+          for (const [k, v] of Object.entries(values)) if (T.cols[k] >= 0) row[T.cols[k]] = v;
+          await core.appendRow(tabs.pips, Array.from(row, (v) => v ?? ""));
+        }
+        return { saved: true, key: no ? Number(no) : draftId };
       },
 
       // fiscalYear (optional): the budget year the payout belongs to. A tab made before the column
@@ -260,30 +313,44 @@
         return { saved: true, at };
       },
 
-      // Wallets tab: one row per wallet; saving an address that is already listed updates its row.
-      async saveWallet({ wallet, name, label, track, note }) {
-        for (const [v, kind, what] of [[wallet, "wallet", "Wallet address"], [name, "required", "Name"]]) {
+      // Wallets tab: one row per wallet and purpose. Saving updates the wallet's row for the purpose being
+      // edited (`at`: its Since as the editor saw it); `reuse` adds a row for a new purpose instead, which
+      // needs its Since (the PIP it serves, or a date), so earlier payouts keep the earlier purpose.
+      async saveWallet({ wallet, name, label, track, note, since = "", at = "", reuse = false }) {
+        for (const [v, kind, what] of [[wallet, "wallet", "Wallet address"], [name, "required", "Name"], [SM.clean(since), "since", "Since"]]) {
           const msg = SM.validate(kind, v);
           if (msg) return { error: `${what}: ${msg}` };
         }
         if (label) { const msg = SM.validate("pipLabel", label); if (msg) return { error: `Payout label: ${msg}` }; }
+        const sinceV = SM.clean(since).replace(/^pip-/i, "PIP-");
+        if (reuse && !sinceV) return { error: "Since: enter the PIP the wallet serves now (e.g. PIP-36) or the date it changed." };
         const tab = tabs.wallets || "Wallets";
         await core.ensureTab(tab, SM.WALLET_HEADERS);
-        const values = { Name: name, "Payout label": label || "", "Track balance": track ? "TRUE" : "FALSE", Note: note || "" };
+        const values = { Name: name, "Payout label": label || "", "Track balance": track ? "TRUE" : "FALSE", Note: note || "", Since: sinceV };
         const rows = await core.readTab(tab);
         const hi = SM.findHeaderRow(rows, ["Wallet"]);
-        if (hi >= 0) {
-          const h = rows[hi], cW = SM.colIndex(h, "Wallet");
-          // Tabs made before the rename still call the column "Label".
-          const col = (k) => { const c = SM.colIndex(h, k); return c >= 0 || k !== "Payout label" ? c : SM.colIndex(h, "Label"); };
-          for (let i = hi + 1; i < rows.length; i++) {
-            if (!same(rows[i][cW], wallet)) continue;
-            for (const [k, v] of Object.entries(values)) { const c = col(k); if (c >= 0) await core.writeCell(tab, i, c, v); }
-            return { saved: true, updated: true };
-          }
+        if (hi < 0) return { error: `The "${tab}" tab has no header row with "Wallet".` };
+        const h = [...rows[hi]], cW = SM.colIndex(h, "Wallet");
+        // A tab made before Since existed gets the column when one is first saved.
+        if (sinceV && SM.colIndex(h, "Since") < 0) { await core.writeCell(tab, hi, h.length, "Since"); h.push("Since"); }
+        // Tabs made before the rename still call the column "Label".
+        const col = (k) => { const c = SM.colIndex(h, k); return c >= 0 || k !== "Payout label" ? c : SM.colIndex(h, "Label"); };
+        const cS = SM.colIndex(h, "Since");
+        const mine = [];
+        for (let i = hi + 1; i < rows.length; i++) if (same(rows[i][cW], wallet)) mine.push(i);
+        const sinceOf = (i) => (cS >= 0 ? SM.clean(rows[i][cS]).toUpperCase() : "");
+        if (reuse && mine.some((i) => sinceOf(i) === sinceV.toUpperCase())) return { error: `This wallet already has a purpose since ${sinceV}.` };
+        const at0 = reuse ? -1 : mine.find((i) => sinceOf(i) === SM.clean(at).toUpperCase()) ?? (at ? -1 : mine[0] ?? -1);
+        if (!reuse && at && at0 < 0) return { error: "This wallet's row was changed in the sheet. Reload the page." };
+        if (at0 >= 0) {
+          await core.writeCells(tab, Object.entries(values).map(([k, v]) => ({ row: at0, col: col(k), value: v })).filter((c) => c.col >= 0));
+          return { saved: true, updated: true };
         }
-        await core.appendRow(tab, [wallet, ...Object.values(values)]);
-        return { saved: true };
+        const row = [];
+        row[cW] = wallet;
+        for (const [k, v] of Object.entries(values)) { const c = col(k); if (c >= 0) row[c] = v; }
+        await core.appendRow(tab, Array.from(row, (v) => v ?? ""));
+        return { saved: true, added: reuse ? "purpose" : "wallet" };
       },
 
       // Meeting minutes: one row per meeting day. `from` is the text the editor started from (null for
@@ -381,6 +448,58 @@
         return { saved: true };
       },
 
+      // PIP milestones and checklist items: one row each in their own tab (created on the first save),
+      // found by their ID. Ticking an item saves the date and who ticked it.
+      // Every milestone change also writes the PIP's counts into the Tracker (see syncTrackerCounts).
+      async addMilestone(m) { const v = milestoneValues(m); return v.error ? v : synced(await ownAdd("milestones", v.values), [pipOf(m.pip)]); },
+      async updateMilestone(id, m) { const v = milestoneValues(m); if (v.error) return v; const r = await ownWrite("milestones", id, v.values); return synced(r, [r.pip, pipOf(m.pip)]); },
+      async deleteMilestone(id) { const r = await ownDelete("milestones", id); return synced(r, [r.pip]); },
+      // Link the payout that paid a milestone (an empty signature removes the link).
+      async setMilestonePayout(id, signature) {
+        const sig = SM.clean(signature);
+        if (sig && !/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig)) return { error: "Enter the payout's transaction signature." };
+        const r = await ownWrite("milestones", id, { "Paid by (tx)": sig });
+        return synced(r, [r.pip]);
+      },
+      // The Council signs a milestone off (delivered); `done` false takes it back.
+      async completeMilestone(id, done, by) {
+        const r = await ownWrite("milestones", id, { "Completed on": done ? SM.textDate(new Date().toISOString().slice(0, 10)) : "", "Completed by": done ? by || "" : "" });
+        return synced(r, [r.pip]);
+      },
+      // One-time: milestone lists from the Tracker's counts, for PIPs that have none yet. `list` =
+      // [{ pip, done, total }]: "Milestone 1" to "Milestone <total>", the first <done> marked completed per the
+      // Tracker. No payout is linked (the Tracker does not say which one paid what).
+      async importMilestones(list) {
+        const o = OWN.milestones, tab = ownTab("milestones");
+        await core.ensureTab(tab, o.headers);
+        const rows = await core.readTab(tab);
+        const hi = SM.findHeaderRow(rows, o.find);
+        if (hi < 0) return { error: `The "${tab}" tab has no header row with "#" and "Milestone".` };
+        const h = await withColumns(tab, rows, hi, o.headers), cP = SM.colIndex(h, "PIP");
+        const has = new Set(rows.slice(hi + 1).map((r) => pipOf(r[cP])).filter(Boolean));
+        const out = [], pips = [];
+        for (const { pip, done, total } of list) {
+          if (!(pip > 0) || !(total > 0) || has.has(pip)) continue;
+          pips.push(pip);
+          for (let i = 1; i <= total; i++) {
+            const v = { ID: newId(o.prefix), PIP: `PIP-${pip}`, "#": String(i), Milestone: `Milestone ${i}`, "Completed by": i <= (done ?? 0) ? "Tracker" : "" };
+            const row = [];
+            for (const [key, val] of Object.entries(v)) { const c = SM.colIndex(h, key); if (c >= 0) row[c] = val; }
+            out.push(Array.from({ length: h.length }, (_, c) => row[c] ?? ""));
+          }
+        }
+        if (out.length) await call(range(SM.a1Tab(tab)) + ":append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS", { method: "POST", body: { values: out } });
+        const j = await call("?fields=sheets.properties(title,sheetId)");
+        const gid = (j.sheets || []).find((s) => s.properties.title === tab)?.properties.sheetId;
+        return { saved: true, pips, rows: out.length, tab, gid: gid == null ? null : String(gid) };
+      },
+      async addCheckItem(c) { const v = checkValues(c); return v.error ? v : ownAdd("checklists", v.values); },
+      async updateCheckItem(id, c) { const v = checkValues(c); return v.error ? v : ownWrite("checklists", id, v.values); },
+      async deleteCheckItem(id) { return ownDelete("checklists", id); },
+      async tickCheckItem(id, done, by) {
+        return ownWrite("checklists", id, { "Done on": done ? SM.textDate(new Date().toISOString().slice(0, 10)) : "", "Done by": done ? by || "" : "" });
+      },
+
       // "Update now": writes the request time into the sheet's Dashboard tab. The sheet's sync script
       // sees the sheet change and starts a rebuild; the page itself never holds a GitHub token.
       async requestUpdate(by) {
@@ -424,12 +543,122 @@
       // A repeating payment's fiscal year is the year each payment falls due, so the column stays empty.
       return { values: { Due: SM.textDate(due), "Paid from": account === "fund" ? "Ecosystem Fund" : "DAO Treasury", For: text(what), "Fiscal year": repeats ? "" : SM.clean(fiscalYear), Amount: String(n), Currency: currency, Description: text(description), Repeats: repeats, Until: until ? SM.textDate(until) : "" } };
     }
-    // The header row of the Upcoming payments tab, with any of its columns that are missing (a tab made
-    // before Repeats and Until existed) added at the end, so no value is dropped on save.
-    async function withColumns(tab, rows, hi) {
+    // The header row of one of the dashboard's own tabs, with any of its columns that are missing (e.g.
+    // an Upcoming payments tab made before Repeats and Until existed) added at the end, so no value is dropped on save.
+    async function withColumns(tab, rows, hi, headers = SM.UPCOMING_HEADERS) {
       const h = [...rows[hi]];
-      for (const name of SM.UPCOMING_HEADERS) if (SM.colIndex(h, name) < 0) { await core.writeCell(tab, hi, h.length, name); h.push(name); }
+      for (const name of headers) if (SM.colIndex(h, name) < 0) { await core.writeCell(tab, hi, h.length, name); h.push(name); }
       return h;
+    }
+    const txt = (s) => (SM.clean(s) ? "'" + SM.clean(s) : "");
+    const newId = (prefix) => prefix + Date.now().toString(36).toUpperCase() + Math.floor(Math.random() * 1296).toString(36).toUpperCase().padStart(2, "0");
+    // Another Tracker row already holds PIP-<n>.
+    const takenPip = (rows, T, n) => rows.some((r, i) => i > T.headerRow && i !== T.row && SM.clean(r[T.cols.pipNo]).toUpperCase() === `PIP-${Number(n)}`);
+    // Columns the dashboard adds to the Tracker (e.g. Draft ID) go into the first column after the table
+    // that is empty in every row; the sheet gets one more column when it has none left.
+    async function addPipColumns(rows, T, keys) {
+      for (const k of keys) {
+        if (T.cols[k] >= 0 || !SM.PIP_FIELDS[k]?.add) continue;
+        const used = (c) => rows.some((r) => SM.clean(r[c]));
+        let c = Math.max(...Object.values(T.cols)) + 1;
+        while (used(c)) c++;
+        const j = await call("?fields=sheets.properties(title,sheetId,gridProperties)");
+        const tab = (j.sheets || []).find((s) => s.properties.title === tabs.pips)?.properties;
+        const width = tab?.gridProperties?.columnCount;
+        if (width != null && c >= width) await call(":batchUpdate", { method: "POST", body: { requests: [{ appendDimension: { sheetId: tab.sheetId, dimension: "COLUMNS", length: c - width + 1 } }] } });
+        await core.writeCell(tabs.pips, T.headerRow, c, SM.PIP_FIELDS[k].header);
+        rows[T.headerRow][c] = SM.PIP_FIELDS[k].header;
+        T.cols[k] = c;
+      }
+    }
+    const pipOf = (v) => Number(String(v ?? "").replace(/\D/g, ""));
+    // The dashboard's own row tabs with an ID column, besides Upcoming payments.
+    const OWN = {
+      milestones: { key: "pipMilestones", name: "PIP milestones", headers: SM.MILESTONE_HEADERS, find: ["#", "Milestone"], prefix: "M", what: "milestone" },
+      checklists: { key: "checklists", name: "Checklists", headers: SM.CHECKLIST_HEADERS, find: ["Checklist", "Item"], prefix: "C", what: "checklist item" },
+    };
+    const ownTab = (k) => tabs[OWN[k].key] || OWN[k].name;
+    async function ownAdd(k, values) {
+      const o = OWN[k], tab = ownTab(k);
+      await core.ensureTab(tab, o.headers);
+      const rows = await core.readTab(tab);
+      const hi = SM.findHeaderRow(rows, o.find);
+      if (hi < 0) return { error: `The "${tab}" tab has no header row with ${o.find.map((x) => `"${x}"`).join(" and ")}.` };
+      const h = await withColumns(tab, rows, hi, o.headers), row = [];
+      const id = newId(o.prefix);
+      for (const [key, v] of Object.entries({ ID: id, ...values })) { const c = SM.colIndex(h, key); if (c >= 0) row[c] = v; }
+      await core.appendRow(tab, Array.from(row, (v) => v ?? ""));
+      const j = await call("?fields=sheets.properties(title,sheetId)");
+      const gid = (j.sheets || []).find((s) => s.properties.title === tab)?.properties.sheetId;
+      return { saved: true, id, tab, gid: gid == null ? null : String(gid) };
+    }
+    async function ownFind(k, id) {
+      const o = OWN[k], tab = ownTab(k);
+      const rows = await core.readTab(tab);
+      const hi = SM.findHeaderRow(rows, o.find);
+      if (hi < 0) return { error: `The "${tab}" tab was not found.` };
+      const h = await withColumns(tab, rows, hi, o.headers), cId = SM.colIndex(h, "ID");
+      const row = cId < 0 ? -1 : rows.findIndex((r, i) => i > hi && same(r[cId], id));
+      if (row < 0) return { error: `No ${o.what} with ID ${id} in the sheet; it may have been changed there. Reload the page.` };
+      return { tab, h, row, pip: pipOf(rows[row][SM.colIndex(h, "PIP")]) };
+    }
+    async function ownWrite(k, id, values) {
+      const f = await ownFind(k, id);
+      if (f.error) return f;
+      await core.writeCells(f.tab, Object.entries(values).map(([key, v]) => ({ row: f.row, col: SM.colIndex(f.h, key), value: v })).filter((c) => c.col >= 0));
+      return { saved: true, updated: true, pip: f.pip };
+    }
+    async function ownDelete(k, id) {
+      const f = await ownFind(k, id);
+      if (f.error) return f;
+      await core.deleteRows(f.tab, [f.row]);
+      return { saved: true, deleted: true, pip: f.pip };
+    }
+    // The Tracker's "Completed Milestones" and "Total Payment Milestones" follow the PIP's milestone list:
+    // completed = signed off or paid. A PIP without a Tracker row (or without those columns) is skipped.
+    async function syncTrackerCounts(pip) {
+      if (!(pip > 0)) return;
+      const rows = await core.readTab(ownTab("milestones"));
+      const hi = SM.findHeaderRow(rows, OWN.milestones.find);
+      if (hi < 0) return;
+      const h = rows[hi], col = (n) => SM.colIndex(h, n);
+      const mine = rows.slice(hi + 1).filter((r) => pipOf(r[col("PIP")]) === pip && SM.clean(r[col("Milestone")]));
+      const done = mine.filter((r) => ["Paid by", "Completed on", "Completed by"].some((n) => col(n) >= 0 && SM.clean(r[col(n)]))).length;
+      const t = await core.readTab(tabs.pips);
+      const loc = SM.locatePip(t, pip);
+      if (loc.error) return;
+      const cells = [["milestonesDone", done], ["milestonesTotal", mine.length]]
+        .filter(([k, v]) => loc.cols[k] >= 0 && SM.clean(t[loc.row][loc.cols[k]]) !== String(v))
+        .map(([k, v]) => ({ row: loc.row, col: loc.cols[k], value: String(v) }));
+      await core.writeCells(tabs.pips, cells);
+    }
+    // After a milestone save: the Tracker counts of the PIP(s) it touched. The save itself stands even
+    // if this fails; the result then says so.
+    async function synced(r, pips) {
+      if (!r?.saved) return r;
+      try { for (const p of new Set(pips.filter(Boolean))) await syncTrackerCounts(p); }
+      catch (e) { return { ...r, trackerError: e.message }; }
+      return r;
+    }
+    // A milestone's sheet values from the form, checked; or { error }.
+    function milestoneValues({ pip, n, name, amount = "", currency = "" }) {
+      if (!(pipOf(pip) > 0)) return { error: "PIP: missing." };
+      if (!/^\d+$/.test(String(n).trim()) || Number(n) < 1) return { error: "#: enter the milestone's number, e.g. 1." };
+      if (!SM.clean(name)) return { error: "Milestone: enter its name." };
+      const a = String(amount).replace(/[,\s]/g, "");
+      if (a && !(Number(a) > 0)) return { error: "Amount: enter a number above 0, or leave it empty." };
+      if (!["", "ATLAS", "USDC"].includes(currency)) return { error: "Currency: ATLAS or USDC." };
+      return { values: { PIP: `PIP-${pipOf(pip)}`, "#": String(Number(n)), Milestone: txt(name), Amount: a, Currency: a ? currency : "" } };
+    }
+    // A checklist item's sheet values from the form, checked; or { error }.
+    function checkValues({ pip, list, milestone = "", item, evidence = "" }) {
+      if (!(pipOf(pip) > 0)) return { error: "PIP: missing." };
+      if (!SM.clean(list)) return { error: "Checklist: enter its name, e.g. KPIs." };
+      if (!SM.clean(item)) return { error: "Item: enter what has to be done or met." };
+      if (String(milestone).trim() && !/^\d+$/.test(String(milestone).trim())) return { error: "Milestone: choose one, or none." };
+      const msg = SM.validate("url", evidence);
+      if (msg) return { error: `Evidence: ${msg.replace("Image links", "Links")}` };
+      return { values: { PIP: `PIP-${pipOf(pip)}`, Checklist: txt(list), Milestone: String(milestone).trim(), Item: txt(item), Evidence: SM.clean(evidence) } };
     }
     // The sheet row of an upcoming payment, by its ID.
     async function findUpcoming(id) {

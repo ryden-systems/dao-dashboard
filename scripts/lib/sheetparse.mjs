@@ -19,6 +19,8 @@ export function sheetSources({ rowsOf, tabs = {}, fetchedAt = new Date().toISOSt
     wallets: opt("wallets", parseWalletsTab, []),
     minutes: opt("meetingMinutes", parseMinutesTab, []),
     upcoming: opt("upcomingPayments", parseUpcomingTab, []),
+    milestones: opt("pipMilestones", parseMilestonesTab, []),
+    checklists: opt("checklists", parseChecklistTab, []),
     tabs,
     fetchedAt,
   };
@@ -71,22 +73,28 @@ export function parsePipTab(rows) {
     votes: col("# of Votes"), pvpVoted: col("PVP Voted"), totalPvp: col("Total PVP"),
     // Optional: a PIP paid in both currencies gets its USDC and ATLAS amounts here (token amounts).
     authUsdc: col("Authorized USDC"), authAtlas: col("Authorized ATLAS"),
+    // Optional: set by the dashboard on a PIP without a number yet (a draft).
+    draftId: col("Draft ID"),
   };
-  const OPTIONAL = new Set(["authUsdc", "authAtlas"]);
+  const OPTIONAL = new Set(["authUsdc", "authAtlas", "draftId"]);
   const missing = Object.entries(C).filter(([k, i]) => i < 0 && !OPTIONAL.has(k)).map(([k]) => k);
 
-  const pips = [];
+  // Rows with a PIP number are PIPs; rows with only a name are PIPs not numbered yet (ideas, drafts, or
+  // withdrawn before a vote).
+  const pips = [], drafts = [];
   for (const r of rows.slice(hi + 1)) {
     const id = clean(r[C.pip]);
     const m = id.match(/^PIP-(\d+)$/i);
-    if (!m) continue;
     const get = (k) => (C[k] >= 0 ? r[C[k]] : "");
+    if (!m && !clean(get("name"))) continue;
     const typeRaw = clean(get("type")).toLowerCase();
-    pips.push({
-      pip: Number(m[1]),
+    (m ? pips : drafts).push({
+      pip: m ? Number(m[1]) : null,
+      draftId: clean(get("draftId")) || null,
       name: clean(get("name")).replace(/^PIP-\d+:\s*/i, ""),
       phase: clean(get("phase")),
       status: clean(get("status")),
+      step: clean(get("step")),
       draftDate: dateCell(get("draft")),
       voteStart: dateCell(get("voteStart")),
       voteEnd: dateCell(get("voteEnd")),
@@ -114,7 +122,7 @@ export function parsePipTab(rows) {
       sheetTotalPvpM: parseNum(get("totalPvp")).value,
     });
   }
-  return { pips, missingColumns: missing };
+  return { pips, drafts, missingColumns: missing };
 }
 
 // The sheet names Council terms "SAC-2"; the dashboard says "Term 2", as on the Council page.
@@ -183,12 +191,13 @@ export function parseWalletsTab(rows) {
   const h = rows[hi].map((c) => clean(c).toLowerCase());
   const at = (n) => h.findIndex((x) => x === n || x.startsWith(n));
   // "Payout label" since 2026-11; tabs made earlier call it "Label".
-  const C = { wallet: at("wallet"), name: at("name"), label: at("payout label") >= 0 ? at("payout label") : at("label"), track: at("track"), note: at("note") };
+  const C = { wallet: at("wallet"), name: at("name"), label: at("payout label") >= 0 ? at("payout label") : at("label"), track: at("track"), note: at("note"), since: at("since") };
   const get = (r, k) => (C[k] >= 0 ? clean(r[C[k]]) : "");
+  // A wallet reused for a new purpose has one row per purpose (its "Since"); a repeated purpose is skipped.
   const seen = new Set();
   return rows.slice(hi + 1)
-    .map((r) => ({ wallet: get(r, "wallet"), name: get(r, "name"), label: get(r, "label"), track: yes(get(r, "track")), note: get(r, "note") }))
-    .filter((w) => WALLET_RE.test(w.wallet) && !seen.has(w.wallet) && seen.add(w.wallet));
+    .map((r) => ({ wallet: get(r, "wallet"), name: get(r, "name"), label: get(r, "label"), track: yes(get(r, "track")), note: get(r, "note"), since: get(r, "since").replace(/^pip-/i, "PIP-") }))
+    .filter((w) => WALLET_RE.test(w.wallet) && !seen.has(`${w.wallet}|${w.since.toUpperCase()}`) && seen.add(`${w.wallet}|${w.since.toUpperCase()}`));
 }
 
 // Optional "Meeting minutes" tab: one row per meeting. Headers: "Date" (the meeting's day), "Title"
@@ -251,6 +260,55 @@ export function parseUpcomingTab(rows) {
       paidBy: done ? paid.at(-1) : null,
     };
   }).filter((u) => u.amount > 0);
+}
+
+// Optional "PIP milestones" tab: one row per payment milestone of a PIP. Headers: ID, PIP (PIP-36 or 36),
+// # (the milestone's number), Milestone (its name), Amount, Currency, Paid by (tx) (the payout that paid it).
+export function parseMilestonesTab(rows) {
+  const hi = rows.findIndex((r) => r.some((c) => clean(c) === "#") && r.some((c) => /^milestone$/i.test(clean(c))));
+  if (hi < 0) return [];
+  const h = rows[hi].map((c) => clean(c).toLowerCase());
+  const at = (n) => h.findIndex((x) => x === n || x.startsWith(n));
+  const C = { id: h.indexOf("id"), pip: h.indexOf("pip"), n: h.indexOf("#"), name: h.indexOf("milestone"), amount: at("amount"), cur: at("currency"), paid: at("paid by"), doneOn: at("completed on"), doneBy: at("completed by") };
+  const get = (r, k) => (C[k] >= 0 ? clean(r[C[k]]) : "");
+  return rows.slice(hi + 1).map((r, i) => {
+    const amt = parseNum(get(r, "amount")), n = Number(get(r, "n"));
+    return {
+      id: get(r, "id") || `row-${hi + 2 + i}`,
+      pip: Number(get(r, "pip").replace(/\D/g, "")) || null,
+      n: Number.isInteger(n) && n > 0 ? n : null,
+      name: get(r, "name"),
+      amount: amt.state === "ok" ? amt.value : null,
+      currency: get(r, "cur").toUpperCase().replace(/^USD$/, "USDC") || null,
+      paidBy: get(r, "paid") || null,
+      completedOn: get(r, "doneOn") || null,
+      completedBy: get(r, "doneBy") || null,
+    };
+  }).filter((m) => m.pip && m.name);
+}
+
+// Optional "Checklists" tab: one row per item. Headers: ID, PIP, Checklist (its name, e.g. KPIs),
+// Milestone (the milestone # it is a condition for; empty = none), Item, Done on (date), Done by, Evidence (link).
+export function parseChecklistTab(rows) {
+  const hi = rows.findIndex((r) => r.some((c) => /^checklist$/i.test(clean(c))) && r.some((c) => /^item$/i.test(clean(c))));
+  if (hi < 0) return [];
+  const h = rows[hi].map((c) => clean(c).toLowerCase());
+  const at = (n) => h.findIndex((x) => x === n || x.startsWith(n));
+  const C = { id: h.indexOf("id"), pip: h.indexOf("pip"), list: h.indexOf("checklist"), ms: h.indexOf("milestone"), item: h.indexOf("item"), on: at("done on"), by: at("done by"), ev: at("evidence") };
+  const get = (r, k) => (C[k] >= 0 ? clean(r[C[k]]) : "");
+  return rows.slice(hi + 1).map((r, i) => {
+    const ms = Number(get(r, "ms")), on = get(r, "on");
+    return {
+      id: get(r, "id") || `row-${hi + 2 + i}`,
+      pip: Number(get(r, "pip").replace(/\D/g, "")) || null,
+      list: get(r, "list"),
+      milestone: Number.isInteger(ms) && ms > 0 ? ms : null,
+      item: get(r, "item"),
+      doneOn: on ? dateCell(on) ?? on : null,
+      doneBy: get(r, "by") || null,
+      evidence: get(r, "ev") || null,
+    };
+  }).filter((c) => c.pip && c.list && c.item);
 }
 
 // Optional tab maintained by the Council: one row per on-chain payout they have labelled.

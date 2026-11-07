@@ -77,16 +77,26 @@ export function reconcile({ pips, ledger, labels = [], wallets = [], config }) {
     else if (NOT_SPENDING.test(text)) set(leg, "internal", null, text);
     else { set(leg, confirmed ? "category" : "inferred", null, reason); leg.category = text; }
   };
-  // Wallets with an automatic label ("Wallets" tab): every payout to them gets it.
-  const walletLabel = new Map(wallets.filter((w) => w.label).map((w) => [w.wallet, w]));
+  // Wallets with an automatic label ("Wallets" tab): every payout to them gets it. A wallet reused for a
+  // new purpose has one row per purpose (`from`: when it starts); a payout gets the row in force at its time.
+  const walletRows = new Map();
+  for (const w of wallets) { if (!walletRows.has(w.wallet)) walletRows.set(w.wallet, []); walletRows.get(w.wallet).push(w); }
+  for (const list of walletRows.values()) list.sort((a, b) => (a.from ?? -1) - (b.from ?? -1));
+  const walletAt = (owner, t) => {
+    const list = walletRows.get(owner);
+    if (!list) return null;
+    let hit = list[0];
+    for (const w of list) if ((w.from ?? -1) <= t) hit = w;
+    return hit;
+  };
 
   // Pass 1: internal transfers, Council labels on a payout, then wallet labels.
   for (const leg of legs) {
     if (leg.ownerDao) { set(leg, "internal", null, `${leg.direction === "out" ? "to" : "from"} ${config.accounts[leg.ownerDao]?.label ?? leg.ownerDao}`); continue; }
     const l = labelBySig.get(`${leg.sig}:${leg.owner}`) ?? labelBySig.get(leg.sig);
     if (l) { leg.labelled = true; leg.fiscalYear = l.fiscalYear ?? null; applyLabel(leg, l.label, l.confirmed, "Council label"); continue; }
-    const w = leg.direction === "out" && leg.owner ? walletLabel.get(leg.owner) : null;
-    if (w) applyLabel(leg, w.label, true, `wallet label${w.name ? ` (${w.name})` : ""}`);
+    const w = leg.direction === "out" && leg.owner ? walletAt(leg.owner, leg.t) : null;
+    if (w?.label) applyLabel(leg, w.label, true, `wallet label${w.name ? ` (${w.name})` : ""}`);
   }
 
   // A sheet "paid" figure can be claimed by one payout (or one recipient group) only;

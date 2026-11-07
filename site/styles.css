@@ -253,7 +253,6 @@ main:focus { outline: none; }
 .btn.ed-btn:hover { --cut-line: var(--editor); }
 .kpi.ed-only, .panel.ed-only { background-color: var(--editor-soft); --cut-line: color-mix(in srgb, var(--editor) 50%, var(--line)); border-color: var(--cut-line); }
 tr.detail.ed-only > td { background-color: var(--editor-soft); }
-.note.ed-note { border-left-color: var(--editor); background: color-mix(in srgb, var(--editor) 16%, transparent); }
 .ed-zone { display: block; background-color: var(--editor-soft); border-radius: var(--radius); padding: 12px 16px 14px; }
 .editbar .ed-zone { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0; background-color: transparent; }
 .tabs a.ed-only { background-color: var(--editor-soft); }

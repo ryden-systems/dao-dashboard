@@ -6,10 +6,12 @@ import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 import { ROOT, parseCSV } from "../scripts/lib/util.mjs";
-import { parsePipTab, parseLabelTab, parseMembersTab, parseWalletsTab, parseMinutesTab, parseUpcomingTab } from "../scripts/lib/sheet.mjs";
+import { parsePipTab, parseLabelTab, parseMembersTab, parseWalletsTab, parseMinutesTab, parseUpcomingTab, parseMilestonesTab, parseChecklistTab } from "../scripts/lib/sheet.mjs";
+import { pipPlans, milestoneLabels } from "../scripts/lib/plans.mjs";
 import { budgetOf } from "../scripts/lib/budget.mjs";
 import { councilVideos } from "../scripts/lib/videos.mjs";
 import { reconcile } from "../scripts/lib/reconcile.mjs";
+import { squadsSend } from "../scripts/lib/walletkinds.mjs";
 import { councilTerms } from "../scripts/lib/members.mjs";
 
 let failed = 0, passed = 0;
@@ -44,12 +46,22 @@ async function fakeFetch(url, opts = {}) {
   const body = opts.body ? JSON.parse(opts.body) : null;
   if (!rest && u.search.includes("fields=properties.title")) return json(200, { properties: { title: "Tracker sheet" } });
   if (!rest && u.search.includes("sheets.properties")) return json(200, { sheets: Object.keys(book).map((t, i) => ({ properties: { title: t, sheetId: i } })) });
-  if (rest === ":batchUpdate" || u.pathname.endsWith(":batchUpdate")) {
+  if (rest === ":batchUpdate" || (u.pathname.endsWith(":batchUpdate") && rest !== "values:batchUpdate")) {
     // Like Google: an update without any request is refused.
     if (!body.requests?.length) return json(400, { error: { message: "Invalid requests: must specify at least one request." } });
     for (const rq of body.requests) if (rq.updateSpreadsheetProperties && rq.updateSpreadsheetProperties.properties.title !== "Tracker sheet") return json(500, { error: { message: "the check must not rename the sheet" } });
     for (const rq of body.requests) if (rq.addSheet) { const t = rq.addSheet.properties.title; if (book[t]) return json(400, { error: { message: "exists" } }); book[t] = []; }
     for (const rq of body.requests) if (rq.deleteDimension) { const g = rq.deleteDimension.range; book[Object.keys(book)[g.sheetId]].splice(g.startIndex, g.endIndex - g.startIndex); }
+    return json(200, {});
+  }
+  if (rest === "values:batchUpdate") {
+    for (const d of body.data) {
+      const c = parseRange(d.range), tab = book[c.tab];
+      while (tab.length <= c.row) tab.push([]);
+      while (tab[c.row].length <= c.col) tab[c.row].push("");
+      tab[c.row][c.col] = String(d.values[0][0]).replace(/^'/, "");
+    }
+    writes.push(["batch", body.data.length]);
     return json(200, {});
   }
   const m = rest.match(/^values\/(.+?)(:append)?$/);
@@ -75,7 +87,7 @@ const core = ctx.Editor.makeCore({ sheetId: "SHEET", tabs: { pips: "Tracker", pa
 ok(SM.colLetter(0) === "A" && SM.colLetter(25) === "Z" && SM.colLetter(26) === "AA" && SM.colLetter(30) === "AE", "colLetter");
 ok(SM.a1("Bob's tab", 4, 2) === "'Bob''s tab'!C5", "a1 quotes apostrophes");
 const loc = SM.locatePip(book.Tracker, 16);
-ok(!loc.error && Object.values(loc.cols).every((c) => c >= 0), "locatePip finds PIP-16 and every editable column: " + JSON.stringify(loc.error || loc.cols));
+ok(!loc.error && loc.pip === 16 && Object.entries(loc.cols).every(([k, c]) => c >= 0 || SM.PIP_FIELDS[k].add), "locatePip finds PIP-16 and every editable column: " + JSON.stringify(loc.error || loc.cols));
 ok(SM.locatePip(book.Tracker, 999).error?.includes("no row"), "unknown PIP reported");
 ok(SM.validate("int", "3") === "" && SM.validate("int", "abc") !== "", "int validation");
 ok(SM.validate("pipLabel", "PIP-28") === "" && SM.validate("pipLabel", "internal") === "" && SM.validate("pipLabel", "28") !== "", "label validation");
@@ -99,6 +111,49 @@ ok(r.error?.includes("whole number"), "invalid number refused before any write")
 const n0 = writes.length;
 r = await core.savePip(16, { milestonesDone: { from: book.Tracker[loc.row][loc.cols.milestonesDone], to: book.Tracker[loc.row][loc.cols.milestonesDone] } });
 ok(r.saved && writes.length === n0, "unchanged value is not rewritten");
+
+// ---------- Tracker: process and funding fields, Add PIP, drafts without a number ----------
+{
+  const saved = book.Tracker.map((r) => [...r]);
+  const T = SM.trackerColumns(book.Tracker);
+  const v = await core.readPip(16);
+  ok(!v.error && v.form.pipNo === "16" && typeof v.form.pdfSent === "boolean" && !v.missing.includes("authUsdc") && !v.missing.includes("draftId"), "readPip gives form values; added columns are not missing: " + JSON.stringify(v.missing));
+  let r = await core.savePip(16, { amount: { from: v.values.amount, to: "1,250,000" }, pdfSent: { from: v.values.pdfSent, to: true }, draftDate: { from: v.values.draftDate, to: "2026-01-05" } });
+  ok(r.saved && r.key === 16 && book.Tracker[loc.row][T.cols.amount] === "1250000" && book.Tracker[loc.row][T.cols.pdfSent] === "TRUE" && book.Tracker[loc.row][T.cols.draftDate] === "2026-01-05", "funding and process fields are written as the sheet expects: " + JSON.stringify(r));
+  const p16 = parsePipTab(book.Tracker).pips.find((p) => p.pip === 16);
+  ok(p16.amount.value === 1250000 && p16.pdfSent === true && p16.draftDate === "2026-01-05", "and read back by the build: " + JSON.stringify(p16.amount));
+  ok((await core.savePip(16, { amount: { from: "1250000", to: "lots" } })).error, "an amount that is not a number is refused");
+  const w0 = book.Tracker[T.headerRow].length;
+  r = await core.savePip(16, { authUsdc: { from: "", to: "5000" } });
+  const cAuth = SM.colIndex(book.Tracker[T.headerRow], "Authorized USDC");
+  ok(r.saved && cAuth >= 0 && book.Tracker[loc.row][cAuth] === "5000" && parsePipTab(book.Tracker).pips.find((p) => p.pip === 16).authorizedUsdc.value === 5000, "a missing Authorized USDC column is added on the first value: " + cAuth + " / " + w0);
+  ok((await core.savePip(16, { pipNo: { from: "PIP-16", to: "1" } })).error?.includes("already has a row"), "a PIP number cannot be given twice");
+
+  // A draft: no number, gets a Draft ID, fills the first empty prepared row.
+  const blank = book.Tracker.findIndex((row, i) => i > T.headerRow && row.every((c) => !SM.clean(c) || /^false$/i.test(SM.clean(c))));
+  r = await core.addPip({ name: "Council expense wallet", phase: "Draft", status: "Actionable", draftDate: "2026-11-07", step: "2", pdfSent: false, mdSent: false, amount: "50000", currency: "USDC", eco: "NO", category: "DAO Treasury", sacTerm: "SAC-3" });
+  const cId = SM.colIndex(book.Tracker[T.headerRow], "Draft ID");
+  ok(r.saved && /^D[0-9A-Z]+$/.test(r.key) && cId >= 0 && (blank < 0 || book.Tracker[blank][cId] === r.key), "Add PIP without a number: a Draft ID, in the first empty row " + blank + ": " + JSON.stringify(r));
+  const parsed = parsePipTab(book.Tracker);
+  const d = parsed.drafts.find((x) => x.draftId === r.key);
+  ok(d && d.name === "Council expense wallet" && d.phase === "Draft" && d.step === "2" && d.amount.value === 50000 && d.currency === "USDC" && d.ecosystemFund === false && d.draftDate === "2026-11-07", "the draft is read back by the build: " + JSON.stringify(d));
+  ok(parsed.drafts.some((x) => x.phase === "Withdrawn" && !x.draftId), "withdrawn rows without a number are read as drafts too");
+  ok((await core.addPip({ name: "" })).error && (await core.addPip({ name: "x", pipNo: "16" })).error?.includes("already"), "Add PIP needs a name and a free number");
+
+  // An old row without a Draft ID is found by its name and gets one on the first save.
+  const old = parsed.drafts.find((x) => !x.draftId);
+  r = await core.savePip(`name:${old.name}`, { step: { from: old.step, to: "5" } });
+  ok(r.saved && /^D/.test(r.key) && parsePipTab(book.Tracker).drafts.find((x) => x.name === old.name).draftId === r.key, "a draft found by name gets its Draft ID on save: " + JSON.stringify(r));
+  // Rename, then assign the number once the vote is up.
+  const dv = await core.readPip(d.draftId);
+  r = await core.savePip(d.draftId, { name: { from: dv.values.name, to: "Council expense wallet v2" } });
+  ok(r.saved && r.key === d.draftId && parsePipTab(book.Tracker).drafts.find((x) => x.draftId === d.draftId).name === "Council expense wallet v2", "a draft keeps its Draft ID through a rename");
+  r = await core.savePip(d.draftId, { pipNo: { from: "", to: "99" } });
+  ok(r.saved && r.key === 99 && parsePipTab(book.Tracker).pips.some((p) => p.pip === 99 && p.name === "Council expense wallet v2"), "assigning a number turns the draft into PIP-99");
+  r = await core.addPip({ name: "Numbered right away", pipNo: "98", phase: "Voting" });
+  ok(r.saved && r.key === 98 && parsePipTab(book.Tracker).pips.some((p) => p.pip === 98), "Add PIP with a number");
+  book.Tracker = saved;
+}
 
 // ---------- payment labels: create tab, append, round-trip through the build's importer ----------
 r = await core.addLabel({ signature: "SIG1", recipient: "OWNER1", pip: "PIP-28", confirmed: true });
@@ -205,6 +260,41 @@ ok(r.updated && book.Wallets.length === 2 && book.Wallets[1][1] === "Star Atlas 
 }
 const walletsBack = parseWalletsTab([...book.Wallets, ["bad", "Ignored", "", "TRUE", ""], [FOUND, "Duplicate", "", "", ""]]);
 ok(walletsBack.length === 1 && walletsBack[0].track === true && walletsBack[0].label === "Foundation" && walletsBack[0].note === "legal entity", "build reads the Wallets tab back; invalid and repeated addresses are skipped");
+
+// ---------- a wallet reused for a new purpose (one row per purpose, "Since") ----------
+{
+  const keep = book.Wallets;
+  const MS = "AGefCMwaVHvn6VhYMcWLLz2JTGa6DkmdpQbkv82eMyuK";
+  book.Wallets = [["Wallet", "Name", "Payout label", "Track balance", "Note"], [MS, "Arty's SLYA hosting", "PIP-24", "TRUE", ""]];
+  ok((await core.saveWallet({ wallet: MS, name: "Atom", label: "PIP-30", reuse: true })).error?.includes("Since"), "reusing a wallet needs its Since");
+  ok((await core.saveWallet({ wallet: MS, name: "Atom", label: "PIP-30", since: "soon", reuse: true })).error, "Since must be a PIP or a date");
+  r = await core.saveWallet({ wallet: MS, name: "Atom", label: "PIP-30", track: true, since: "pip-30", reuse: true });
+  ok(r.saved && r.added === "purpose" && book.Wallets[0][5] === "Since" && book.Wallets.length === 3 && book.Wallets[2][5] === "PIP-30", "reuse adds a row and the Since column: " + JSON.stringify(book.Wallets));
+  ok((await core.saveWallet({ wallet: MS, name: "Again", since: "PIP-30", reuse: true })).error?.includes("already"), "the same purpose cannot be added twice");
+  await core.saveWallet({ wallet: MS, name: "Dashboard", label: "PIP-36", track: true, since: "PIP-36", reuse: true });
+  r = await core.saveWallet({ wallet: MS, name: "Atom (ATOM PIP)", label: "PIP-30", track: true, since: "PIP-30", at: "PIP-30" });
+  ok(r.updated && book.Wallets[2][1] === "Atom (ATOM PIP)" && book.Wallets[1][1] === "Arty's SLYA hosting" && book.Wallets[3][1] === "Dashboard", "editing changes only the purpose being edited");
+  const rows = parseWalletsTab(book.Wallets);
+  ok(rows.length === 3 && rows.map((w) => w.since).join() === ",PIP-30,PIP-36", "the build reads every purpose of a wallet: " + JSON.stringify(rows.map((w) => w.since)));
+  // Payouts get the purpose in force at their time.
+  const from = { "": null, "PIP-30": 1760000000, "PIP-36": 1790000000 };
+  const wal = rows.map((w) => ({ ...w, from: from[w.since] }));
+  const leg = (sig, t) => ({ sig, t, account: "fund", symbol: "ATLAS", delta: -1000, legs: [{ owner: MS, amount: 1000 }] });
+  const rec = reconcile({ pips: [], ledger: { rows: [leg("A", 1750000000), leg("B", 1770000000), leg("C", 1795000000)] }, labels: [], wallets: wal, config: { accounts: { fund: { label: "Ecosystem Fund" } } } });
+  const pipOfLeg = (s) => rec.legs.find((l) => l.sig === s)?.pip;
+  ok(pipOfLeg("A") === 24 && pipOfLeg("B") === 30 && pipOfLeg("C") === 36, "each payout to a reused wallet gets the purpose of its time: " + ["A", "B", "C"].map(pipOfLeg).join());
+  book.Wallets = keep;
+}
+
+// ---------- multisig check: a Squads transaction in which the wallet SENDS ----------
+{
+  const W = "9q3ZZnezQyVXvBKYkKwjxpvVVPp7CFY9VYbaW5gBhX7Y", SQ = "SMPLecH534NA9acpos4G6x7uf3LWbCAwZQE9e8ZekMu", MSA = "5hr6YecyRMFb3eb4SLL863TYb6nQUYYzGpCNsTwSoVZm";
+  const tx = (pre, post, keys = [{ pubkey: "member", signer: true }, { pubkey: SQ }, { pubkey: MSA }, { pubkey: W }]) => ({ transaction: { message: { accountKeys: keys } }, meta: { preBalances: [1, 0, 0, 5], postBalances: [1, 0, 0, 5], preTokenBalances: [{ accountIndex: 4, owner: W, uiTokenAmount: { uiAmountString: String(pre) } }], postTokenBalances: [{ accountIndex: 4, owner: W, uiTokenAmount: { uiAmountString: String(post) } }] } });
+  const hit = squadsSend(tx(100, 40), W, new Set([MSA]));
+  ok(hit && hit.program === "Squads v3" && hit.account === MSA, "a payout from the wallet through Squads marks it as a multisig vault: " + JSON.stringify(hit));
+  ok(!squadsSend(tx(40, 100), W, new Set([MSA])), "receiving through Squads (e.g. a DAO Treasury payout) does not");
+  ok(!squadsSend(tx(100, 40, [{ pubkey: "member", signer: true }, { pubkey: W }]), W), "sending without Squads does not");
+}
 
 // Auto labels: every payout to a labelled wallet gets the label; a payout's own label wins.
 {
@@ -341,6 +431,82 @@ ok(docList.length === 2 && docList[1].link === "https://drive/2" && docList[0].b
   const paid12 = Array.from({ length: 12 }, (_, i) => ({ sig: "p" + i, t: Date.UTC(2025, 10 + i, 10) / 1000, account: "treasury", direction: "out", symbol: "USDC", amount: 500, category: "Operating costs", confidence: "labelled" }));
   const hist = budgetOf({ ...base, payments: paid12 }), histMo = budgetOf({ ...base, payments: paid12, upcoming: [mo] });
   ok(hist.rate.tU === -500 && histMo.rate.tU === 0 && histMo.replaced.categories.join() === "Operating costs", "a repeating payment replaces its category's average in the projection: " + hist.rate.tU + " / " + histMo.rate.tU);
+}
+
+// ---------- PIP milestones and checklists ----------
+{
+  ok((await core.addMilestone({ pip: 36, n: "x", name: "Beta" })).error, "a milestone needs a number");
+  ok((await core.addMilestone({ pip: 36, n: "1", name: "" })).error, "a milestone needs a name");
+  const m1 = await core.addMilestone({ pip: 36, n: "1", name: "Beta release", amount: "5,000,000", currency: "ATLAS" });
+  const m2 = await core.addMilestone({ pip: 36, n: "2", name: "Launch", amount: "", currency: "ATLAS" });
+  ok(m1.saved && /^M[0-9A-Z]+$/.test(m1.id) && m1.id !== m2.id && book["PIP milestones"][0].join() === SM.MILESTONE_HEADERS.join(), "the first milestone creates the tab: " + JSON.stringify(m1));
+  let ms = parseMilestonesTab(book["PIP milestones"]);
+  ok(ms.length === 2 && ms[0].pip === 36 && ms[0].n === 1 && ms[0].name === "Beta release" && ms[0].amount === 5000000 && ms[0].currency === "ATLAS" && !ms[1].amount && !ms[1].currency, "milestones read back as written: " + JSON.stringify(ms));
+  ok((await core.updateMilestone(m2.id, { pip: 36, n: "2", name: "Public launch", amount: "1000", currency: "USDC" })).updated && parseMilestonesTab(book["PIP milestones"])[1].name === "Public launch", "a milestone can be edited");
+
+  ok((await core.addCheckItem({ pip: 36, list: "", item: "x" })).error, "an item needs a checklist name");
+  ok((await core.addCheckItem({ pip: 36, list: "KPIs", item: "x", evidence: "not a link" })).error, "evidence must be a link");
+  const c1 = await core.addCheckItem({ pip: 36, list: "KPIs", milestone: "2", item: "1,000 players onboarded" });
+  const c2 = await core.addCheckItem({ pip: 36, list: "KPIs", milestone: "2", item: "Report published", evidence: "https://example.org/report" });
+  const c3 = await core.addCheckItem({ pip: 36, list: "Deliverables", milestone: "", item: "Source code public" });
+  ok(c1.saved && c2.saved && c3.saved && book["Checklists"][0].join() === SM.CHECKLIST_HEADERS.join(), "checklist items create their tab");
+  ok((await core.tickCheckItem(c1.id, true, "council@example.org")).updated, "an item can be ticked");
+  let cl = parseChecklistTab(book["Checklists"]);
+  const t1 = cl.find((c) => c.id === c1.id);
+  ok(/^\d{4}-\d{2}-\d{2}$/.test(t1.doneOn) && t1.doneBy === "council@example.org" && t1.milestone === 2 && !cl.find((c) => c.id === c2.id).doneOn && cl.find((c) => c.id === c2.id).evidence === "https://example.org/report", "ticking saves the date and who ticked: " + JSON.stringify(t1));
+  ok((await core.tickCheckItem(c1.id, false)).updated && !parseChecklistTab(book["Checklists"]).find((c) => c.id === c1.id).doneOn, "an item can be unticked");
+  await core.tickCheckItem(c1.id, true, "council@example.org");
+
+  const SIGM = "8".repeat(88);
+  ok((await core.setMilestonePayout(m2.id, "nope")).error, "linking needs a transaction signature");
+  ok((await core.setMilestonePayout(m2.id, SIGM)).updated && parseMilestonesTab(book["PIP milestones"])[1].paidBy === SIGM, "a payout can be linked to a milestone");
+
+  // The calculation: checklists per milestone, the paid-with-open-items flag, labels for linked payouts.
+  ms = parseMilestonesTab(book["PIP milestones"]); cl = parseChecklistTab(book["Checklists"]);
+  const legs = [{ sig: SIGM, t: 1790000000, direction: "out", account: "treasury" }];
+  const plan = pipPlans({ milestones: ms, checklists: cl, legs });
+  const P = plan.byPip.get(36);
+  ok(P.milestones.length === 2 && P.milestones[1].checks[0].name === "KPIs" && P.milestones[1].checks[0].done === 1 && P.milestones[1].checks[0].total === 2 && P.milestones[1].paidAt === 1790000000, "milestone 2 shows its KPI checklist 1/2: " + JSON.stringify(P.milestones[1].checks));
+  ok(P.checklists.length === 2 && P.checklists.find((l) => l.name === "Deliverables").milestone === null, "a checklist without a milestone stands on its own");
+  ok(plan.flags.some((f) => /milestone 2 \(Public launch\) is paid, but its checklist "KPIs" has 1 open item/.test(f.message)), "paying a milestone with open KPIs is flagged: " + JSON.stringify(plan.flags));
+  await core.tickCheckItem(c2.id, true, "council@example.org");
+  const afterTick = pipPlans({ milestones: ms, checklists: parseChecklistTab(book["Checklists"]), legs }).flags;
+  ok(!afterTick.some((f) => /open item/.test(f.message)) && afterTick.some((f) => f.severity === "info" && /milestone 2 \(Public launch\) is paid, but not marked completed/.test(f.message)), "open-items flag gone once every item is ticked; paid but not completed is a reminder: " + JSON.stringify(afterTick));
+  ok(pipPlans({ milestones: [], checklists: cl, legs }).flags.some((f) => /for milestone 2, which is not in the PIP milestones tab/.test(f.message)), "a checklist for a missing milestone is flagged");
+  ok(milestoneLabels(ms).length === 1 && milestoneLabels(ms)[0].label === "PIP-36" && milestoneLabels(ms)[0].signature === SIGM, "a linked payout is labelled as the PIP's");
+
+  // Completed (signed off) is its own step; the Tracker's counts follow the list on every milestone save.
+  {
+    const T = SM.trackerColumns(book.Tracker);
+    const row36 = SM.locatePip(book.Tracker, 36);
+    ok(!row36.error, "the test Tracker has a PIP-36 row");
+    r = await core.completeMilestone(m1.id, true, "council@example.org");
+    let ms2 = parseMilestonesTab(book["PIP milestones"]);
+    const done1 = ms2.find((m) => m.id === m1.id);
+    ok(r.updated && /^\d{4}-\d{2}-\d{2}$/.test(done1.completedOn) && done1.completedBy === "council@example.org" && book["PIP milestones"][0].includes("Completed on"), "a milestone can be marked completed: " + JSON.stringify(done1));
+    ok(book.Tracker[row36.row][T.cols.milestonesDone] === "2" && book.Tracker[row36.row][T.cols.milestonesTotal] === "2", "the Tracker counts follow the list (1 completed + 1 paid of 2): " + book.Tracker[row36.row][T.cols.milestonesDone] + "/" + book.Tracker[row36.row][T.cols.milestonesTotal]);
+    let plan2 = pipPlans({ milestones: ms2, checklists: parseChecklistTab(book["Checklists"]), legs });
+    ok(plan2.flags.some((f) => /milestone 1 \(Beta release\) is completed, but no payout is linked/.test(f.message)), "completed without a payout is a reminder to pay");
+    r = await core.completeMilestone(m1.id, false);
+    ok(r.updated && !parseMilestonesTab(book["PIP milestones"]).find((m) => m.id === m1.id).completedOn && book.Tracker[row36.row][T.cols.milestonesDone] === "1", "reopening clears it and the Tracker count goes back to 1");
+    // Completed while its checklist has open items: flagged before the money goes out.
+    const c4 = await core.addCheckItem({ pip: 36, list: "KPIs", milestone: "1", item: "Beta live" });
+    await core.completeMilestone(m1.id, true, "council@example.org");
+    plan2 = pipPlans({ milestones: parseMilestonesTab(book["PIP milestones"]), checklists: parseChecklistTab(book["Checklists"]), legs });
+    ok(plan2.flags.some((f) => f.severity === "warning" && /milestone 1 \(Beta release\) is marked completed, but its checklist "KPIs" has 1 open item/.test(f.message)), "completing with open checklist items is flagged");
+    await core.deleteCheckItem(c4.id);
+    // One-time import from the Tracker's counts; a PIP that already has a list is left alone.
+    r = await core.importMilestones([{ pip: 24, done: 3, total: 3 }, { pip: 14, done: 1, total: 2 }, { pip: 36, done: 0, total: 5 }]);
+    const all = parseMilestonesTab(book["PIP milestones"]);
+    const p24 = all.filter((m) => m.pip === 24), p14 = all.filter((m) => m.pip === 14);
+    ok(r.saved && r.rows === 5 && r.pips.join() === "24,14" && all.filter((m) => m.pip === 36).length === 2, "import makes lists only for PIPs without one: " + JSON.stringify(r));
+    ok(p24.length === 3 && p24.every((m) => m.completedBy === "Tracker" && !m.paidBy) && p14.map((m) => m.completedBy || "-").join() === "Tracker,-" && p14[1].name === "Milestone 2", "imported milestones are completed per the Tracker, never paid: " + JSON.stringify(p14));
+    const plan3 = pipPlans({ milestones: all, checklists: [], legs });
+    ok(plan3.flags.filter((f) => f.pip === 24 && /completed \(per the Tracker\), but no payout is linked/.test(f.message)).length === 3, "each imported completed milestone without a payout is a reminder");
+  }
+  ok((await core.deleteCheckItem(c3.id)).deleted && parseChecklistTab(book["Checklists"]).length === 2, "an item can be deleted");
+  ok((await core.deleteMilestone(m1.id)).deleted && parseMilestonesTab(book["PIP milestones"]).filter((m) => m.pip === 36).map((m) => m.n).join() === "2", "a milestone can be deleted");
+  ok(book.Tracker[SM.locatePip(book.Tracker, 36).row][SM.trackerColumns(book.Tracker).cols.milestonesTotal] === "1", "and the Tracker's total follows");
 }
 
 // ---------- sign-in problems in plain words ----------
