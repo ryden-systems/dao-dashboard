@@ -4,6 +4,10 @@ A public dashboard for Star Atlas DAO governance, PIP funding, the Ecosystem Fun
 It is a static website rebuilt by GitHub Actions. There is no server and no database, and visitors never need to log in.
 Council editors can optionally sign in with Google to edit the sheet from the dashboard.
 
+**Manuals:** [MANUAL_COUNCIL.md](MANUAL_COUNCIL.md) for the Council's day-to-day use (also the dashboard's Help page for
+signed-in editors), [MANUAL_MAINTAINER.md](MANUAL_MAINTAINER.md) for installation and upkeep. This README is being folded
+into them.
+
 ---
 
 ## For the Council maintainer
@@ -188,6 +192,15 @@ its own copy. It is off until it is configured, and the dashboard works the same
 5. In `config.json`, set `editing.enabled` to `true` and fill in `googleClientId`. It is public by design.
 
 All of this is free. Google may change console wording; the steps above describe it as of October 2026.
+
+> **Ownership.** The project must belong to a DAO-owned Google account, with at least one second owner (*IAM & Admin
+> → IAM → Grant access*, role *Owner*). A project owned by one personal account is lost to the DAO if that account is.
+> The project holds no data, only the setup above: if it is lost, create a new one with steps 1 to 5 and put the new
+> client ID into `config.json`. A deleted project can be restored by its owners for 30 days.
+>
+> **Editors are test users.** While the app is in *Testing* (fine for a Council: up to 100 test users), only the
+> accounts on its test-user list can sign in. Add every new editor there (*Google Auth Platform → Audience*), or they
+> get "Access refused". Moving it to *In production* is only needed beyond that and requires Google's verification.
 
 ## Live sheet
 

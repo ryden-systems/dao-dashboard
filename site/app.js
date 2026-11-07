@@ -2070,9 +2070,92 @@
     document.getElementById(pin.id)?.scrollIntoView();
   }
 
+  // ---------- Help: the Council manual (signed-in editors) ----------
+  // MANUAL_COUNCIL.md is copied next to the page by the build. Its Markdown is the plain kind the manual uses:
+  // headings, paragraphs, lists, tables, rules, bold, italic, code and links. A link to one of its own sections
+  // (#3-payments-...) stays on the Help page; only https links leave it.
+  const manual = { text: null, err: null, loading: false };
+  function manualHtml(src) {
+    const inline = (s) => esc(s)
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?!\*)/g, "$1<em>$2</em>")
+      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, t, u) => (u.startsWith("#") ? `<a href="#help/${slug(u.slice(1).replace(/^(\d)/, "s-$1"))}">${t}</a>` : /^https:\/\//.test(u) ? `<a href="${u}" target="_blank" rel="noopener">${t}</a>` : t));
+    const lines = String(src).replace(/\r\n?/g, "\n").split("\n");
+    const out = [];
+    let para = [];
+    const flush = () => { if (para.length) out.push(`<p>${inline(para.join(" "))}</p>`); para = []; };
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i];
+      const h = l.match(/^(#{1,4}) (.+)$/);
+      if (!l.trim()) { flush(); continue; }
+      if (h) { flush(); const lv = Math.min(4, h[1].length + 1); out.push(`<h${lv} id="${slug(h[2])}">${inline(h[2])}</h${lv}>`); continue; }
+      if (/^-{3,}$/.test(l.trim())) { flush(); out.push("<hr>"); continue; }
+      if (l.startsWith("|")) {
+        flush();
+        const rows = [];
+        while (i < lines.length && lines[i].startsWith("|")) rows.push(lines[i++]);
+        i--;
+        const cells = (r) => r.replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+        const body = rows.slice(2).map((r) => `<tr>${cells(r).map((c) => `<td>${inline(c)}</td>`).join("")}</tr>`).join("");
+        out.push(`<div class="tbl"><table><thead><tr>${cells(rows[0]).map((c) => `<th>${inline(c)}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table></div>`);
+        continue;
+      }
+      // "> [!NOTE]" (or TIP, IMPORTANT) and "> [!WARNING]" (or CAUTION) blocks, GitHub's notice syntax: a notice box.
+      if (l.startsWith(">")) {
+        flush();
+        const block = [];
+        while (i < lines.length && lines[i].startsWith(">")) block.push(lines[i++].replace(/^> ?/, ""));
+        i--;
+        const kind = (block[0].match(/^\[!(\w+)\]\s*$/) || [])[1]?.toUpperCase();
+        if (kind) block.shift();
+        out.push(`<div class="note${kind === "WARNING" || kind === "CAUTION" ? " warn" : ""}">${manualHtml(block.join("\n"))}</div>`);
+        continue;
+      }
+      const li = l.match(/^(\s*)([-*]|\d+\.) (.*)$/);
+      if (li) {
+        flush();
+        const ordered = /\d/.test(li[2]);
+        const items = [];
+        while (i < lines.length) {
+          const m = lines[i].match(/^(\s*)([-*]|\d+\.) (.*)$/);
+          if (m && !m[1]) items.push(m[3]);
+          else if (lines[i].trim() && /^\s+/.test(lines[i]) && items.length) items[items.length - 1] += " " + lines[i].trim();
+          else break;
+          i++;
+        }
+        i--;
+        out.push(`<${ordered ? "ol" : "ul"}>${items.map((x) => `<li>${inline(x)}</li>`).join("")}</${ordered ? "ol" : "ul"}>`);
+        continue;
+      }
+      para.push(l.trim());
+    }
+    flush();
+    return out.join("\n");
+  }
+  views.help = () => {
+    if (!manual.text && !manual.err && !manual.loading) {
+      manual.loading = true;
+      fetch("MANUAL_COUNCIL.md").then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))))
+        .then((t) => { manual.text = t; }, (e) => { manual.err = e.message; })
+        .finally(() => { manual.loading = false; render(); scrollToAnchor(); });
+    }
+    if (!manual.text) return `<p class="muted">${manual.err ? `The manual could not be loaded (${esc(manual.err)}).` : "Loading the manual…"}</p>`;
+    // One section per chapter ("## "), headed like every other page so the page index lists them; the
+    // manual's own contents list is left out, the index replaces it.
+    const parts = manual.text.replace(/\r\n?/g, "\n").replace(/^# .*\n/, "").split(/^## /m);
+    const intro = parts.shift().replace(/^\d+\. \[.*$/gm, "").replace(/^-{3,}$/gm, "");
+    const chapters = parts.map((p) => { const [title, ...rest] = p.split("\n"); return { title: title.trim(), body: rest.join("\n").replace(/^-{3,}$/gm, "") }; });
+    return `<section class="sec">
+      ${head("Help", `<span class="src">Council manual · MANUAL_COUNCIL.md in the repository</span>`)}
+      <div class="md manual">${manualHtml(intro)}</div>
+    </section>
+    ${chapters.map((c) => `<section class="sec manual-ch" id="${slug(c.title)}">${sub(c.title)}<div class="md manual">${manualHtml(c.body)}</div></section>`).join("")}`;
+  };
+
   function render() {
     const [route, param] = (location.hash.slice(1) || "overview").split("/");
-    const r = views[route] && (route !== "health" || maintOpen()) ? route : "overview";
+    const r = views[route] && (route !== "health" || maintOpen()) && (route !== "help" || editing()) ? route : "overview";
     document.querySelectorAll(".tabs a").forEach((a) => {
       a.setAttribute("aria-current", a.dataset.route === r ? "page" : "false");
       // Data health: red with a critical item, green with nothing listed, else the editor tint while it is editors-only.
@@ -2083,6 +2166,7 @@
         a.classList?.toggle("all-clear", clear);
         a.classList?.toggle("ed-only", !crit && !clear && Boolean(maintCls()));
       }
+      if (a.dataset.route === "help") a.hidden = !editing();
     });
     Charts.reset();
     const view = $("#view");

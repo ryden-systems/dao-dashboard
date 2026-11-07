@@ -386,6 +386,12 @@ input[type="search"]::placeholder { color: var(--muted); }
 button.link { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
 /* Meeting minutes (Discord markdown) */
 .md { font-size: 13px; line-height: 1.55; color: var(--ink); max-width: 80ch; margin-top: 6px; }
+/* The Help page: the manual uses the full width of the page. */
+.md.manual { max-width: none; font-size: 14px; }
+.manual-ch .sec-head h3 { color: var(--accent); }
+.md.manual .note { max-width: none; margin: 4px 0 12px; font-size: 14px; color: var(--ink); }
+.md.manual .note > :last-child { margin-bottom: 0; }
+.note.warn { border-left-color: var(--warn); background: var(--warn-soft); }
 .md p, .md ul, .md ol, .md blockquote, .md pre { margin: 0 0 8px; }
 .md h4, .md h5, .md h6 { font-family: var(--f-body); font-weight: 500; color: var(--ink-head); margin: 14px 0 4px; }
 .md h4 { font-size: 17px; }

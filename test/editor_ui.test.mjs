@@ -34,7 +34,7 @@ const ctx = {
     if (String(u).includes("dashboard.json")) return { ok: true, status: 200, json: async () => D };
     const file = path.join(dist, String(u).split("?")[0]);
     const ok = fs.existsSync(file);
-    return { ok, status: ok ? 200 : 404, json: async () => (ok ? JSON.parse(fs.readFileSync(file, "utf8")) : {}) };
+    return { ok, status: ok ? 200 : 404, json: async () => (ok ? JSON.parse(fs.readFileSync(file, "utf8")) : {}), text: async () => (ok ? fs.readFileSync(file, "utf8") : "") };
   },
 };
 ctx.window = ctx;
@@ -212,6 +212,13 @@ await tick();
   const ia = calls.filter((c) => c[0] === "importMilestones").pop();
   ok(ia && ia[1].length > 1 && ia[1].every((x) => x.total > 0) && text().includes(`for ${ia[1].length} PIPs`), "the import sends every such PIP: " + ia?.[1].length);
 }
+
+// ---------- Help: the Council manual, for signed-in editors ----------
+await go("#help");
+await tick(); await tick();
+ok(nodes.view.innerHTML.includes('<section class="sec manual-ch" id="s-3-payments-labels-and-documents"><div class="sec-head"><h3>3. Payments: labels and documents</h3>') && nodes.view.innerHTML.includes("<strong>Mark paid</strong>"), "the Help page shows the Council manual, one section per chapter with its id (for the page index and links)");
+ok(!nodes.view.innerHTML.includes('href="#help/s-1-signing-in"'), "the manual's own contents list is left out; the page index replaces it");
+ok(nodes.view.innerHTML.includes("<table>") && !nodes.view.innerHTML.includes("**"), "the manual's tables and bold text are rendered");
 
 // ---------- council: seed the tab, then add a member ----------
 await go("#council");

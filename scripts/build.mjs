@@ -117,6 +117,8 @@ function computePhase() {
   const dist = path.join(ROOT, "dist");
   fs.rmSync(dist, { recursive: true, force: true });
   copyDir(path.join(ROOT, "site"), dist);
+  // The Council manual, shown to signed-in editors on the Help page.
+  fs.copyFileSync(path.join(ROOT, "MANUAL_COUNCIL.md"), path.join(dist, "MANUAL_COUNCIL.md"));
   fs.mkdirSync(path.join(dist, "lib"), { recursive: true });
   writeJSON("dist/data/dashboard.json", out, false);
   copyDir(path.join(ROOT, "data", "votes"), path.join(dist, "data", "votes"));
