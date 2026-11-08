@@ -153,6 +153,10 @@ still has open items is a warning on the Data health page.
 
 ## 6. Upcoming and recurring payments
 
+> [!IMPORTANT]
+> Preview: upcoming and recurring payments, like the Budget page, are not part of the PIP-36 delivery. They can be
+> tried by signed-in editors; completing them is possible as a follow-up.
+
 Payments the DAO knows are coming, such as an invoice that is due, are listed on the Payments and Budget pages, for
 signed-in editors only.
 **Add upcoming payment**: due date, which account pays it, what it is for (a cost category or a PIP), the fiscal year,
@@ -241,4 +245,5 @@ The sheet is where the dashboard keeps everything; editing on the dashboard is t
 > information in it.
 
 > [!NOTE]
-> The Budget page is still being built; its section will follow.
+> The Budget page is a preview, not part of the PIP-36 delivery: it can be tried by signed-in editors, and completing
+> it is possible as a follow-up.

@@ -480,7 +480,7 @@ From `daoRules.fund`, one version per PIP, each in force from the day its PIP pa
   was quiet enough to be read in full, so SAGE fees start in April 2024 and earlier inflows are listed one by one.
 - **Other income:** any other inflow, listed individually, or by its income label.
 
-### The Budget page (being built)
+### The Budget page (preview, not part of the PIP-36 delivery)
 
 Averages over the last 12 complete months. Income is SAGE fees plus income transfers; running costs are Treasury
 payouts with a cost category plus those not labelled yet; PIP payouts are shown but not projected. The Foundation
@@ -510,7 +510,7 @@ tab and column it needs the first time a save needs it; editors normally never t
 | Wallets | wallet and purpose | Wallet, Name, Payout label, Track balance, Note, Since (a PIP or a date, for a reused wallet's later purposes) |
 | PIP milestones | milestone | ID, PIP, #, Milestone, Amount, Currency, Paid by (tx), Completed on, Completed by |
 | Checklists | checklist item | ID, PIP, Checklist, Milestone, Item, Done on, Done by, Evidence |
-| Upcoming payments | known payment | ID, Due, Paid from, For, Fiscal year, Amount, Currency, Description, Paid by (tx), Repeats, Until |
+| Upcoming payments (preview) | known payment | ID, Due, Paid from, For, Fiscal year, Amount, Currency, Description, Paid by (tx), Repeats, Until |
 | Council members | member and term | Name, Role, Term, Start, End, Elected (PIP), Wallet, Discord, X, Image, Show |
 | Meeting minutes | meeting day | Date, Title, Minutes (Discord formatting), Show |
 | Payment documents | uploaded file | Signature, Recipient, File, Link, Uploaded (UTC), By |
