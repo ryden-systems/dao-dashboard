@@ -151,8 +151,9 @@ window.Charts = (() => {
     }
     for (const r of refs) {
       const right = r.axis === "right", y = (right ? YL : Y)(r.value).toFixed(1);
-      g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" style="stroke:${r.color};stroke-width:1.5;stroke-dasharray:4 3"/>`;
-      g += `<text x="${right ? W - m.r + 8 : m.l - 8}" y="${Number(y) + 4}" text-anchor="${right ? "start" : "end"}" style="fill:${r.color};font-weight:600">${esc((right ? fl : fy)(r.value))}</text>`;
+      g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" style="stroke:${r.color};stroke-width:1;stroke-opacity:0.55;stroke-dasharray:4 3"/>`;
+      // Inside an axis group, so the value has the axis labels' size and font; only its colour differs.
+      g += `<g class="axis"><text x="${right ? W - m.r + 8 : m.l - 8}" y="${Number(y) + 4}" text-anchor="${right ? "start" : "end"}" style="fill:${r.color}">${esc((right ? fl : fy)(r.value))}</text></g>`;
     }
     for (const mk of s.markers ?? []) {
       const x = (m.l + band * mk.at).toFixed(1);

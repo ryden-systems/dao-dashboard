@@ -22,7 +22,7 @@ Council editors sign in with Google to keep it up to date; every save goes into 
 | Governance | PIPs per Council term, pass rate, participation and voting averages |
 | Proposals | every PIP's outcome and vote split; per PIP: voting power over time, voter sizes, largest voters, payments, milestones |
 | Balances | account balances and history, income (marketplace and SAGE fees), expenses per month, other wallets |
-| Budget | running costs, the Foundation budget, upcoming payments, a projection (being built) |
+| Budget | running costs, the Foundation budget, upcoming payments, a projection (a preview, signed-in editors) |
 | Ecosystem Fund | the 5% PIP limit, refills, the rules set by PIPs |
 | Payments | every funded PIP: authorized, paid on chain, returned, remaining, milestones; payouts by purpose |
 | Transactions | every token movement of the DAO accounts with what it was matched to and why |

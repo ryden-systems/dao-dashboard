@@ -2159,7 +2159,7 @@
 
   function render() {
     const [route, param] = (location.hash.slice(1) || "overview").split("/");
-    const r = views[route] && (route !== "health" || maintOpen()) && (route !== "help" || editing()) ? route : "overview";
+    const r = views[route] && (route !== "health" || maintOpen()) && (route !== "help" || editing()) && (route !== "budget" || editing()) ? route : "overview";
     document.querySelectorAll(".tabs a").forEach((a) => {
       a.setAttribute("aria-current", a.dataset.route === r ? "page" : "false");
       // Data health: red with a critical item, green with nothing listed, else the editor tint while it is editors-only.
@@ -2170,7 +2170,8 @@
         a.classList?.toggle("all-clear", clear);
         a.classList?.toggle("ed-only", !crit && !clear && Boolean(maintCls()));
       }
-      if (a.dataset.route === "help") a.hidden = !editing();
+      // Help and the Budget page (a preview, not part of the delivered scope): signed-in editors only.
+      if (a.dataset.route === "help" || a.dataset.route === "budget") a.hidden = !editing();
     });
     Charts.reset();
     const view = $("#view");
