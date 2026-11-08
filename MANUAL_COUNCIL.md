@@ -153,7 +153,8 @@ still has open items is a warning on the Data health page.
 
 ## 6. Upcoming and recurring payments
 
-Payments the DAO knows are coming, such as an invoice that is due, are listed on the Payments and Budget pages.
+Payments the DAO knows are coming, such as an invoice that is due, are listed on the Payments and Budget pages, for
+signed-in editors only.
 **Add upcoming payment**: due date, which account pays it, what it is for (a cost category or a PIP), the fiscal year,
 amount, currency and a short description.
 

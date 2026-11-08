@@ -1059,7 +1059,7 @@
       </table></div>
       <p class="src">Label a payout with a cost category such as <em>Foundation</em> to list it here; further payouts to the same wallet are then suggested for that category. Click a purpose for its transactions.</p>
     </section>
-    ${D.budget ? upcomingSection(D.budget) : ""}
+    ${D.budget && editing() ? upcomingSection(D.budget) : ""}
     <section class="sec">
       ${sub("Funded PIPs", headRight("Click a row for its payouts", "fund"))}
       ${ui.flt.fund ? `<div class="controls">

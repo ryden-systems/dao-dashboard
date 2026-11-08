@@ -62,6 +62,7 @@ ok(!nodes.view.innerHTML.includes("Payouts to label"), "Payouts to label is hidd
 await go("#budget");
 ok(!text().includes("Foundation budget"), "the Budget page is not shown while signed out");
 await go("#payments");
+ok(!text().includes("Upcoming payments"), "upcoming payments are not shown on Payments while signed out (part of the Budget preview)");
 
 // ---------- sign in with a stub core ----------
 const calls = [];
