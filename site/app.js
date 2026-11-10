@@ -1520,6 +1520,9 @@
   // PIPs by Council term (bars per term) is kept but hidden (owner 2026-11-10): it read as a ranking of
   // the terms. PIPs over time with the term starts marked replaces it. Set to true to show it again.
   const SHOW_PIPS_BY_TERM = false;
+  // PIPs over time split into DAO and Ecosystem Fund PIPs (failed ones split too, all red) is kept but hidden
+  // (owner 2026-11-10); the chart shows passed and failed. Set to true to show the split.
+  const SHOW_PIP_KINDS = true;
   // Passed and failed PIPs per month (by the month their vote ended), dashed lines where each Council term began.
   function pipsOverTime(voted) {
     const ends = voted.map((p) => String(p.votingEndsAt ?? "").slice(0, 7)).filter(Boolean).sort();
@@ -1527,7 +1530,11 @@
     const months = [];
     const last = new Date().toISOString().slice(0, 7);
     for (let [y, m] = ends[0].split("-").map(Number); `${y}-${String(m).padStart(2, "0")}` <= last; m === 12 ? (y++, m = 1) : m++) months.push(`${y}-${String(m).padStart(2, "0")}`);
-    const count = (o) => months.map((mo) => voted.filter((p) => p.outcome === o && String(p.votingEndsAt ?? "").slice(0, 7) === mo).length);
+    // DAO and Ecosystem Fund PIPs, passed and failed; the failed ones in red (hover tells which kind). An Ecosystem Fund PIP requests
+    // funds from the fund (flagged and asking an amount); everything else, rule changes to the fund included, is a DAO PIP.
+    const count = (f) => months.map((mo) => voted.filter((p) => f(p) && String(p.votingEndsAt ?? "").slice(0, 7) === mo).length);
+    const passed = (p) => p.outcome === "passed", failed = (p) => p.outcome === "failed";
+    const ecoPip = (p) => !!p.ecosystemFund && p.amount > 0;
     // Ecosystem Fund ATLAS paid out, cumulative to the end of each month: payouts minus returns,
     // moves between the DAO's own wallets left out.
     const fundNet = new Map();
@@ -1547,9 +1554,18 @@
     }).filter(Boolean);
     return `<section class="sec panel">
         ${sub("PIPs over time", `<span class="src">Governance API · Solana mainnet</span>`)}
-        ${Charts.bar({ categories: months, stacked: true, legend: true, label: "PIPs voted per month", series: [{ name: "Passed", color: css("--yes"), values: count("passed") }, { name: "Failed", color: css("--no"), values: count("failed") }],
-          line: paid.some(Boolean) ? { name: "Ecosystem Fund paid out (ATLAS)", color: css("--series-3"), values: paid, yFmt: compact } : null, markers })}
-        <p class="src">PIPs per month by the month their vote ended. The line (right axis) is the ATLAS paid out of the Ecosystem Fund so far, net of returns; moves between the DAO's own wallets are left out. Dashed lines mark where each Council term began.</p>
+        ${Charts.bar({ categories: months, stacked: true, legend: true, label: "PIPs voted per month", series: !SHOW_PIP_KINDS ? [
+            { name: "Passed", color: css("--yes"), values: count(passed) },
+            { name: "Failed", color: css("--no"), values: count(failed) },
+          ] : [
+            { name: "DAO", color: css("--series-1"), values: count((p) => passed(p) && !ecoPip(p)) },
+            { name: "Ecosystem Fund", color: css("--series-2"), values: count((p) => passed(p) && ecoPip(p)) },
+            { name: "Failed (DAO)", color: css("--no"), values: count((p) => failed(p) && !ecoPip(p)) },
+            { name: "Failed (Ecosystem Fund)", color: css("--no"), values: count((p) => failed(p) && ecoPip(p)) },
+          ],
+          line: paid.some(Boolean) ? { name: "Ecosystem Fund paid out (ATLAS)", color: css("--series-3"), values: paid, yFmt: compact } : null, markers,
+          legendItems: !SHOW_PIP_KINDS ? undefined : [{ name: "DAO", color: css("--series-1") }, { name: "Ecosystem Fund", color: css("--series-2") }, { name: "Failed", color: css("--no") }, ...(paid.some(Boolean) ? [{ name: "Ecosystem Fund paid out (ATLAS)", color: css("--series-3") }] : [])] })}
+        <p class="src">PIPs by the month their vote ended${SHOW_PIP_KINDS ? ", split into DAO and Eco&shy;system Fund PIPs; failed ones in red" : ""}. The line (right axis) is the ATLAS paid out of the Eco&shy;system Fund so far, net of returns. Dashed lines mark where each Council term began.</p>
       </section>`;
   }
 

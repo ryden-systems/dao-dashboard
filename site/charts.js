@@ -162,7 +162,8 @@ window.Charts = (() => {
     // Hover areas last, so they sit above the line and every column stays hoverable.
     cats.forEach((c, i) => { g += `<rect class="hitb" data-i="${i}" x="${m.l + band * i}" y="${m.t}" width="${band}" height="${H - m.t - m.b}" style="fill:transparent"/>`; });
 
-    const keys = [...s.series, ...Ls];
+    // spec.legendItems ({ name, color }[]) replaces the legend built from the series, e.g. one entry for two tints.
+    const keys = s.legendItems ?? [...s.series, ...Ls];
     el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(s.label ?? "chart")}">${g}</svg>${keys.length > 1 || s.legend ? legend(keys) : ""}`;
     const tip = document.getElementById("tip");
     el.querySelectorAll(".hitb").forEach((r) => {
