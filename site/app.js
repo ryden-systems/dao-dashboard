@@ -1500,6 +1500,23 @@
   };
 
   // Governance: how PIP votes went, per Council term and per PIP.
+  // The POLIS locker on chain (read at build time): its own section below the Governance charts.
+  const lockerSection = () => {
+    const L = D.polisLocks;
+    if (!L) return "";
+    const voters = D.voters?.count ?? null;
+    return `<section class="sec">
+      ${sub("Locker", `<span class="src">Solana mainnet · as of ${esc(isoDay(L.at))}</span>`)}
+      <div class="kpis">
+        ${kpi("Total PVP", L.pvp == null ? "—" : compact(L.pvp), "PVP", `${compact(L.polisRunning)} POLIS locked`)}
+        ${kpi("Wallets with POLIS locked", num(L.running, 0), "", "lock running, so they can vote")}
+        ${kpi("Wallets that voted", voters == null ? "—" : num(voters, 0), "", "at least once")}
+        ${kpi("Expired locks", num(L.expired, 0), "wallets", `${compact(L.polisExpired)} POLIS not withdrawn, no voting power`)}
+        ${kpi("Avg. lock time left", L.pvpWeightedDaysLeft == null ? "—" : num(L.pvpWeightedDaysLeft, 0), "days", "weighted by PVP")}
+      </div>
+    </section>`;
+  };
+
   views.governance = () => {
     const voted = D.pips.filter((p) => p.outcome === "passed" || p.outcome === "failed");
     const termCats = ["Pre-Council", ...councilTerms()];
@@ -1537,6 +1554,7 @@
           refs: [{ value: avgPart == null ? null : Math.round(avgPart * 10) / 10, color: css("--series-1") }, { value: avgWallets, color: css("--series-3"), axis: "right" }] })}
       </section>
     </div>
+    ${lockerSection()}
     ${votersSection()}
     ${videosSection()}`;
   };
@@ -2039,7 +2057,7 @@
     nav.hidden = heads.length <= 2;
     const base = pageHash();
     // The page headline links to the page itself; every other entry to its section.
-    nav.innerHTML = nav.hidden ? "" : heads.map((h, i) => `<a class="toc-link${h.tagName === "H2" ? " top" : ""}" data-toc="${i}" href="${esc(i === 0 ? base : `${base}/${tocTargets[i].id}`)}">${esc(h.textContent.trim())}</a>`).join("");
+    nav.innerHTML = nav.hidden ? "" : heads.map((h, i) => `<a class="toc-link${h.tagName === "H2" ? " toc-top" : ""}" data-toc="${i}" href="${esc(i === 0 ? base : `${base}/${tocTargets[i].id}`)}">${esc(h.textContent.trim())}</a>`).join("");
     markToc();
   }
   function markToc() {

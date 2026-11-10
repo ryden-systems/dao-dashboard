@@ -14,7 +14,7 @@ const round2 = (n) => Math.round(n * 100) / 100;
 
 // votesOf(pip) returns a proposal's per-voter file or null (the browser passes null: it keeps the
 // built largest-voters table, which does not depend on the sheet's editable tabs).
-export function compute({ config, sources, proposals, ledger, history, now, nowAt, tracked = {}, seedLabels = [], councilHistory = { terms: [] }, imported = {}, multisigActivity = { accounts: {} }, walletKinds = { wallets: {} }, youtube = { videos: {} }, votesOf = () => null, editingPreview = false, generatedAt = new Date().toISOString() }) {
+export function compute({ config, sources, proposals, ledger, history, now, nowAt, tracked = {}, seedLabels = [], councilHistory = { terms: [] }, imported = {}, multisigActivity = { accounts: {} }, walletKinds = { wallets: {} }, youtube = { videos: {} }, polisLocks = null, votesOf = () => null, editingPreview = false, generatedAt = new Date().toISOString() }) {
   const nowTs = Date.parse(nowAt) / 1000;
 
   // Sheet labels override seed labels for the same payout.
@@ -326,6 +326,8 @@ export function compute({ config, sources, proposals, ledger, history, now, nowA
     }),
     income,
     voters,
+    // POLIS voting locks on chain (polislocks.mjs), read at build time; null until first read.
+    polisLocks: polisLocks ?? null,
     payments: payoutsList,
     limit,
     budget: budgetOf({ payments: payoutsList, income, accounts: accountsOut, pips, limit, upcoming: sources.upcoming ?? [], rules: config.daoRules ?? {}, settings: config.budget ?? {}, nowTs }),

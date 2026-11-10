@@ -83,7 +83,8 @@
   },
   "governance": {
     "api": "https://galaxy.staratlas.com",
-    "site": "https://govern.staratlas.com/proposals/"
+    "site": "https://govern.staratlas.com/proposals/",
+    "polisLocker": { "program": "Lock7kBijGCQLEFAmXcengzXKA88iDNQPriQ7TbgeyG", "locker": "5WmM9c9WE71y78Ah8Bp8vgyoStscM1ZZyaaFqRf8b2Qa" }
   },
   "rpc": {
     "default": "https://api.mainnet-beta.solana.com",

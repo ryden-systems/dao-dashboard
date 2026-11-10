@@ -459,7 +459,7 @@ a.plain:hover { color: var(--accent-ink); }
   .toc:not([hidden]) { display: flex; flex-direction: column; gap: 2px; position: fixed; z-index: 5; top: calc(var(--top-h, 0px) + 24px); left: calc(50% + 606px); width: min(220px, calc(50% - 622px)); max-height: calc(100vh - var(--top-h, 0px) - 48px); overflow-y: auto; border-left: 1px solid var(--line); }
 }
 .toc-link { display: block; font: 400 13px/1.35 var(--f-body); color: var(--ink-2); text-decoration: none; border-left: 2px solid transparent; margin-left: -1px; padding: 4px 0 4px 12px; }
-.toc-link.top { color: var(--ink); font-weight: 500; }
+.toc-link.toc-top { color: var(--ink); font-weight: 500; }
 .toc-link:hover { color: var(--accent); }
 .toc-link.on { color: var(--accent); border-left-color: var(--accent); }
 /* A video player opened in a table's detail row. */
