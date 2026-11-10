@@ -1517,6 +1517,42 @@
     </section>`;
   };
 
+  // PIPs by Council term (bars per term) is kept but hidden (owner 2026-11-10): it read as a ranking of
+  // the terms. PIPs over time with the term starts marked replaces it. Set to true to show it again.
+  const SHOW_PIPS_BY_TERM = false;
+  // Passed and failed PIPs per month (by the month their vote ended), dashed lines where each Council term began.
+  function pipsOverTime(voted) {
+    const ends = voted.map((p) => String(p.votingEndsAt ?? "").slice(0, 7)).filter(Boolean).sort();
+    if (!ends.length) return "";
+    const months = [];
+    const last = new Date().toISOString().slice(0, 7);
+    for (let [y, m] = ends[0].split("-").map(Number); `${y}-${String(m).padStart(2, "0")}` <= last; m === 12 ? (y++, m = 1) : m++) months.push(`${y}-${String(m).padStart(2, "0")}`);
+    const count = (o) => months.map((mo) => voted.filter((p) => p.outcome === o && String(p.votingEndsAt ?? "").slice(0, 7) === mo).length);
+    // Ecosystem Fund ATLAS paid out, cumulative to the end of each month: payouts minus returns,
+    // moves between the DAO's own wallets left out.
+    const fundNet = new Map();
+    for (const x of D.payments) {
+      if (x.account !== "fund" || x.symbol !== "ATLAS" || x.confidence === "internal") continue;
+      const sign = x.direction === "out" && !x.isReturn ? 1 : x.isReturn ? -1 : 0;
+      if (!sign) continue;
+      const mo = new Date(x.t * 1000).toISOString().slice(0, 7);
+      fundNet.set(mo, (fundNet.get(mo) ?? 0) + sign * x.amount);
+    }
+    let run = 0;
+    const paid = months.map((mo) => Math.round((run += fundNet.get(mo) ?? 0)));
+    const markers = (D.councilChain?.terms ?? []).map((t) => {
+      const i = months.indexOf(t.start.slice(0, 7));
+      const [y, mo, d] = t.start.split("-").map(Number);
+      return i < 0 ? null : { at: i + (d - 1) / new Date(Date.UTC(y, mo, 0)).getUTCDate(), label: t.label };
+    }).filter(Boolean);
+    return `<section class="sec panel">
+        ${sub("PIPs over time", `<span class="src">Governance API · Solana mainnet</span>`)}
+        ${Charts.bar({ categories: months, stacked: true, legend: true, label: "PIPs voted per month", series: [{ name: "Passed", color: css("--yes"), values: count("passed") }, { name: "Failed", color: css("--no"), values: count("failed") }],
+          line: paid.some(Boolean) ? { name: "Ecosystem Fund paid out (ATLAS)", color: css("--series-3"), values: paid, yFmt: compact } : null, markers })}
+        <p class="src">PIPs per month by the month their vote ended. The line (right axis) is the ATLAS paid out of the Ecosystem Fund so far, net of returns; moves between the DAO's own wallets are left out. Dashed lines mark where each Council term began.</p>
+      </section>`;
+  }
+
   views.governance = () => {
     const voted = D.pips.filter((p) => p.outcome === "passed" || p.outcome === "failed");
     const termCats = ["Pre-Council", ...councilTerms()];
@@ -1543,10 +1579,10 @@
       </div>
     </section>
     <div class="grid-2">
-      <section class="sec panel">
+      ${SHOW_PIPS_BY_TERM ? `<section class="sec panel">
         ${sub("PIPs by Council term")}
         ${Charts.bar({ categories: termCats, stacked: true, label: "PIPs by term", series: [{ name: "Passed", color: css("--yes"), values: passedBy }, { name: "Failed", color: css("--no"), values: failedBy }] })}
-      </section>
+      </section>` : pipsOverTime(voted)}
       <section class="sec panel">
         ${sub("Participation per PIP", `<span class="src">PVP voted ÷ DAO PVP</span>`)}
         ${Charts.bar({ categories: part.map((x) => String(x.pip)), label: "Participation per PIP", yFmt: (v) => v + "%", line: { name: "Wallets voted", color: css("--series-3"), values: part.map((x) => x.wallets), yFmt: (v) => num(v) }, series: [{ name: "Participation", color: css("--series-1"), values: part.map((x) => Math.round(x.v * 10) / 10) }],
