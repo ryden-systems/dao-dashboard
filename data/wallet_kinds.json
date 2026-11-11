@@ -1,4 +1,13 @@
 {
- "wallets": {},
- "updatedAt": "2026-11-10T12:15:47.618Z"
+ "wallets": {
+  "2kVfGpfYkWBxqKKB8vFFDKZH6qwZExLYvCpNpUEhRbFd": {
+   "multisig": true,
+   "program": "Squads v3",
+   "account": "DRaidtfogtt9W4ZZmDcB3hiB3Ti58FmQVW1hhd55yMWE",
+   "since": 1793327235,
+   "cursor": "3TWEN3sP5gD4pfsMjcpzP7S9p5eHHaaE3JyBNnrKpAFvXNWmHzJYqYNSbMMohVqXnspG6AHhmf1AZA3huemKsysd",
+   "checkedAt": "2026-11-11T11:01:01.536Z"
+  }
+ },
+ "updatedAt": "2026-11-11T11:01:01.536Z"
 }

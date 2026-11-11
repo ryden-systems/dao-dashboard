@@ -1,15 +1,15 @@
 {
- "at": "2026-11-10T12:15:48.411Z",
+ "at": "2026-11-11T11:01:02.128Z",
  "balances": {
   "treasury": {
    "SOL": 0.315155307,
-   "ATLAS": 828149563.4388041,
+   "ATLAS": 828716842.4214051,
    "USDC": 209921.579904,
    "POLIS": 1.23550999
   },
   "fund": {
    "SOL": 0.021002002,
-   "ATLAS": 283854680,
+   "ATLAS": 285654680,
    "USDC": 0,
    "POLIS": 0
   },
@@ -20,5 +20,12 @@
    "POLIS": 0
   }
  },
- "tracked": {}
+ "tracked": {
+  "2kVfGpfYkWBxqKKB8vFFDKZH6qwZExLYvCpNpUEhRbFd": {
+   "SOL": 0.001,
+   "ATLAS": 3394098,
+   "USDC": 0,
+   "POLIS": 0
+  }
+ }
 }

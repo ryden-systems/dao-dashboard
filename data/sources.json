@@ -2851,9 +2851,68 @@
    }
   ]
  },
- "labels": [],
+ "labels": [
+  {
+   "signature": "5aHzTwyGP9MrpMMtVxrPX9HdX2a3NvXPeNwdukPfMV71JfGKhfRMGxKu8mS3xyJeryJe6tjtSpa95AZVT3R6VA81",
+   "recipient": "2kVfGpfYkWBxqKKB8vFFDKZH6qwZExLYvCpNpUEhRbFd",
+   "label": "PIP-32",
+   "confirmed": true,
+   "fiscalYear": "2026"
+  },
+  {
+   "signature": "44VNCiMb4Z9dio2QLy7c5xAfFX8KFu7TtXwiLEHb2Pcky5yHSecijGAh4m9Hs9gkwy6LGAVBFASnWsniW6rNsJ1a",
+   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
+   "label": "PIP-28",
+   "confirmed": true,
+   "fiscalYear": "2026"
+  },
+  {
+   "signature": "64xGRLPVVNyoWcZCKDrWBjNXViR9pJ7gn3K4huKwB5pvDRL9sQ6hf596ktbSA1MtCAUY6cKV3M4ZdT6q9aJ4a1XA",
+   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
+   "label": "PIP-28",
+   "confirmed": true,
+   "fiscalYear": "2026"
+  },
+  {
+   "signature": "56xcHzUAt15U4oL17ujh7KPovD5J8TDpdNS5fKFuYDU7rasxTDTt94pUrZ4DiLV5P7QExLC3YFsay1xYzB1GxwXM",
+   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
+   "label": "PIP-28",
+   "confirmed": true,
+   "fiscalYear": "2026"
+  },
+  {
+   "signature": "4LHsdHhNfHCcRwzV18xfcV3ynER3VdyvioBquhwEoxKTg6cY3aRx5KJVJBp4Uzp1oqHoGVHrvP4Mmf9t5wmYUbme",
+   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
+   "label": "PIP-28",
+   "confirmed": true,
+   "fiscalYear": "2026"
+  },
+  {
+   "signature": "42zkXcpwchTWVL6GRYeTfehw4T4CETbTeZTkrRsSkNY3GVEsGB2beAAwsFjHDsvKa1o9vgiQH7C8UebcHRrsMCae",
+   "recipient": "BTFfKDtnQoq6UdqNSqDqVieahZvbBunQWLXkTyb59fbW",
+   "label": "PIP-28",
+   "confirmed": true,
+   "fiscalYear": "2026"
+  },
+  {
+   "signature": "3zvwNQkV4qJZkpNXzjJRVhcuYVE1b6kqVHJonz5VdMAMZEmDX2VUfBDNefNLDRgf9bZukcFawnKCkyARNNFeRg5K",
+   "recipient": "B5hX2Aj8FYmdYjXQFVF1jpz7BkrdpLXgSPs92G6DFGjA",
+   "label": "PIP-28",
+   "confirmed": true,
+   "fiscalYear": "2026"
+  }
+ ],
  "members": [],
- "wallets": [],
+ "wallets": [
+  {
+   "wallet": "2kVfGpfYkWBxqKKB8vFFDKZH6qwZExLYvCpNpUEhRbFd",
+   "name": "Triad",
+   "label": "PIP-32",
+   "track": true,
+   "note": "SPS",
+   "since": "2026-10-09"
+  }
+ ],
  "minutes": [],
  "upcoming": [],
  "milestones": [],
@@ -2868,7 +2927,7 @@
    "name": "Accomplishment Numbers"
   },
   "paymentLabels": {
-   "gid": null,
+   "gid": "542451493",
    "name": "Payment labels"
   },
   "councilMembers": {
@@ -2880,7 +2939,7 @@
    "name": "Payment documents"
   },
   "wallets": {
-   "gid": null,
+   "gid": "647424598",
    "name": "Wallets"
   },
   "meetingMinutes": {
@@ -2900,5 +2959,5 @@
    "name": "Checklists"
   }
  },
- "fetchedAt": "2026-11-10T12:15:18.989Z"
+ "fetchedAt": "2026-11-11T11:00:15.457Z"
 }

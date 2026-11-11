@@ -4281,7 +4281,7 @@
    }
   },
   "HnSg4jNnHzYzPV84DkQyCWLded3yR6rLjX8AjHv8v8oV": {
-   "cursor": "2FRSVHBkjK5RYQBP68FW1XHEQB6uPcSVfKGraKCCkw6qUpLH4NDFLq7RV43zmQKqWXaSDafdXqPrvtZTczp5qdK3",
+   "cursor": "5hGWMHuD9Ba3QN8GNYhZLyP5jD1XZjZsfucyD9L1291K3ARCMjz3LzkY8fGanQFx9GwcmgXDoCRZVHyEvHtnXK3h",
    "days": {
     "2025-11-07": {
      "tx": 1,
@@ -4478,6 +4478,14 @@
     "2026-10-30": {
      "tx": 1,
      "transfer": 0,
+     "members": 0,
+     "other": 0,
+     "proposals": 0,
+     "approvals": 1
+    },
+    "2026-11-11": {
+     "tx": 2,
+     "transfer": 1,
      "members": 0,
      "other": 0,
      "proposals": 0,
@@ -5674,6 +5682,24 @@
       "ApproveTransaction"
      ],
      "kind": "approve"
+    },
+    "4i9GxQhgdJk4f2tYi1DAc49GHj6BBB63qhvKohqxo46MDXSDZs7w3jm5oUsppK6cCopbsGxteM9ndQY6jpHSXkzE": {
+     "t": 1794361698,
+     "signer": "G6kqzJbkvP8eKRR5WfwPbb9UxdCxPMGhsgAfbhJtjCWM",
+     "ins": [
+      "ApproveTransaction"
+     ],
+     "moved": true,
+     "kind": "approve"
+    },
+    "5hGWMHuD9Ba3QN8GNYhZLyP5jD1XZjZsfucyD9L1291K3ARCMjz3LzkY8fGanQFx9GwcmgXDoCRZVHyEvHtnXK3h": {
+     "t": 1794361710,
+     "signer": "G6kqzJbkvP8eKRR5WfwPbb9UxdCxPMGhsgAfbhJtjCWM",
+     "ins": [
+      "ExecuteTransaction"
+     ],
+     "moved": true,
+     "kind": "execute:transfer"
     }
    }
   },
@@ -7147,5 +7173,5 @@
    }
   }
  },
- "updatedAt": "2026-11-10T12:15:44.670Z"
+ "updatedAt": "2026-11-11T11:00:43.907Z"
 }
