@@ -2176,7 +2176,7 @@
    }
   },
   "8Z8QrJEfiGTj9X4HejbsXyAMQToA7SPNE1scGXnC1Vcy": {
-   "cursor": "5aHzTwyGP9MrpMMtVxrPX9HdX2a3NvXPeNwdukPfMV71JfGKhfRMGxKu8mS3xyJeryJe6tjtSpa95AZVT3R6VA81",
+   "cursor": "3sJthXP3w7Gd2f9gyWaERm9T6Aw9ifngpDLJqDgNry3dFfKEeKRknyTP2FGXazvRFtbBwyw3YvwWV7w1z1dd7XMS",
    "days": {
     "2024-08-08": {
      "tx": 1,
@@ -2308,6 +2308,14 @@
     },
     "2026-10-28": {
      "tx": 6,
+     "transfer": 1,
+     "members": 0,
+     "other": 0,
+     "proposals": 1,
+     "approvals": 3
+    },
+    "2026-11-11": {
+     "tx": 4,
      "transfer": 1,
      "members": 0,
      "other": 0,
@@ -3225,6 +3233,45 @@
      ],
      "kind": "execute:transfer",
      "moved": true
+    },
+    "5unTzRGVAf6fzL8FxNfk3UgrViY5FyBhy2tdDts7azy9vyiem4SMcp4gQMy6qMaTA9rzFTtndhXXo9WJLVrA1Ttf": {
+     "t": 1794425955,
+     "signer": "2VR6As6YWizrJ2fdAzXxuhPHB961oLHnf1eR2TC6VSdi",
+     "ins": [
+      "CreateTransaction",
+      "AddInstruction",
+      "ActivateTransaction",
+      "ApproveTransaction"
+     ],
+     "moved": false,
+     "kind": "propose"
+    },
+    "49SdcQRLdGHsynG4JcjtgPMAwjFoPnPoQjFvCuWD2bNukue7uJKy1CT613A8Zp7H6wopVqnbEduQaqmx1yEQpASy": {
+     "t": 1794427442,
+     "signer": "zmNnYKpP24cPt66RsM1ahbyhHh2CyCRXNfewojmLp7y",
+     "ins": [
+      "ApproveTransaction"
+     ],
+     "moved": false,
+     "kind": "approve"
+    },
+    "3uhamfHoFLwwoFzdcFo1C5JHrgt8F8P59PBVpG9oBUSBNChMVr2oBPzumxCrpMTbeZvH9Unu1goSeHqWDjY7YSwu": {
+     "t": 1794429021,
+     "signer": "HDfEmEpHP4vdBqkrPbG4CnHRhmxizoSRw8byis9wVvW8",
+     "ins": [
+      "ApproveTransaction"
+     ],
+     "moved": false,
+     "kind": "approve"
+    },
+    "3sJthXP3w7Gd2f9gyWaERm9T6Aw9ifngpDLJqDgNry3dFfKEeKRknyTP2FGXazvRFtbBwyw3YvwWV7w1z1dd7XMS": {
+     "t": 1794429041,
+     "signer": "HDfEmEpHP4vdBqkrPbG4CnHRhmxizoSRw8byis9wVvW8",
+     "ins": [
+      "ExecuteTransaction"
+     ],
+     "moved": true,
+     "kind": "execute:transfer"
     }
    }
   },
@@ -7173,5 +7220,5 @@
    }
   }
  },
- "updatedAt": "2026-11-11T11:00:43.907Z"
+ "updatedAt": "2026-11-12T11:16:04.647Z"
 }
